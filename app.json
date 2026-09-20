@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "MyGirl",
+    "slug": "mygirl",
+    "scheme": "mygirl",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFF9FC",
+    "primaryColor": "#D83382",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "pl.mygirl.app" },
+    "android": { "package": "pl.mygirl.app", "adaptiveIcon": { "backgroundColor": "#FFF9FC" } },
+    "plugins": []
+  }
+}
