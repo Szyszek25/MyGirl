@@ -10,7 +10,7 @@ npx expo install --check
 npx expo start --tunnel
 ```
 
-Jeśli `expo install --check` zgłasza konflikt wersji, dopasuj zależności do zainstalowanego SDK przez `npx expo install --fix` i powtórz sprawdzenie. Kod nie został jeszcze przetestowany na urządzeniu ani w Expo Snack.
+Jeśli `expo install --check` zgłasza konflikt wersji, użyj `npx expo install --fix` i powtórz sprawdzenie. Na Androidzie wersja Expo Go musi obsługiwać SDK 57. **Na iPhonie Expo Go dostępne w App Store kończy się na SDK 54: projekt SDK 57 należy sprawdzać w development build (EAS), nie zakładać, że App Store Expo Go go uruchomi.** Kod nie został jeszcze uruchomiony na urządzeniu ani w Snack.
 
 ## Architektura
 
