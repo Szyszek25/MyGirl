@@ -4,7 +4,8 @@ import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@exp
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
 import {Ionicons} from '@expo/vector-icons';
 import Onboarding from './src/Onboarding';
-import {DiscoverScreen,CommunityScreen,GroupsScreen,ChatsScreen,ProfileScreen} from './src/screens';
+import {DiscoverScreen,CommunityScreen,ChatsScreen,ProfileScreen} from './src/screens';
+import ClubsMeetupsScreen from './src/ClubsMeetupsScreen';
 import {ReportForm,SafetyCenter} from './src/Safety';
 import {initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
@@ -30,7 +31,7 @@ export default function App(){
   const content=reportTarget?
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
     safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
-    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Grupy':<GroupsScreen onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<ProfileScreen account={account} onSafety={()=>setSafetyOpen(true)}/>})[tab];
+    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Grupy':<ClubsMeetupsScreen key={session} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<ProfileScreen account={account} onSafety={()=>setSafetyOpen(true)}/>})[tab];
   return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><View style={{flex:1}}>{content}</View>{!reportTarget&&!safetyOpen&&<View style={s.tabBar}>{tabs.map(item=><Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={item.key} accessibilityState={{selected:tab===item.key}} onPress={()=>setTab(item.key)} style={s.tab}><Ionicons name={tab===item.key?item.active:item.icon} size={23} color={tab===item.key?c.pink:c.muted}/><Typography style={[s.tabText,tab===item.key&&{color:c.pink,fontFamily:f.bold}]}>{item.key}</Typography></Pressable>)}</View>}</SafeAreaView>;
 }
 const s=StyleSheet.create({safe:{flex:1,backgroundColor:c.canvas},tabBar:{backgroundColor:c.white,borderTopWidth:1,borderColor:c.line,flexDirection:'row',paddingTop:sp.md,paddingBottom:Platform.OS==='android'?sp.md:sp.sm,paddingHorizontal:sp.xs},tab:{flex:1,alignItems:'center',justifyContent:'center',gap:4,minHeight:48},tabText:{fontSize:10,color:c.muted,fontFamily:f.semibold}});
