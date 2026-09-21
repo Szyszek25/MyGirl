@@ -9,6 +9,7 @@ const names = [
   'MYGIRL_FRESH_INSTALL.sql',
   'AFTER_FRESH_INSTALL_004_STORAGE_WAITLIST.sql',
   'AFTER_FRESH_INSTALL_005_HARDENING_LEGAL.sql',
+  'AFTER_FRESH_INSTALL_006_CLUBS_MEETUPS_REALTIME.sql',
 ];
 const chunks = names.map(name => {
   const path = resolve(root, 'supabase', name);
@@ -23,7 +24,7 @@ const chunks = names.map(name => {
 const output = resolve(root, 'supabase', 'MYGIRL_COMPLETE_INSTALL.sql');
 const text = [
   '-- MyGirl single-transaction install. NEW, EMPTY Supabase project only.',
-  '-- Generated from 001-equivalent fresh schema + modules 004 + 005.',
+  '-- Generated from fresh schema + modules 004, 005, 006 (clubs/meetups/chat dedupe).',
   '-- Do not run historical migrations 001-003 separately or run on MyCampus.',
   '-- Not automatically tested or deployed. Review all SQL and execute exactly once.',
   'BEGIN;',
