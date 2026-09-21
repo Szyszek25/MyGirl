@@ -1,6 +1,6 @@
--- MyGirl: apply ONLY to the new MyGirl Supabase project, after migrations 001 and 002.
--- Not executed remotely. All user posts start PENDING and are invisible to other members
--- until reviewed by the service-side moderation process; no client approval capability.
+-- MyGirl: apply ONLY to a new MyGirl Supabase project after migrations 001 and 002.
+-- Not executed remotely. New posts are PENDING and only visible to their author until
+-- reviewed by a trusted service-side moderation process; clients cannot approve.
 create table public.posts (
   id uuid primary key default gen_random_uuid(),
   author_id uuid not null references public.profiles(id) on delete cascade,
@@ -11,8 +11,6 @@ create table public.posts (
 create index posts_approved_feed_idx on public.posts(created_at desc) where moderation_status = 'approved';
 create index posts_author_idx on public.posts(author_id, created_at desc);
 alter table public.posts enable row level security;
--- Authors can see their own submissions and deletion state; everyone else sees reviewed
--- posts only, and only if the author is discoverable and neither side is blocked.
 create policy posts_select on public.posts for select to authenticated using (
   author_id = (select auth.uid()) or (
     moderation_status = 'approved'
@@ -25,16 +23,17 @@ create policy posts_insert_own on public.posts for insert to authenticated
   with check (author_id = (select auth.uid()) and moderation_status = 'pending');
 create policy posts_delete_own on public.posts for delete to authenticated
   using (author_id = (select auth.uid()));
--- No UPDATE policy: users cannot approve/reject posts, change authors or alter content
--- after moderation. A separate server-side moderator using service_role may review.
+-- No UPDATE policy: only a protected server-side moderator using service_role
+-- can approve/reject content. A real moderation workflow is REQUIRED pre-launch.
 
--- One report row targets exactly one profile OR one post. Reporter identity is fixed
--- by RLS and report status cannot be changed by app clients.
+-- Reports are private. A report references exactly one existing profile or post.
+-- Cascade reports when a target is deleted, avoiding orphaned private content and
+-- maintaining the exactly-one-target constraint. Establish retention rules pre-launch.
 create table public.reports (
   id uuid primary key default gen_random_uuid(),
   reporter_id uuid not null references auth.users(id) on delete cascade,
-  target_profile_id uuid references public.profiles(id) on delete set null,
-  target_post_id uuid references public.posts(id) on delete set null,
+  target_profile_id uuid references public.profiles(id) on delete cascade,
+  target_post_id uuid references public.posts(id) on delete cascade,
   reason text not null check (reason in ('harassment','hate','sexual','spam','impersonation','other')),
   details text check (char_length(details) <= 1000),
   status text not null default 'open' check (status in ('open','reviewing','resolved','dismissed')),
@@ -58,12 +57,12 @@ create policy reports_insert_own on public.reports for insert to authenticated
   );
 create policy reports_read_own on public.reports for select to authenticated
   using (reporter_id = (select auth.uid()));
--- No direct UPDATE/DELETE policies. Moderation queue is accessible only on the server
--- with service_role. Protect that key; NEVER ship it in the Expo bundle.
+-- No client UPDATE/DELETE policies. The server-only moderation queue needs an
+-- actual operator, response times and abuse handling before opening registration.
+-- The service_role key MUST NEVER be bundled into a React Native application.
 
--- Profile deletion through auth.admin.deleteUser() cascades profiles -> posts,
--- interests, blocks and friendship requests; reports by this account cascade too.
--- Account deletion MUST run on an authenticated server endpoint, revoke Apple tokens
--- when applicable, and remove all owned Storage objects before deleting auth.users.
--- Confirm retention rules, audit reports referencing deleted targets and test with
--- two authenticated users before opening registration.
+-- auth.admin.deleteUser() cascades profiles -> posts, interests, blocks and
+-- invitations; reports made by this account cascade too. Account deletion MUST
+-- run on an authenticated server endpoint, remove any owned Storage objects,
+-- revoke Apple sign-in tokens where applicable and communicate retention rules.
+-- Test RLS and deletion using two different authenticated users before rollout.
