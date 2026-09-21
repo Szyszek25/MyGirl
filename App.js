@@ -28,10 +28,17 @@ export default function App(){
   };
   if(!loaded)return <View style={{flex:1,backgroundColor:c.canvas}}/>;
   if(!account)return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={setAccount}/></SafeAreaView>;
+  const clubsVisible=tab==='Grupy'&&!reportTarget&&!safetyOpen;
   const content=reportTarget?
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
     safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
-    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Grupy':<ClubsMeetupsScreen key={session} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<ProfileScreen account={account} onSafety={()=>setSafetyOpen(true)}/>})[tab];
-  return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><View style={{flex:1}}>{content}</View>{!reportTarget&&!safetyOpen&&<View style={s.tabBar}>{tabs.map(item=><Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={item.key} accessibilityState={{selected:tab===item.key}} onPress={()=>setTab(item.key)} style={s.tab}><Ionicons name={tab===item.key?item.active:item.icon} size={23} color={tab===item.key?c.pink:c.muted}/><Typography style={[s.tabText,tab===item.key&&{color:c.pink,fontFamily:f.bold}]}>{item.key}</Typography></Pressable>)}</View>}</SafeAreaView>;
+    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<ProfileScreen account={account} onSafety={()=>setSafetyOpen(true)}/>})[tab];
+  return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
+    <View style={{flex:1}}>
+      <View style={{flex:1,display:clubsVisible?'flex':'none'}}><ClubsMeetupsScreen key={session} onReport={setReportTarget}/></View>
+      {!clubsVisible&&<View style={{flex:1}}>{content}</View>}
+    </View>
+    {!reportTarget&&!safetyOpen&&<View style={s.tabBar}>{tabs.map(item=><Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={item.key} accessibilityState={{selected:tab===item.key}} onPress={()=>setTab(item.key)} style={s.tab}><Ionicons name={tab===item.key?item.active:item.icon} size={23} color={tab===item.key?c.pink:c.muted}/><Typography style={[s.tabText,tab===item.key&&{color:c.pink,fontFamily:f.bold}]}>{item.key}</Typography></Pressable>)}</View>}
+  </SafeAreaView>;
 }
 const s=StyleSheet.create({safe:{flex:1,backgroundColor:c.canvas},tabBar:{backgroundColor:c.white,borderTopWidth:1,borderColor:c.line,flexDirection:'row',paddingTop:sp.md,paddingBottom:Platform.OS==='android'?sp.md:sp.sm,paddingHorizontal:sp.xs},tab:{flex:1,alignItems:'center',justifyContent:'center',gap:4,minHeight:48},tabText:{fontSize:10,color:c.muted,fontFamily:f.semibold}});
