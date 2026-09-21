@@ -1,28 +1,33 @@
 # MyGirl 🌸
 
-Mobilna aplikacja społecznościowa dla dziewczyn w Polsce — **prototyp Expo Go**.
+Mobilny prototyp społecznościowy dla dziewczyn w Polsce, zbudowany w Expo / React Native. **To nie jest jeszcze usługa produkcyjna ani aplikacja opublikowana w App Store.** Wszystkie osoby, wpisy, czaty i grupy są fikcyjnymi danymi demonstracyjnymi.
 
 ## Uruchomienie
 
-Wymagany Node.js 22.13+ i zalogowana aplikacja Expo Go na telefonie.
-
 ```bash
 npm install
-npx expo install --fix
+npx expo install --check
 npx expo start --tunnel
 ```
 
-Zeskanuj kod QR w Expo Go (Android) lub aparatem iPhone'a. `--tunnel` pomaga przy różnych sieciach.
+Jeśli `expo install --check` zgłasza konflikt wersji, dopasuj zależności do zainstalowanego SDK przez `npx expo install --fix` i powtórz sprawdzenie. Kod nie został jeszcze przetestowany na urządzeniu ani w Expo Snack.
 
-## Co działa
+## Architektura
 
-- Ekran powitalny z wyborem miasta i imienia.
-- Odkrywanie przykładowych profili, filtr miasta i zainteresowań, lokalne polubienia.
-- Grupy tematyczne, przykładowe wydarzenia i ekran profilu.
-- Nawigacja między czterema zakładkami.
+- `App.js` — główny przepływ i pięć zakładek.
+- `src/theme.js` — **jedyne miejsce** z paletą, czcionkami, rozmiarami, odstępami, promieniami i cieniem.
+- `src/ui.js` — współdzielone Typography, Button, Field, Chip, Surface, PageHeading.
+- `src/Onboarding.js` — siedem tradycyjnych kroków: wstęp, cel, miasto, zainteresowania, imię, zdjęcie (jeszcze niedostępne), informacja o demonstracji.
+- `src/screens.js` — modułowe ekrany: Odkrywaj, Social, Grupy, Czaty, Profil.
+- `src/data.js` — wyłącznie jawnie opisane fikcyjne dane i zewnętrzne ilustracyjne zdjęcia.
+- `eas.json` — szablony profili EAS; `APP_STORE_CHECKLIST.md` — lista blokad przed publikacją.
 
-**Ważne:** to lokalny, klikalny prototyp. Konta, wydarzenia i grupy są fikcyjnymi danymi demonstracyjnymi; brak backendu, prawdziwej weryfikacji, wiadomości, logowania, przechowywania danych i rzeczywistych zaproszeń. Nie publikuj jako działającej sieci społecznościowej przed dodaniem autentykacji, moderacji, zgłoszeń, blokowania użytkowników i ochrony danych.
+## Co działa w prototypie
 
-## Stack
+Onboarding, filtrowanie miasta, swipe i lokalne polubienia, tworzenie demonstracyjnych wpisów, dołączanie do grup, symulowane czaty oraz profil. Stan żyje wyłącznie w pamięci. Zdjęcia ładują się z internetu i mogą być niedostępne offline.
 
-Expo SDK 57 (stabilny), React Native, JavaScript. Projekt bez dodatkowych natywnych modułów — uruchamiany w Expo Go.
+## Ważne ograniczenia
+
+Brak logowania, backendu, prawdziwych kont, weryfikacji, przesyłania zdjęć, powiadomień, moderacji, zgłoszeń i trwałej historii. Nie przedstawiaj demonstracyjnych funkcji jako rzeczywistych. Dolne zakładki nadal mają lekką nawigację w React Native; przejście na React Navigation / Expo Router i kontrola natywnych safe areas są na liście przed wdrożeniem.
+
+Przed wysłaniem do App Store wykonaj `APP_STORE_CHECKLIST.md`; zweryfikuj pakiety pod SDK, bundle ID, prawa do zdjęć, prywatność i realny system kont. Nie wykonano jeszcze buildu ani publikacji.
