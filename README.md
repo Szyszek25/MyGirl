@@ -1,8 +1,23 @@
 # MyGirl 🌸
 
-Mobilny prototyp społecznościowy dla dziewczyn w Polsce, zbudowany w Expo / React Native. **To nie jest jeszcze usługa produkcyjna ani aplikacja opublikowana w App Store.** Wszystkie osoby, wpisy, czaty i grupy są fikcyjnymi danymi demonstracyjnymi.
+MyGirl — projekt aplikacji społecznościowej dla pełnoletnich dziewczyn w Polsce. Repo zawiera **prototyp Expo / React Native**, polską stronę przedpremierową oraz schemat Supabase. Nie jest to jeszcze produkcyjna usługa ani aplikacja w App Store; profile, posty, grupy i rozmowy w aktualnym UI są demonstracyjne.
 
-## Uruchomienie
+## Najważniejsze pliki
+
+- [Strona internetowa / lista oczekujących](website/index.html) — duże nagłówki, różowy design, responsywny HTML, dwuetapowy e-mail OTP; formularz celowo nieaktywny przed konfiguracją i zatwierdzeniem dokumentów.
+- [Instrukcja wdrożenia strony](website/README.md) — rzeczywiste kroki konfiguracji, legal i weryfikacji.
+- [Architektura i bezpieczeństwo](ARCHITECTURE_SECURITY.md) — tabele, loginy, RLS, buckety, zdjęcia, zgody, konta, moderacja i testy.
+- [Główny schemat świeżej bazy](supabase/MYGIRL_FRESH_INSTALL.sql).
+- [004: Storage i zapisy](supabase/AFTER_FRESH_INSTALL_004_STORAGE_WAITLIST.sql).
+- [005: hardening i wersje prawne](supabase/AFTER_FRESH_INSTALL_005_HARDENING_LEGAL.sql).
+- [Generator jednego pliku SQL](scripts/build-full-sql.mjs): `node scripts/build-full-sql.mjs` utworzy `supabase/MYGIRL_COMPLETE_INSTALL.sql` z trzech modułów w jednej transakcji. **W repo nie ma jeszcze wygenerowanego pliku; najpierw uruchom skrypt.**
+- [Lista wymagań App Store](APP_STORE_CHECKLIST.md).
+
+## Jak utworzyć NOWĄ bazę
+
+W nowym, pustym projekcie Supabase uruchom moduły SQL w kolejności: główny `MYGIRL_FRESH_INSTALL.sql` → 004 → 005. Alternatywnie uruchom generator i użyj **wyłącznie** wygenerowanego `MYGIRL_COMPLETE_INSTALL.sql` (nie obu metod). Historyczne migracje 001–003 są zastąpione przez plik główny — nie uruchamiaj ich ponownie. **Nie wykonuj niczego na MyCampus**. Migracje nie zostały przetestowane ani wykonane na zdalnej bazie.
+
+## Aplikacja Expo (demo)
 
 ```bash
 npm install
@@ -10,24 +25,12 @@ npx expo install --check
 npx expo start --tunnel
 ```
 
-Jeśli `expo install --check` zgłasza konflikt wersji, użyj `npx expo install --fix` i powtórz sprawdzenie. Na Androidzie wersja Expo Go musi obsługiwać SDK 57. **Na iPhonie Expo Go dostępne w App Store kończy się na SDK 54: projekt SDK 57 należy sprawdzać w development build (EAS), nie zakładać, że App Store Expo Go go uruchomi.** Kod nie został jeszcze uruchomiony na urządzeniu ani w Snack.
+Jeśli `expo install --check` zgłasza konflikt wersji, zweryfikuj SDK i zależności z oficjalnym Expo, dopiero wtedy użyj `npx expo install --fix`. Test na urządzeniu i build iOS nie zostały jeszcze wykonane; sprawdź kompatybilność Expo Go z używanym SDK.
 
-## Architektura
+- `App.js` — główny przepływ, pięć demonstracyjnych zakładek.
+- `src/theme.js` — centralne tokeny: paleta, fonty, typografia, spacing, promienie, cienie.
+- `src/ui.js` — współdzielone komponenty.
+- `src/Onboarding.js` — tradycyjny onboarding (zdjęcie jeszcze niewdrożone).
+- `src/screens.js`, `src/Safety.js`, `src/data.js` — ekrany, demonstracyjne funkcje bezpieczeństwa, fikcyjne dane.
 
-- `App.js` — główny przepływ i pięć zakładek.
-- `src/theme.js` — **jedyne miejsce** z paletą, czcionkami, rozmiarami, odstępami, promieniami i cieniem.
-- `src/ui.js` — współdzielone Typography, Button, Field, Chip, Surface, PageHeading.
-- `src/Onboarding.js` — siedem tradycyjnych kroków: wstęp, cel, miasto, zainteresowania, imię, zdjęcie (jeszcze niedostępne), informacja o demonstracji.
-- `src/screens.js` — modułowe ekrany: Odkrywaj, Social, Grupy, Czaty, Profil.
-- `src/data.js` — wyłącznie jawnie opisane fikcyjne dane i zewnętrzne ilustracyjne zdjęcia.
-- `eas.json` — szablony profili EAS; `APP_STORE_CHECKLIST.md` — lista blokad przed publikacją.
-
-## Co działa w prototypie
-
-Onboarding, filtrowanie miasta, swipe i lokalne polubienia, tworzenie demonstracyjnych wpisów, dołączanie do grup, symulowane czaty oraz profil. Stan żyje wyłącznie w pamięci. Zdjęcia ładują się z internetu i mogą być niedostępne offline.
-
-## Ważne ograniczenia
-
-Brak logowania, backendu, prawdziwych kont, weryfikacji, przesyłania zdjęć, powiadomień, moderacji, zgłoszeń i trwałej historii. Nie przedstawiaj demonstracyjnych funkcji jako rzeczywistych. Dolne zakładki nadal mają lekką nawigację w React Native; przejście na React Navigation / Expo Router i kontrola natywnych safe areas są na liście przed wdrożeniem.
-
-Przed wysłaniem do App Store wykonaj `APP_STORE_CHECKLIST.md`; zweryfikuj pakiety pod SDK, bundle ID, prawa do zdjęć, prywatność i realny system kont. Nie wykonano jeszcze buildu ani publikacji.
+**Przed publicznym uruchomieniem:** realne logowanie i bezpieczne sesje, integracja aplikacji z backendem, prawa do zdjęć, moderacja, kompletna obsługa zgłoszeń i blokad, faktyczne usuwanie konta, finalne polityka prywatności/regulamin, testy RLS i urządzeń, TestFlight, podpisanie i zgłoszenie do App Store. Nie przedstawiać demo jako aktywnej społeczności.
