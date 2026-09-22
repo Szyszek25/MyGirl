@@ -1,11 +1,11 @@
 import React from 'react';
 import {Image,ScrollView,StyleSheet,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
-import {colors as c,space as sp,fonts as f,radii as r} from './theme';
+import {colors as c,space as sp,radii as r} from './theme';
 import {Button,Chip,PageHeading,Surface,Typography} from './ui';
 import {PROFILE_PROMPTS} from './Onboarding';
 
-export default function NativeProfile({account,onSafety}){
+export default function NativeProfile({account,onSafety,onPartner}){
   return <ScrollView contentContainerStyle={s.page}>
     <PageHeading kicker="MOJA PRZESTRZEŃ" title="Twój profil."/>
     <Surface style={s.head}>
@@ -17,6 +17,7 @@ export default function NativeProfile({account,onSafety}){
     <Surface><Typography variant="subtitle" style={s.title}>Po co tu jestem</Typography><Typography>{account.goal}</Typography></Surface>
     <Surface><Typography variant="subtitle" style={s.title}>Moje zainteresowania</Typography><View style={s.wrap}>{(account.interests||[]).map(interest=><Chip key={interest} label={interest}/>)}</View></Surface>
     {Object.entries(account.answers||{}).filter(([,answer])=>typeof answer==='string'&&answer.trim()).map(([key,answer])=><Surface key={key}><Typography variant="subtitle" style={s.title}>{PROFILE_PROMPTS[Number(key)]||'Moja odpowiedź'}</Typography><Typography>{answer}</Typography></Surface>)}
+    <Surface><Typography variant="subtitle" style={s.title}>Dla miejsc i organizacji</Typography><Typography style={{color:c.muted,marginBottom:sp.base}}>Przygotuj wizytówkę kawiarni, koła lub inicjatywy. Na razie szkic zapisuje się tylko na telefonie.</Typography><Button title="Panel organizacji i biznesu" icon="storefront-outline" onPress={onPartner}/></Surface>
     <Button title="Bezpieczeństwo i moje dane" icon="shield-checkmark-outline" onPress={onSafety}/>
     <Typography variant="caption" style={s.note}>Zdjęcie i profil pozostają lokalnie w aplikacji. Wpisy i wiadomości na pozostałych ekranach są jeszcze symulacją, nie kontaktem z prawdziwymi osobami.</Typography>
   </ScrollView>;
