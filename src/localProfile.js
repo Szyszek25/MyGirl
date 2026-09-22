@@ -1,47 +1,61 @@
-// Device-local prototype storage. NOT authentication or Supabase; do not store secrets here.
+// Device-local prototype only. Never store tokens, credentials or secret keys here.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {File,Paths} from 'expo-file-system';
 import {clearCached} from './cache';
 
 const KEY='mygirl:local-profile:v1';
 const AVATAR='mygirl-avatar.jpg';
+const TEMP='mygirl-avatar-next.jpg';
+const avatar=()=>new File(Paths.document,AVATAR);
 
 export async function loadLocalProfile(){
   const raw=await AsyncStorage.getItem(KEY);
   if(!raw)return null;
   try{
-    const parsed=JSON.parse(raw);
-    if(!parsed||typeof parsed.name!=='string'||!Array.isArray(parsed.interests))return null;
-    const savedPhoto=new File(Paths.document,AVATAR);
-    return {...parsed,photo:savedPhoto.exists?savedPhoto.uri:null};
+    const profile=JSON.parse(raw);
+    if(!profile||typeof profile.name!=='string'||!Array.isArray(profile.interests))return null;
+    const file=avatar();
+    // An explicit removal must win over a leftover photo file. Old saved profiles
+    // did not have this flag; retain compatibility with their stored photo.
+    const hasPhoto=profile.hasPhoto===true||(profile.hasPhoto===undefined&&file.exists);
+    return {...profile,photo:hasPhoto&&file.exists?file.uri:null};
   }catch{return null;}
 }
 
 export async function saveLocalProfile(profile){
-  const photoUri=profile.photo;
-  let persistedPhoto=null;
-  if(photoUri){
-    const source=new File(photoUri);
-    if(!source.exists)throw new Error('Nie udało się odczytać wybranego zdjęcia. Wybierz je ponownie.');
-    const destination=new File(Paths.document,AVATAR);
-    const temporary=new File(Paths.document,'mygirl-avatar-next.jpg');
+  if(!profile||typeof profile.name!=='string'||profile.name.trim().length<2)
+    throw new Error('Imię musi mieć co najmniej 2 znaki.');
+  const file=avatar();
+  const photo=profile.photo||null;
+  const replacing=!!photo&&photo!==file.uri;
+  const temporary=new File(Paths.document,TEMP);
+  if(replacing){
+    const source=new File(photo);
+    if(!source.exists)throw new Error('Wybrane zdjęcie nie istnieje. Wybierz je ponownie.');
     if(temporary.exists)temporary.delete();
     await source.copy(temporary);
-    if(destination.exists)destination.delete();
-    await temporary.move(destination);
-    persistedPhoto=destination.uri;
   }
-  const clean={...profile,photo:null}; // Image is a separate file, never a base64 value in AsyncStorage.
-  await AsyncStorage.setItem(KEY,JSON.stringify(clean));
-  return {...clean,photo:persistedPhoto};
+  try{
+    // Never copy a saved avatar onto itself when editing only text.
+    if(replacing){
+      if(file.exists)file.delete();
+      await temporary.move(file);
+    }
+    const clean={...profile,name:profile.name.trim(),photo:null,hasPhoto:!!photo};
+    await AsyncStorage.setItem(KEY,JSON.stringify(clean));
+    if(!photo&&file.exists)file.delete();
+    return {...clean,photo:photo?file.uri:null};
+  }finally{
+    if(temporary.exists)temporary.delete();
+  }
 }
 
 export async function deleteLocalProfile(){
   await AsyncStorage.removeItem(KEY);
-  for(const name of [AVATAR,'mygirl-avatar-next.jpg']){
+  // A new user on the same device must never inherit an organization's draft.
+  await clearCached('partner-draft');
+  for(const name of [AVATAR,TEMP]){
     const file=new File(Paths.document,name);
     if(file.exists)file.delete();
   }
-  // Erase organization drafts together with the local user profile.
-  await clearCached('partner-draft');
 }
