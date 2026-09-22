@@ -1,31 +1,32 @@
-# MyGirl — aplikacja na telefon (Expo / React Native)
+# MyGirl — mobilna aplikacja Expo / React Native
 
-## Wykonane w aplikacji mobilnej, wersja 0.4.0
+## Stan: wersja kodu 0.4.1, NIE wydanie produkcyjne
 
-- `App.js`: wczytuje lokalny profil przy ponownym uruchomieniu, zapisuje wynik onboardingu na urządzeniu, resetuje go z poziomu bezpieczeństwa.
-- `src/Onboarding.js`: 8 ekranów, wybór celu, miasta, zainteresowań, imienia, pytań Gen Z, **rzeczywisty natywny wybór zdjęcia z galerii** i deklaracja 18+.
-- `src/NativeProfile.js`: wyświetla zdjęcie, odpowiedzi i zainteresowania.
-- `src/localProfile.js`: metadane profilu przez AsyncStorage, zdjęcie kopiowane do katalogu dokumentów aplikacji przez expo-file-system, kasowanie lokalnego profilu i zdjęcia.
-- `app.json`: opis dostępu do galerii przez plugin expo-image-picker, brak potrzeby uprawnień mikrofonu i aparatu w tej funkcji.
+Zmiany dotyczą wyłącznie aplikacji telefonicznej w `App.js` i `src/`, a nie przeglądarkowego playgroundu.
 
-## Rozróżnienie: lokalny profil ≠ prawdziwe konto
+### Mobilny przepływ
+- `App.js`: `SafeAreaProvider` + `SafeAreaView` z `react-native-safe-area-context`; dolny pasek uwzględnia `useSafeAreaInsets().bottom`, a ekrany pełnoekranowe i onboarding uwzględniają dolny bezpieczny obszar.
+- `src/ShiftTransition.js`: krótka animacja przesunięcia i zanikania przy zmianie zakładki; uwzględnia systemowe ograniczenie animacji (`reduce motion`). To animacja nawigacji, nie mechanika sprintu z dołączonego kodu gry MyCampus.
+- `src/DiscoverScreen.js`: natywny ekran odkrywania, `expo-image` z `memory-disk`, prefetch następnego zdjęcia na dysk, zgodny sterownik animacji JS dla gestów PanResponder. Fotografie profili nadal są ilustracjami, nie rzeczywistymi użytkowniczkami.
+- `src/Onboarding.js`, `src/NativeProfile.js`, `src/localProfile.js`: lokalny onboarding z pytaniami Gen Z, galeria urządzenia, zapis lokalnego zdjęcia i danych. Brak prawdziwego logowania.
+- `src/PartnerPanel.js`: dostępny przez Profil → Panel organizacji i biznesu. Wizytówka kawiarni, organizacji lub koła, lokalna propozycja i podgląd. **Nie publikuje ofert i nie tworzy kont firmowych.**
+- `src/cache.js`: wersjonowany i ograniczony rozmiarem cache niepoufnych szkiców z czasem wygaśnięcia; szkic partnera wygasa najpóźniej po 7 dniach i jest kasowany wraz z lokalnym profilem. Nie przechowuj tu tokenów, wiadomości, zdjęć ani wrażliwych danych.
 
-To **nie jest** internetowa rejestracja. Nie ma jeszcze nowego, skonfigurowanego projektu Supabase MyGirl, nie podłączono Supabase Auth ani Storage. Wybranie zdjęcia nie przesyła go na serwer. Onboarding i profil są natywne, ale pozostałe ekrany nadal posługują się danymi przykładowymi, a blokady, wiadomości i zgłoszenia są demonstracyjne. Deklaracja 18+ nie jest weryfikacją wieku. AsyncStorage nie szyfruje metadanych — nie zapisywać w nim tokenów ani sekretów.
+### Rozszerzenie modelu danych
+`supabase/AFTER_FRESH_INSTALL_007_PARTNERS.sql` projektuje organizacje, członkostwa z rolami, oferty i zgłoszenia partnerów. W nowej bazie uruchamiaj po 004–006 albo użyj generatora `node scripts/build-full-sql.mjs` dla PUSTEGO, dedykowanego projektu MyGirl. Nie uruchamiaj generatora SQL na MyCampus. **Migracja 007 nie była wykonana i polityki nie przeszły testów integracyjnych.** Własność organizacji, nadawanie ról i moderacja muszą działać przez zaufany backend, nie telefon.
 
-## Co musi powstać, zanim aplikacja będzie usługą online
-
-1. Nowy osobny projekt Supabase MyGirl, migracje SQL przetestowane dla co najmniej dwóch użytkowników, poprawne reguły Storage i RLS.
-2. Supabase Auth z zarządzaniem sesją, bezpieczny upload zdjęć, usuwanie plików i kont po stronie serwera.
-3. Prawdziwy feed, grupy, uczestniczki i czaty z kontrolą blokad w bazie i sprawną moderacją.
-4. Opublikowane dokumenty prawne, kontakt wsparcia, procedura obsługi zgłoszeń, ochrona danych.
-5. Testy Expo/Metro na urządzeniach, uruchomienie `npm install && npx expo install --check && npx expo-doctor`, test restartu i czyszczenia zdjęć, EAS i TestFlight. **Nie przeprowadzono jeszcze tych testów ani buildu.**
-
-### Uruchomienie lokalnie
+### Testy
+`npm test` uruchamia pięć testów jednostkowych cache na podmienionym AsyncStorage. Lokalny test Node na kopii tego samego modułu przeszedł 5/5. **To nie jest test aplikacji na urządzeniu ani test pełnego repozytorium.** Brak sieci do pobrania npm i brak środowiska iOS/Android w sesji — `npm install`, `expo-doctor`, Metro, EAS i TestFlight pozostają do wykonania.
 
 ```bash
 npm install
-npx expo install --check
+npm test
+npm run check
 npx expo start
 ```
 
-W razie zmiany uprawnień w konfiguracji potrzebny jest nowy development build; samo OTA nie zmienia natywnego manifestu uprawnień.
+Zweryfikuj na iPhonie i Androidzie: notch/status bar, dolny wskaźnik gestów, klawiaturę, przejścia przy Reduce Motion, dwukrotny szybki swipe, restart i usunięcie danych, cache po 7 dniach oraz formularz panelu. Po zmianie pakietów natywnych zbuduj nowy development build.
+
+## Blokady publikacji
+
+Nie ma jeszcze osobnego działającego Supabase MyGirl ani wdrożonego Auth/Storage, weryfikacji organizacji, moderacji, kont i wiadomości online, RLS przetestowanego z dwoma kontami, produkcyjnego usuwania konta, opublikowanych dokumentów prawnych ani zweryfikowanych testów na urządzeniach. Funkcji lokalnych nie przedstawiać jako produkcyjnych.
