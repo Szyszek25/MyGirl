@@ -1,6 +1,7 @@
 // Device-local prototype storage. NOT authentication or Supabase; do not store secrets here.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {File,Paths} from 'expo-file-system';
+import {clearCached} from './cache';
 
 const KEY='mygirl:local-profile:v1';
 const AVATAR='mygirl-avatar.jpg';
@@ -23,7 +24,6 @@ export async function saveLocalProfile(profile){
     const source=new File(photoUri);
     if(!source.exists)throw new Error('Nie udało się odczytać wybranego zdjęcia. Wybierz je ponownie.');
     const destination=new File(Paths.document,AVATAR);
-    // Copy to a safe temporary name before replacing the existing avatar.
     const temporary=new File(Paths.document,'mygirl-avatar-next.jpg');
     if(temporary.exists)temporary.delete();
     await source.copy(temporary);
@@ -42,4 +42,6 @@ export async function deleteLocalProfile(){
     const file=new File(Paths.document,name);
     if(file.exists)file.delete();
   }
+  // Erase organization drafts together with the local user profile.
+  await clearCached('partner-draft');
 }
