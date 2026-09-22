@@ -28,20 +28,20 @@ export function ReportForm({target,onCancel,onSave}){
 
 export function SafetyCenter({blockedIds,onUnblock,reports,onClose,onReset}){
   const blockedPeople=people.filter(p=>blockedIds.includes(p.id));
-  const confirmReset=()=>Alert.alert('Usunąć dane demonstracyjne?','Znikną imię, wybory z onboardingu, polubienia, blokady i zgłoszenia z bieżącej sesji. To nie usuwa konta Supabase, ponieważ nie ma jeszcze logowania ani prawdziwych kont.',[
+  const confirmReset=()=>Alert.alert('Usunąć lokalny profil?','Profil, zdjęcie i odpowiedzi znikną z pamięci tej aplikacji. Wpisy, blokady oraz zgłoszenia demonstracyjne zostaną wyczyszczone. Nie masz jeszcze konta Supabase do usunięcia.',[
     {text:'Anuluj',style:'cancel'},
-    {text:'Usuń dane demo',style:'destructive',onPress:onReset}
+    {text:'Usuń lokalne dane',style:'destructive',onPress:onReset}
   ]);
   return <ScrollView contentContainerStyle={s.page}>
     <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Wróć do profilu" style={{marginBottom:sp.base}}><Ionicons name="arrow-back" size={26} color={c.pink}/></Pressable>
     <PageHeading kicker="USTAWIENIA" title="Bezpieczeństwo."/>
     <Surface><Typography variant="subtitle">Zablokowane osoby</Typography>
       {blockedPeople.length===0?<Typography style={s.note}>Nie zablokowałaś nikogo.</Typography>:blockedPeople.map(p=><View key={p.id} style={s.row}><Typography style={{flex:1}}>{p.name}</Typography><Pressable accessibilityRole="button" accessibilityLabel={`Odblokuj ${p.name}`} onPress={()=>onUnblock(p.id)}><Typography style={{color:c.pink,fontFamily:f.bold}}>Odblokuj</Typography></Pressable></View>)}
-      <Typography variant="caption" style={s.note}>Blokowanie działa tylko w tej sesji prototypu. W wersji produkcyjnej musi być egzekwowane przez RLS.</Typography>
+      <Typography variant="caption" style={s.note}>Blokady działają tylko w tej sesji. Wersja online wymaga egzekwowania ich przez RLS.</Typography>
     </Surface>
-    <Surface><Typography variant="subtitle">Zgłoszenia demonstracyjne</Typography><Typography style={s.note}>{reports.length} zapisanych lokalnie. Żadne nie zostało wysłane ani rozpatrzone.</Typography></Surface>
-    <Surface><Typography variant="subtitle">Twoje konto i dane</Typography><Typography style={s.note}>Nie masz jeszcze konta MyGirl — projekt używa demonstracyjnych danych w pamięci.</Typography><Button title="Usuń dane demonstracyjne" secondary icon="trash-outline" onPress={confirmReset}/></Surface>
-    <Typography variant="caption" style={s.note}>Przed publikacją: rzeczywiste usuwanie konta i treści na serwerze, kontakt, polityka prywatności, filtrowanie treści oraz działająca moderacja. Nie są jeszcze dostępne.</Typography>
+    <Surface><Typography variant="subtitle">Zgłoszenia demonstracyjne</Typography><Typography style={s.note}>{reports.length} zapisanych w sesji. Żadne nie zostało wysłane ani rozpatrzone.</Typography></Surface>
+    <Surface><Typography variant="subtitle">Twój profil i dane</Typography><Typography style={s.note}>Imię, miasto, zainteresowania i odpowiedzi przechowujemy lokalnie na urządzeniu; zdjęcie zapisuje się jako plik aplikacji. To nie jest jeszcze konto online.</Typography><Button title="Usuń profil i dane z urządzenia" secondary icon="trash-outline" onPress={confirmReset}/></Surface>
+    <Typography variant="caption" style={s.note}>Przed publikacją musimy uruchomić rzeczywiste usuwanie konta na serwerze, kontakt, politykę prywatności, filtrowanie treści i działającą moderację.</Typography>
   </ScrollView>;
 }
 const s=StyleSheet.create({page:{flexGrow:1,padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas},note:{color:c.muted,marginTop:sp.sm,lineHeight:22},wrap:{flexDirection:'row',flexWrap:'wrap',marginBottom:sp.lg},input:{backgroundColor:c.white,borderColor:c.line,borderWidth:1,borderRadius:r.md,minHeight:110,padding:sp.base,marginBottom:sp.lg,textAlignVertical:'top',fontFamily:f.regular,color:c.ink},row:{flexDirection:'row',alignItems:'center',paddingVertical:sp.md,borderBottomWidth:1,borderBottomColor:c.line}});
