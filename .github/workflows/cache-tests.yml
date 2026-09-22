@@ -1,21 +1,25 @@
-name: Mobile cache unit tests
+name: Mobile storage regression tests
 on:
   push:
     branches: [main]
     paths:
       - 'src/cache.js'
+      - 'src/localProfile.js'
       - 'tests/cache.test.mjs'
+      - 'tests/localProfile.test.mjs'
       - 'package.json'
       - '.github/workflows/cache-tests.yml'
   pull_request:
     paths:
       - 'src/cache.js'
+      - 'src/localProfile.js'
       - 'tests/cache.test.mjs'
+      - 'tests/localProfile.test.mjs'
       - 'package.json'
       - '.github/workflows/cache-tests.yml'
   workflow_dispatch:
 jobs:
-  cache:
+  storage:
     runs-on: ubuntu-latest
     permissions:
       contents: read
