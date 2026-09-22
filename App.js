@@ -1,12 +1,14 @@
-import React,{useState} from 'react';
-import {Platform,Pressable,SafeAreaView,StatusBar,StyleSheet,View} from 'react-native';
+import React,{useEffect,useState} from 'react';
+import {Alert,Platform,Pressable,SafeAreaView,StatusBar,StyleSheet,View} from 'react-native';
 import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@expo-google-fonts/dm-sans';
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
 import {Ionicons} from '@expo/vector-icons';
 import Onboarding from './src/Onboarding';
-import {DiscoverScreen,CommunityScreen,ChatsScreen,ProfileScreen} from './src/screens';
+import NativeProfile from './src/NativeProfile';
+import {DiscoverScreen,CommunityScreen,ChatsScreen} from './src/screens';
 import ClubsMeetupsScreen from './src/ClubsMeetupsScreen';
 import {ReportForm,SafetyCenter} from './src/Safety';
+import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localProfile';
 import {initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
@@ -14,6 +16,7 @@ const tabs=[{key:'Odkrywaj',icon:'heart-outline',active:'heart'},{key:'Social',i
 export default function App(){
   const [loaded]=useFonts({DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold,PlayfairDisplay_700Bold});
   const [account,setAccount]=useState(null);
+  const [booting,setBooting]=useState(true);
   const [tab,setTab]=useState('Odkrywaj');
   const [blockedIds,setBlockedIds]=useState([]);
   const [reports,setReports]=useState([]);
@@ -21,18 +24,28 @@ export default function App(){
   const [safetyOpen,setSafetyOpen]=useState(false);
   const [posts,setPosts]=useState(initialPosts);
   const [session,setSession]=useState(0);
+  useEffect(()=>{
+    let alive=true;
+    loadLocalProfile().then(profile=>{if(alive)setAccount(profile);}).catch(()=>{
+      if(alive)Alert.alert('Błąd odczytu profilu','Nie udało się wczytać lokalnych danych.');
+    }).finally(()=>{if(alive)setBooting(false);});
+    return ()=>{alive=false;};
+  },[]);
+  const finishOnboarding=async profile=>{const saved=await saveLocalProfile(profile);setAccount(saved);};
   const block=id=>setBlockedIds(prev=>prev.includes(id)?prev:[...prev,id]);
-  const reset=()=>{
+  const reset=async()=>{
+    try{await deleteLocalProfile();}
+    catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
     setAccount(null);setTab('Odkrywaj');setBlockedIds([]);setReports([]);
     setReportTarget(null);setSafetyOpen(false);setPosts(initialPosts);setSession(v=>v+1);
   };
-  if(!loaded)return <View style={{flex:1,backgroundColor:c.canvas}}/>;
-  if(!account)return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={setAccount}/></SafeAreaView>;
+  if(!loaded||booting)return <View style={{flex:1,backgroundColor:c.canvas}}/>;
+  if(!account)return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={finishOnboarding}/></SafeAreaView>;
   const clubsVisible=tab==='Grupy'&&!reportTarget&&!safetyOpen;
   const content=reportTarget?
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
     safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
-    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<ProfileScreen account={account} onSafety={()=>setSafetyOpen(true)}/>})[tab];
+    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<NativeProfile account={account} onSafety={()=>setSafetyOpen(true)}/>})[tab];
   return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <View style={{flex:1}}>
       <View style={{flex:1,display:clubsVisible?'flex':'none'}}><ClubsMeetupsScreen key={session} onReport={setReportTarget}/></View>
