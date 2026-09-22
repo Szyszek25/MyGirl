@@ -1,0 +1,27 @@
+name: Mobile cache unit tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/cache.js'
+      - 'tests/cache.test.mjs'
+      - 'package.json'
+      - '.github/workflows/cache-tests.yml'
+  pull_request:
+    paths:
+      - 'src/cache.js'
+      - 'tests/cache.test.mjs'
+      - 'package.json'
+      - '.github/workflows/cache-tests.yml'
+  workflow_dispatch:
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
