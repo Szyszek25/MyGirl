@@ -6,25 +6,28 @@ import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
 
 const starterMeetings=[
-  {id:'m1',title:'Matcha + spacer po centrum',city:'Warszawa',when:'2026-09-27T17:30:00',place:'Śródmieście',description:'Najpierw matcha, potem luźny spacer po centrum. Bez spiny — poznajemy się na żywo.',spots:6,joined:4,host:'Maja',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88'},
-  {id:'m2',title:'Girls night + karaoke',city:'Warszawa',when:'2026-09-28T20:00:00',place:'Centrum',description:'Karaoke, drinki i luźny wieczór. Możesz przyjść sama — większość osób się nie zna.',spots:8,joined:5,host:'Natalia',photo:'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1400&q=88'},
-  {id:'m5',title:'Pilates + brunch',city:'Warszawa',when:'2026-10-03T11:00:00',place:'Mokotów',description:'Krótki pilates, potem brunch i kawa. Mała grupa, spokojny klimat.',spots:6,joined:3,host:'Klara',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1400&q=88'},
-  {id:'m6',title:'Vintage shopping + kawa',city:'Warszawa',when:'2026-10-04T13:00:00',place:'Praga',description:'Obchodzimy second handy, a potem siadamy na kawę i pokazujemy łupy.',spots:7,joined:4,host:'Daria',photo:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=1400&q=88'},
-  {id:'m7',title:'Kazimierz coffee walk',city:'Kraków',when:'2026-09-29T17:30:00',place:'Kazimierz',description:'Kawa i spacer po Kazimierzu. Dobre na pierwsze spotkanie bez wielkiego planowania.',spots:5,joined:3,host:'Ola',photo:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1400&q=88'},
-  {id:'m8',title:'Foto spacer nad Wisłą',city:'Kraków',when:'2026-10-03T16:00:00',place:'Bulwary Wiślane',description:'Bierz telefon albo aparat. Robimy zdjęcia i poznajemy się przy okazji.',spots:6,joined:4,host:'Sonia',photo:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1400&q=88'},
-  {id:'m3',title:'Pilates + brunch',city:'Wrocław',when:'2026-10-03T11:00:00',place:'Stare Miasto',description:'Pilates rano, potem brunch. Mała grupa i spokojny klimat.',spots:5,joined:3,host:'Julia',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1400&q=88'},
-  {id:'m9',title:'Wine bar girls night',city:'Wrocław',when:'2026-10-02T20:00:00',place:'Rynek',description:'Luźne wyjście na wino i rozmowy. Bez presji, bez zamkniętej ekipy.',spots:7,joined:5,host:'Nela',photo:'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1400&q=88'},
-  {id:'m10',title:'Brunch + vintage tour',city:'Poznań',when:'2026-10-04T12:00:00',place:'Jeżyce',description:'Brunch, potem kilka vintage shopów na Jeżycach.',spots:6,joined:4,host:'Kasia',photo:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1400&q=88'},
-  {id:'m4',title:'Book club + kawa',city:'Gdańsk',when:'2026-10-04T16:00:00',place:'Wrzeszcz',description:'Kawa i rozmowa o książce miesiąca. Nie musisz znać nikogo wcześniej.',spots:10,joined:7,host:'Sara',photo:'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=1400&q=88'},
-  {id:'m11',title:'Plaża + kawa na wynos',city:'Gdańsk',when:'2026-10-03T14:00:00',place:'Brzeźno',description:'Kawa na wynos i spacer plażą. Prosty plan na poznanie kilku osób.',spots:8,joined:5,host:'Natalia',photo:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1400&q=88'},
-  {id:'m12',title:'OFF Piotrkowska + koncert',city:'Łódź',when:'2026-10-02T19:00:00',place:'OFF Piotrkowska',description:'Najpierw coś zjemy, potem koncert i zobaczymy co dalej.',spots:7,joined:4,host:'Wiktoria',photo:'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1400&q=88'},
-  {id:'m13',title:'Kawa + spacer po Nikiszowcu',city:'Katowice',when:'2026-10-03T15:00:00',place:'Nikiszowiec',description:'Kawa, spacer i spokojne poznanie nowych osób.',spots:6,joined:3,host:'Dominika',photo:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1400&q=88'}
+  {id:'m1',category:'Kawa',title:'Matcha + spacer po centrum',city:'Warszawa',when:'2026-09-27T17:30:00',place:'Śródmieście',description:'Najpierw matcha, potem luźny spacer po centrum. Bez spiny — poznajemy się na żywo.',spots:6,joined:4,host:'Maja',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88'},
+  {id:'m2',category:'Wyjścia',title:'Girls night + karaoke',city:'Warszawa',when:'2026-09-28T20:00:00',place:'Centrum',description:'Karaoke, drinki i luźny wieczór. Możesz przyjść sama — większość osób się nie zna.',spots:8,joined:5,host:'Natalia',photo:'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1400&q=88'},
+  {id:'m5',category:'Sport',title:'Pilates + brunch',city:'Warszawa',when:'2026-10-03T11:00:00',place:'Mokotów',description:'Krótki pilates, potem brunch i kawa. Mała grupa, spokojny klimat.',spots:6,joined:3,host:'Klara',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1400&q=88'},
+  {id:'m6',category:'Moda',title:'Vintage shopping + kawa',city:'Warszawa',when:'2026-10-04T13:00:00',place:'Praga',description:'Obchodzimy second handy, a potem siadamy na kawę i pokazujemy łupy.',spots:7,joined:4,host:'Daria',photo:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=1400&q=88'},
+  {id:'m7',category:'Kawa',title:'Kazimierz coffee walk',city:'Kraków',when:'2026-09-29T17:30:00',place:'Kazimierz',description:'Kawa i spacer po Kazimierzu. Dobre na pierwsze spotkanie bez wielkiego planowania.',spots:5,joined:3,host:'Ola',photo:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1400&q=88'},
+  {id:'m8',category:'Spacer',title:'Foto spacer nad Wisłą',city:'Kraków',when:'2026-10-03T16:00:00',place:'Bulwary Wiślane',description:'Bierz telefon albo aparat. Robimy zdjęcia i poznajemy się przy okazji.',spots:6,joined:4,host:'Sonia',photo:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1400&q=88'},
+  {id:'m3',category:'Sport',title:'Pilates + brunch',city:'Wrocław',when:'2026-10-03T11:00:00',place:'Stare Miasto',description:'Pilates rano, potem brunch. Mała grupa i spokojny klimat.',spots:5,joined:3,host:'Julia',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1400&q=88'},
+  {id:'m9',category:'Wyjścia',title:'Wine bar girls night',city:'Wrocław',when:'2026-10-02T20:00:00',place:'Rynek',description:'Luźne wyjście na wino i rozmowy. Bez presji, bez zamkniętej ekipy.',spots:7,joined:5,host:'Nela',photo:'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1400&q=88'},
+  {id:'m10',category:'Jedzenie',title:'Brunch + vintage tour',city:'Poznań',when:'2026-10-04T12:00:00',place:'Jeżyce',description:'Brunch, potem kilka vintage shopów na Jeżycach.',spots:6,joined:4,host:'Kasia',photo:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1400&q=88'},
+  {id:'m4',category:'Książki',title:'Book club + kawa',city:'Gdańsk',when:'2026-10-04T16:00:00',place:'Wrzeszcz',description:'Kawa i rozmowa o książce miesiąca. Nie musisz znać nikogo wcześniej.',spots:10,joined:7,host:'Sara',photo:'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=1400&q=88'},
+  {id:'m11',category:'Spacer',title:'Plaża + kawa na wynos',city:'Gdańsk',when:'2026-10-03T14:00:00',place:'Brzeźno',description:'Kawa na wynos i spacer plażą. Prosty plan na poznanie kilku osób.',spots:8,joined:5,host:'Natalia',photo:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1400&q=88'},
+  {id:'m12',category:'Koncert',title:'OFF Piotrkowska + koncert',city:'Łódź',when:'2026-10-02T19:00:00',place:'OFF Piotrkowska',description:'Najpierw coś zjemy, potem koncert i zobaczymy co dalej.',spots:7,joined:4,host:'Wiktoria',photo:'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1400&q=88'},
+  {id:'m13',category:'Kawa',title:'Kawa + spacer po Nikiszowcu',city:'Katowice',when:'2026-10-03T15:00:00',place:'Nikiszowiec',description:'Kawa, spacer i spokojne poznanie nowych osób.',spots:6,joined:3,host:'Dominika',photo:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1400&q=88'}
 ];
+
+const meetingCategories=['Wszystkie','Kawa','Wyjścia','Sport','Spacer','Jedzenie','Książki','Koncert','Moda'];
 
 export default function MeetingsScreen({city='Warszawa',onReport}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
-  const data=useMemo(()=>starterMeetings.filter(item=>item.city===city),[city]);
+  const [category,setCategory]=useState('Wszystkie');
+  const data=useMemo(()=>starterMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[city,category]);
   const cityPeople=useMemo(()=>people.filter(p=>p.city===city),[city]);
 
   const toggle=id=>setJoined(prev=>prev.includes(id)?prev.filter(v=>v!==id):[...prev,id]);
@@ -37,6 +40,10 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
       </View>
       <View style={s.count}><Typography style={s.countText}>{data.length}</Typography></View>
     </View>
+
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScroll} contentContainerStyle={s.filters}>
+      {meetingCategories.map(item=><Pressable key={item} onPress={()=>setCategory(item)} style={[s.filterChip,category===item&&s.filterChipActive]}><Typography style={[s.filterChipText,category===item&&s.filterChipTextActive]}>{item}</Typography></Pressable>)}
+    </ScrollView>
 
     <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
       {data.map(item=>{
@@ -97,6 +104,12 @@ const s=StyleSheet.create({
   subtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},
   count:{minWidth:34,height:34,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center',paddingHorizontal:9},
   countText:{fontFamily:f.bold,fontSize:13,color:c.pink},
+  filterScroll:{flexGrow:0,flexShrink:0},
+  filters:{paddingHorizontal:sp.lg,paddingBottom:12,alignItems:'center'},
+  filterChip:{paddingHorizontal:14,paddingVertical:9,borderRadius:999,backgroundColor:c.white,borderWidth:1,borderColor:c.line,marginRight:8},
+  filterChipActive:{backgroundColor:c.pink,borderColor:c.pink},
+  filterChipText:{fontFamily:f.semibold,fontSize:12,color:c.ink},
+  filterChipTextActive:{color:c.white},
   list:{paddingHorizontal:sp.lg,paddingBottom:110,gap:10},
   card:{minHeight:92,backgroundColor:c.white,borderRadius:20,borderWidth:1,borderColor:c.line,padding:10,flexDirection:'row',alignItems:'center',gap:12},
   thumb:{width:74,height:74,borderRadius:16,backgroundColor:c.blush},
