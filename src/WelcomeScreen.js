@@ -1,9 +1,10 @@
 import React,{useState} from 'react';
-import {ImageBackground,KeyboardAvoidingView,Platform,Pressable,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,ImageBackground,KeyboardAvoidingView,Platform,Pressable,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useVideoPlayer,VideoView} from 'expo-video';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
+import {signInEmail,signInGoogle,signUpEmail} from './services/authApi';
 
 const HERO='https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
 const HERO_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
@@ -11,7 +12,32 @@ const HERO_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf5655
 export default function WelcomeScreen({onContinue,onBusiness}){
   const [emailMode,setEmailMode]=useState(false);
   const [email,setEmail]=useState('');
-  const valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const [password,setPassword]=useState('');
+  const [authMode,setAuthMode]=useState('signin');
+  const [busy,setBusy]=useState(false);
+  const valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())&&password.length>=8;
+
+  const emailAuth=async()=>{
+    if(!valid||busy)return;
+    setBusy(true);
+    try{
+      if(authMode==='signup'){
+        const data=await signUpEmail(email,password);
+        if(!data.session)Alert.alert('Sprawdź e-mail','Kliknij link potwierdzający konto Polki, a potem wróć do aplikacji.');
+      }else{
+        await signInEmail(email,password);
+      }
+    }catch(error){Alert.alert('Nie udało się zalogować',error.message||'Spróbuj ponownie.');}
+    finally{setBusy(false);}
+  };
+
+  const googleAuth=async()=>{
+    if(busy)return;
+    setBusy(true);
+    try{await signInGoogle();}
+    catch(error){Alert.alert('Logowanie Google',error.message||'Nie udało się rozpocząć logowania.');}
+    finally{setBusy(false);}
+  };
   const player=useVideoPlayer(HERO_VIDEO,p=>{
     p.loop=true;
     p.muted=true;
@@ -53,18 +79,20 @@ export default function WelcomeScreen({onContinue,onBusiness}){
 
     <View style={s.sheet}>
       {emailMode?<View>
-        <Typography variant="subtitle" style={{marginBottom:sp.sm}}>Zaloguj się e-mailem</Typography>
+        <Typography variant="subtitle" style={{marginBottom:sp.sm}}>{authMode==='signup'?'Załóż konto':'Zaloguj się e-mailem'}</Typography>
         <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" placeholder="twoj@email.pl" placeholderTextColor={c.muted} style={s.input}/>
-        <Pressable disabled={!valid} onPress={()=>onContinue?.({method:'email',email:email.trim()})} style={[s.primary,!valid&&{opacity:.4}]}><Typography style={s.primaryText}>Dalej</Typography></Pressable>
+        <TextInput value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry autoComplete={authMode==='signup'?'new-password':'current-password'} placeholder="Hasło · min. 8 znaków" placeholderTextColor={c.muted} style={[s.input,{marginTop:10}]}/>
+        <Pressable disabled={!valid||busy} onPress={emailAuth} style={[s.primary,(!valid||busy)&&{opacity:.4}]}><Typography style={s.primaryText}>{busy?'Chwila…':authMode==='signup'?'Załóż konto':'Zaloguj się'}</Typography></Pressable>
+        <Pressable onPress={()=>setAuthMode(v=>v==='signin'?'signup':'signin')} style={s.textButton}><Typography style={s.textButtonText}>{authMode==='signin'?'Nie masz konta? Załóż':'Masz konto? Zaloguj się'}</Typography></Pressable>
         <Pressable onPress={()=>setEmailMode(false)} style={s.textButton}><Typography style={s.textButtonText}>Wróć</Typography></Pressable>
       </View>:<>
-        <Pressable onPress={()=>onContinue?.({method:'google'})} style={s.google}><Ionicons name="logo-google" size={20} color={c.ink}/><Typography style={s.googleText}>Kontynuuj z Google</Typography></Pressable>
+        <Pressable disabled={busy} onPress={googleAuth} style={[s.google,busy&&{opacity:.5}]}><Ionicons name="logo-google" size={20} color={c.ink}/><Typography style={s.googleText}>Kontynuuj z Google</Typography></Pressable>
         <Pressable onPress={()=>setEmailMode(true)} style={s.primary}><Ionicons name="mail-outline" size={20} color={c.white}/><Typography style={s.primaryText}>Zaloguj się e-mailem</Typography></Pressable>
         <Pressable onPress={()=>onContinue?.({method:'skip'})} style={s.textButton}><Typography style={s.textButtonText}>Pomiń na razie</Typography></Pressable>
         <View style={s.divider}><View style={s.line}/><Typography variant="caption" style={{color:c.muted}}>albo</Typography><View style={s.line}/></View>
         <Pressable onPress={onBusiness} style={s.business}><Ionicons name="storefront-outline" size={19} color={c.ink}/><View style={{flex:1}}><Typography style={s.businessTitle}>Dla firm i organizacji</Typography><Typography variant="caption" style={{color:c.muted}}>Miejsce, oferta, wydarzenie lub partnerstwo</Typography></View><Ionicons name="chevron-forward" size={19} color={c.muted}/></Pressable>
       </>}
-      <Typography variant="caption" style={s.legal}>Kontynuując, potwierdzasz ukończenie 18 lat. Logowanie produkcyjne zostanie podłączone do osobnego backendu Polki.</Typography>
+      <Typography variant="caption" style={s.legal}>Kontynuując, potwierdzasz ukończenie 18 lat. Konto jest chronione przez Supabase Auth; dane profilu zapisujemy po ukończeniu onboardingu.</Typography>
     </View>
   </KeyboardAvoidingView>;
 }
