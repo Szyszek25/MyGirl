@@ -282,18 +282,30 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
 
   const seededChatMessages={
     'cycle-support':[
-      {id:'cs1',side:'in',author:'Maja',body:'Dziewczyny, czy wam też czasem przesuwa się okres o kilka dni?'},
-      {id:'cs2',side:'out',author:'Ty',body:'Mi się właśnie opóźnia kilka dni i trochę mnie to stresuje 😭'},
-      {id:'cs3',side:'in',author:'Ola',body:'U mnie tak, szczególnie jak mam dużo stresu. Zapisuję sobie daty, żeby widzieć czy to jednorazowe.'},
+      {id:'cs1',side:'in',author:'Maja',body:'A tak na poważnie to; komuś też często przesuwa się okres??'},
+      {id:'cs2',side:'out',author:'Ty',body:'mi właśnie przesuwa się kilka dni i zaczynam się stresować 😭'},
+      {id:'cs3',side:'in',author:'Ola',body:'mnie się spóźnia jak mam dużo stresu i ostatnio zaczęłam to notować, żeby wiedzieć czy to przypadek czy jednak regularny problem'},
       {id:'cs4',side:'in',author:'Natalia',body:'Ja też miałam ostatnio później niż zwykle. Najbardziej uspokaja mnie porównanie z poprzednimi cyklami 💗'},
       {id:'cs5',side:'in',author:'Klara',body:'Jak coś mocno odbiega od Twojego zwykłego rytmu albo długo się utrzymuje, to ja bym po prostu zapytała lekarza zamiast się nakręcać.'},
-      {id:'cs6',side:'out',author:'Ty',body:'Właśnie dlatego zaczęłam to zapisywać w Polka Care, bo inaczej kompletnie tracę rachubę xd'},
-      {id:'cs7',side:'in',author:'Maja',body:'I to jest super. Samo zobaczenie historii dużo daje, bez zgadywania co się dzieje.'}
+      {id:'cs6',side:'out',author:'Ty',body:'no właśnie zaczęłam notować objawy w Polka Care, żeby mieć wszystko pod ręką'},
+      {id:'cs7',side:'in',author:'Maja',body:'o i bardzo fajnie! Jak będziesz na wizycie u ginekologa, to już będziesz miała wszystkie potrzebne informacje przy sobie'}
     ],
     'maja':[
       {id:'m1',side:'in',author:'Maja',body:'Hej! Miło Cię poznać 🌸'},
       {id:'m2',side:'in',author:'Maja',body:'Masz już jakiś plan na weekend?'}
     ]
+  };
+
+  const supportAuthorPhoto=author=>{
+    const found=people.find(p=>p.name===author);
+    if(found?.photo)return found.photo;
+    const photos={
+      Maja:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&q=82',
+      Ola:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&q=82',
+      Natalia:'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=160&q=82',
+      Klara:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=160&q=82'
+    };
+    return photos[author]||people[0]?.photo;
   };
 
   const send=()=>{
@@ -317,10 +329,15 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
         {(seededChatMessages[active.id]||[
           {id:'fallback-1',side:'in',author:active.name,body:'Hej! Miło Cię poznać 🌸'},
           {id:'fallback-2',side:'in',author:active.name,body:'Masz już jakiś plan na weekend?'}
-        ]).map(message=><View key={message.id} style={message.side==='out'?s.outgoingWrap:s.incomingWrap}>
-          {active.group&&message.side==='in'&&<Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
-          <View style={message.side==='out'?s.outgoingBubble:s.incomingBubble}><Typography style={message.side==='out'?s.outgoingText:s.bubbleText}>{message.body}</Typography></View>
-        </View>)}
+        ]).map(message=>message.side==='out'
+          ? <View key={message.id} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View></View>
+          : <View key={message.id} style={s.incomingMessageRow}>
+              {active.group&&<Image source={{uri:supportAuthorPhoto(message.author)}} style={s.groupMessageAvatar}/>}
+              <View style={s.incomingMessageBody}>
+                {active.group&&<Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
+                <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>
+              </View>
+            </View>)}
         {(messages[active.id]||[]).map((message,i)=><View key={'local-'+i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
       </ScrollView>
 
@@ -499,6 +516,9 @@ const s=StyleSheet.create({
   dayPill:{alignSelf:'center',backgroundColor:c.white,borderRadius:999,paddingHorizontal:10,paddingVertical:5,marginBottom:16,borderWidth:1,borderColor:c.line},
   dayText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
   incomingWrap:{alignItems:'flex-start',marginBottom:8},
+  incomingMessageRow:{flexDirection:'row',alignItems:'flex-end',gap:8,marginBottom:10},
+  groupMessageAvatar:{width:30,height:30,borderRadius:15,backgroundColor:c.blush},
+  incomingMessageBody:{flex:1,alignItems:'flex-start'},
   groupMessageAuthor:{fontFamily:f.bold,fontSize:10,color:c.muted,marginLeft:8,marginBottom:3},
   outgoingWrap:{alignItems:'flex-end',marginBottom:8},
   incomingBubble:{maxWidth:'78%',backgroundColor:c.white,borderRadius:20,borderTopLeftRadius:6,paddingHorizontal:14,paddingVertical:10,borderWidth:1,borderColor:c.line},
