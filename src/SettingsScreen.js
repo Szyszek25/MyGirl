@@ -5,6 +5,7 @@ import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
 import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './featurePreferences';
 import {defaultAccountSettings,loadAccountSettings,updateAccountSettings} from './services/accountSettingsApi';
+import {disablePushNotifications,enablePushNotifications} from './services/notificationsApi';
 
 const SHARE_URL='https://polka.app';
 
@@ -50,6 +51,10 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
     setAccountSettings(next);
     if(!isAuthenticated||!userId)return;
     try{
+      if(key==='push_enabled'){
+        if(value)await enablePushNotifications();
+        else await disablePushNotifications();
+      }
       const saved=await updateAccountSettings(userId,{[key]:value});
       setAccountSettings(saved);
     }catch(error){
