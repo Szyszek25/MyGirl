@@ -1,4 +1,5 @@
 import {supabase} from '../lib/supabase';
+import {extensionForContentType,uriToUploadPayload} from './storageHelper';
 
 async function signed(bucket,path,seconds=3600){
   if(!path)return null;
@@ -8,14 +9,12 @@ async function signed(bucket,path,seconds=3600){
 }
 
 async function upload(bucket,userId,uri,prefix='media'){
-  const response=await fetch(uri);
-  const blob=await response.blob();
-  const type=blob.type||'image/jpeg';
-  const ext=type.includes('png')?'png':type.includes('webp')?'webp':type.includes('mp4')?'mp4':'jpg';
+  const {buffer,contentType}=await uriToUploadPayload(uri,'image/jpeg');
+  const ext=extensionForContentType(contentType);
   const path=`${userId}/${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;
-  const {error}=await supabase.storage.from(bucket).upload(path,blob,{contentType:type,upsert:false});
+  const {error}=await supabase.storage.from(bucket).upload(path,buffer,{contentType,upsert:false});
   if(error)throw error;
-  return {path,type};
+  return {path,type:contentType};
 }
 
 export async function loadFeed(city,userId){

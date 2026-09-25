@@ -191,10 +191,20 @@ function PolkaApp(){
       <Image source={require('./assets/splash.png')} style={s.splashLogo} resizeMode="contain"/>
     </View>
   );
+  const handleCancelOnboarding=async()=>{
+    try{
+      if(authSession?.user){
+        await signOut().catch(()=>{});
+      }
+    }catch{}
+    setAuthSession(null);
+    setAccount(null);
+    setEntryStarted(false);
+  };
   if(!account){
     if(preBusiness)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><PartnerPanel userId={authSession?.user?.id||null} onClose={()=>setPreBusiness(false)}/></SafeAreaView>;
     if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={({method}={})=>{if(method==='skip')setEntryStarted(true)}} onBusiness={()=>setPreBusiness(true)}/></View>;
-    return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} online={!!authSession?.user} onComplete={saveProfile}/></SafeAreaView>;
+    return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} online={!!authSession?.user} onComplete={saveProfile} onBack={handleCancelOnboarding}/></SafeAreaView>;
   }
   const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!messagesOpen&&!cycleOpen&&!careOpen&&!moreOpen;
   const clubsVisible=tab==='Grupy'&&showTabs;

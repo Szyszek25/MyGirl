@@ -20,16 +20,50 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
   useEffect(()=>{if(!editing)setDraft(copy(account));},[account,editing]);
   const edit=(key,value)=>setDraft(prev=>({...prev,[key]:value}));
   const cancel=()=>{setDraft(copy(account));setEditing(false);setNotice('');};
-  const selectPhoto=async()=>{
+  const handleProfilePhoto=async source=>{
     try{
-      const selection=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:0.7});
+      let selection;
+      if(source==='camera'){
+        const perm=await ImagePicker.requestCameraPermissionsAsync();
+        if(perm.status!=='granted'){
+          Alert.alert('Brak uprawnień','Zezwól Polce na dostęp do aparatu w ustawieniach telefonu.');
+          return;
+        }
+        selection=await ImagePicker.launchCameraAsync({
+          mediaTypes:['images'],
+          allowsEditing:true,
+          quality:0.85
+        });
+      }else{
+        const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if(perm.status!=='granted'){
+          Alert.alert('Brak uprawnień','Zezwól Polce na dostęp do galerii w ustawieniach telefonu.');
+          return;
+        }
+        selection=await ImagePicker.launchImageLibraryAsync({
+          mediaTypes:['images'],
+          allowsEditing:true,
+          quality:0.85
+        });
+      }
       if(selection.canceled)return;
       const image=selection.assets?.[0];
       if(!image?.uri)throw new Error('Nie udało się wybrać zdjęcia.');
-      if(image.fileSize&&image.fileSize>5*1024*1024)throw new Error('Zdjęcie jest za duże. Wybierz plik do 5 MB.');
+      if(image.fileSize&&image.fileSize>8*1024*1024)throw new Error('Zdjęcie jest za duże. Wybierz plik do 8 MB.');
       edit('photo',image.uri);
       setNotice('Nowe zdjęcie zapisze się po naciśnięciu „Zapisz zmiany”.');
     }catch(error){Alert.alert('Nie udało się wybrać zdjęcia',error.message||'Spróbuj ponownie.');}
+  };
+  const selectPhoto=()=>{
+    Alert.alert(
+      'Zmień zdjęcie profilowe',
+      'Wybierz źródło:',
+      [
+        {text:'Zrób zdjęcie (aparat)',onPress:()=>handleProfilePhoto('camera')},
+        {text:'Wybierz z galerii',onPress:()=>handleProfilePhoto('library')},
+        {text:'Anuluj',style:'cancel'}
+      ]
+    );
   };
   const save=async()=>{
     if(busy)return;

@@ -1,5 +1,5 @@
-import React,{useState} from 'react';
-import {Alert,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import React,{useEffect,useState} from 'react';
+import {Alert,BackHandler,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import {cities,interests} from './data';
@@ -25,7 +25,7 @@ const steps=[
   ['BEZPIECZNIE','Gotowe prawie','Potwierdź pełnoletność i przejdź do aplikacji.'],
 ];
 
-export default function Onboarding({onComplete,online=false}){
+export default function Onboarding({onComplete,onBack,online=false}){
   const [step,setStep]=useState(0);
   const [goal,setGoal]=useState('Nowe znajomości');
   const [city,setCity]=useState('Warszawa');
@@ -40,15 +40,50 @@ export default function Onboarding({onComplete,online=false}){
   const ready=step===3?name.trim().length>=2:step===6?adult:true;
   const optionalEmpty=(step===2&&!selected.length)||(step===4&&!validAnswers.length)||(step===5&&!photo);
 
-  const pickPhoto=async()=>{
+  const handlePhotoOption=async source=>{
     try{
-      const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:0.7});
+      let result;
+      if(source==='camera'){
+        const perm=await ImagePicker.requestCameraPermissionsAsync();
+        if(perm.status!=='granted'){
+          Alert.alert('Brak uprawnień','Zezwól Polce na dostęp do aparatu w ustawieniach telefonu.');
+          return;
+        }
+        result=await ImagePicker.launchCameraAsync({
+          mediaTypes:['images'],
+          allowsEditing:true,
+          quality:0.85
+        });
+      }else{
+        const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if(perm.status!=='granted'){
+          Alert.alert('Brak uprawnień','Zezwól Polce na dostęp do galerii w ustawieniach telefonu.');
+          return;
+        }
+        result=await ImagePicker.launchImageLibraryAsync({
+          mediaTypes:['images'],
+          allowsEditing:true,
+          quality:0.85
+        });
+      }
       if(result.canceled)return;
       const chosen=result.assets?.[0];
-      if(!chosen?.uri)throw Error('Nie udało się wybrać zdjęcia.');
-      if(chosen.fileSize&&chosen.fileSize>5*1024*1024)throw Error('Zdjęcie jest za duże. Wybierz plik do 5 MB.');
+      if(!chosen?.uri)throw Error('Nie udało się pobrać zdjęcia.');
+      if(chosen.fileSize&&chosen.fileSize>8*1024*1024)throw Error('Zdjęcie jest za duże. Wybierz plik do 8 MB.');
       setPhoto(chosen.uri);
     }catch(error){Alert.alert('Nie udało się dodać zdjęcia',error.message||'Spróbuj ponownie.');}
+  };
+
+  const pickPhoto=()=>{
+    Alert.alert(
+      'Dodaj zdjęcie profilowe',
+      'Wybierz źródło zdjęcia:',
+      [
+        {text:'Zrób zdjęcie (aparat)',onPress:()=>handlePhotoOption('camera')},
+        {text:'Wybierz z galerii',onPress:()=>handlePhotoOption('library')},
+        {text:'Anuluj',style:'cancel'}
+      ]
+    );
   };
 
   const next=async()=>{
@@ -65,11 +100,55 @@ export default function Onboarding({onComplete,online=false}){
     finally{setBusy(false);}
   };
 
+  const handleBack=()=>{
+    if(step>0){
+      setStep(v=>v-1);
+    }else if(onBack){
+      Alert.alert(
+        'Wrócić do logowania?',
+        'Twój profil nie został jeszcze zapisany.',
+        [
+          {text:'Zostań',style:'cancel'},
+          {text:'Wróć do logowania',style:'destructive',onPress:onBack}
+        ]
+      );
+    }
+  };
+
+  useEffect(()=>{
+    const backAction=()=>{
+      if(step>0){
+        setStep(v=>v-1);
+        return true;
+      }
+      if(onBack){
+        Alert.alert(
+          'Wrócić do logowania?',
+          'Twój profil nie został jeszcze zapisany.',
+          [
+            {text:'Zostań',style:'cancel'},
+            {text:'Wróć do logowania',style:'destructive',onPress:onBack}
+          ]
+        );
+        return true;
+      }
+      return false;
+    };
+    const sub=BackHandler.addEventListener('hardwareBackPress',backAction);
+    return ()=>sub.remove();
+  },[step,onBack]);
+
   return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?8:0}>
     <View style={s.top}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Wstecz" onPress={()=>setStep(v=>Math.max(0,v-1))} style={s.back}>{step>0?<Ionicons name="arrow-back" size={24} color={c.ink}/>:null}</Pressable>
-      <Typography style={s.logo}>Polka</Typography>
-      <Typography variant="caption" style={{color:c.muted}}>{step+1}/{steps.length}</Typography>
+      <Pressable accessibilityRole="button" accessibilityLabel="Wstecz" onPress={handleBack} style={s.back} hitSlop={12}>
+        <Ionicons name="arrow-back" size={24} color={c.ink}/>
+      </Pressable>
+      <View style={s.logoCenter} pointerEvents="none">
+        <Typography style={s.logo}>Polka</Typography>
+      </View>
+      <View style={s.stepWrap}>
+        <Typography variant="caption" style={{color:c.muted}}>{step+1}/{steps.length}</Typography>
+      </View>
     </View>
     <View style={s.progress}><View style={[s.progressFill,{width:`${(step+1)/steps.length*100}%`}]}/></View>
 
@@ -82,7 +161,22 @@ export default function Onboarding({onComplete,online=false}){
       {step===2&&<View style={s.wrap}>{interests.map(value=><Chip key={value} label={value} selected={selected.includes(value)} onPress={()=>setSelected(prev=>prev.includes(value)?prev.filter(item=>item!==value):[...prev,value])}/>)}</View>}
       {step===3&&<Field label="Imię" value={name} onChangeText={setName} placeholder="Jak się do Ciebie zwracać?"/>}
       {step===4&&PROFILE_PROMPTS.map((prompt,index)=><View key={prompt} style={s.prompt}><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{prompt}</Typography><TextInput multiline maxLength={160} value={answers[index]||''} onChangeText={value=>setAnswers(prev=>({...prev,[index]:value}))} placeholder="Twoja odpowiedź…" placeholderTextColor={c.muted} style={s.answer}/></View>)}
-      {step===5&&<View style={s.photo}><Pressable onPress={pickPhoto} style={{alignItems:'center'}}>{photo?<Image source={{uri:photo}} style={s.preview}/>:<View style={s.photoPlaceholder}><Ionicons name="camera-outline" size={38} color={c.pink}/></View>}<Typography style={s.photoText}>{photo?'Zmień zdjęcie':'Wybierz z galerii'}</Typography></Pressable>{photo&&<Button title="Usuń zdjęcie" secondary onPress={()=>setPhoto(null)} style={{marginTop:sp.base}}/>}</View>}
+      {step===5&&<View style={s.photo}>
+        <Pressable onPress={pickPhoto} style={{alignItems:'center'}}>
+          {photo?<Image source={{uri:photo}} style={s.preview}/>:<View style={s.photoPlaceholder}><Ionicons name="camera-outline" size={38} color={c.pink}/></View>}
+        </Pressable>
+        <View style={s.photoActionsRow}>
+          <Pressable onPress={()=>handlePhotoOption('camera')} style={s.photoOptionBtn}>
+            <Ionicons name="camera" size={18} color={c.pink}/>
+            <Typography style={s.photoOptionText}>Aparat</Typography>
+          </Pressable>
+          <Pressable onPress={()=>handlePhotoOption('library')} style={s.photoOptionBtn}>
+            <Ionicons name="images" size={18} color={c.pink}/>
+            <Typography style={s.photoOptionText}>Galeria</Typography>
+          </Pressable>
+        </View>
+        {photo&&<Button title="Usuń zdjęcie" secondary onPress={()=>setPhoto(null)} style={{marginTop:sp.sm}}/>}
+      </View>}
       {step===6&&<View><Typography style={{lineHeight:24}}>{online?'Polka jest przeznaczona dla osób pełnoletnich. Profil zostanie zapisany na Twoim koncie Polki.':'Polka jest przeznaczona dla osób pełnoletnich. Korzystasz teraz w trybie lokalnym.'}</Typography><Pressable accessibilityRole="checkbox" accessibilityState={{checked:adult}} onPress={()=>setAdult(v=>!v)} style={s.check}><Ionicons name={adult?'checkbox':'square-outline'} size={25} color={c.pink}/><Typography style={{flex:1}}>Mam ukończone 18 lat.</Typography></Pressable></View>}
     </ScrollView>
 
@@ -92,17 +186,22 @@ export default function Onboarding({onComplete,online=false}){
 
 const s=StyleSheet.create({
   root:{flex:1,backgroundColor:c.canvas},
-  top:{paddingHorizontal:sp.lg,paddingTop:sp.md,paddingBottom:sp.sm,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
-  back:{width:40,paddingVertical:8},
-  logo:{fontFamily:f.bold,fontSize:22,letterSpacing:-1},
+  top:{position:'relative',height:54,paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  back:{minWidth:44,height:44,justifyContent:'center',alignItems:'flex-start',zIndex:2},
+  logoCenter:{position:'absolute',left:0,right:0,top:0,bottom:0,alignItems:'center',justifyContent:'center',zIndex:1},
+  logo:{fontFamily:f.bold,fontSize:22,letterSpacing:-1,color:c.ink,textAlign:'center'},
+  stepWrap:{minWidth:44,height:44,alignItems:'flex-end',justifyContent:'center',zIndex:2},
   progress:{height:3,backgroundColor:c.line},
   progressFill:{height:3,backgroundColor:c.pink},
   content:{flexGrow:1,padding:sp.lg,paddingTop:sp.xl,paddingBottom:sp.xxl},
   description:{color:c.muted,marginBottom:sp.xl,fontSize:17,lineHeight:24},
   wrap:{flexDirection:'row',flexWrap:'wrap'},
   photo:{backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:r.lg,padding:sp.xl,alignItems:'center'},
-  photoPlaceholder:{width:150,height:150,borderRadius:75,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
-  preview:{width:150,height:150,borderRadius:75,backgroundColor:c.blush},
+  photoPlaceholder:{width:150,height:150,borderRadius:28,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  preview:{width:150,height:150,borderRadius:28,backgroundColor:c.blush},
+  photoActionsRow:{flexDirection:'row',gap:12,marginTop:sp.lg,marginBottom:sp.xs},
+  photoOptionBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:c.blush,paddingHorizontal:16,paddingVertical:10,borderRadius:r.md,borderWidth:1,borderColor:c.line},
+  photoOptionText:{fontFamily:f.bold,fontSize:14,color:c.pink},
   photoText:{color:c.pink,fontFamily:f.bold,marginTop:sp.base},
   prompt:{backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:r.md,padding:sp.base,marginBottom:sp.md},
   answer:{fontFamily:f.regular,fontSize:16,color:c.ink,minHeight:65,textAlignVertical:'top'},

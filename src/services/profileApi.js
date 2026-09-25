@@ -1,4 +1,5 @@
 import {supabase} from '../lib/supabase';
+import {extensionForContentType,uriToUploadPayload} from './storageHelper';
 
 export async function loadRemoteProfile(userId){
   if(!userId)return null;
@@ -38,14 +39,13 @@ export async function loadRemoteProfile(userId){
   };
 }
 
+
 async function uploadAvatar(userId,uri){
   if(!uri||uri.startsWith('http'))return null;
-  const response=await fetch(uri);
-  const blob=await response.blob();
-  const type=blob.type||'image/jpeg';
-  const ext=type.includes('png')?'png':type.includes('webp')?'webp':'jpg';
+  const {buffer,contentType}=await uriToUploadPayload(uri,'image/jpeg');
+  const ext=extensionForContentType(contentType);
   const path=`${userId}/avatar-${Date.now()}.${ext}`;
-  const {error}=await supabase.storage.from('polka-avatars').upload(path,blob,{contentType:type,upsert:false});
+  const {error}=await supabase.storage.from('polka-avatars').upload(path,buffer,{contentType,upsert:true});
   if(error)throw error;
   return path;
 }
