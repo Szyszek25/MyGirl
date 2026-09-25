@@ -8,8 +8,8 @@ export const defaultFeaturePreferences={
   zodiacMeetingContext:true,
   zodiacPeopleMatching:true,
   stylePeopleMatching:true,
-  zodiacSign:'Lew',
-  stylePreference:'Casual',
+  zodiacSign:null,
+  stylePreference:null,
   supportChat:true
 };
 
