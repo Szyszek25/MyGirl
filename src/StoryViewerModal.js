@@ -339,41 +339,38 @@ export default function StoryViewerModal({
             })}
           </View>
 
-          {/* User Info Bar */}
-          <View style={s.userInfoRow}>
-            <View style={s.authorWrap}>
-              <Image source={{ uri: sender.avatar }} style={s.authorAvatar} />
-              <View>
-                <Typography style={s.authorName}>{sender.name}</Typography>
-                <Typography style={s.authorTime}>
-                  {sender.city || 'Warszawa'} · {isTarget ? 1 : currentIdx + 1}/{slides.length}
-                </Typography>
+{/* User Info Bar */}
+            <View style={s.userInfoRow}>
+              <View style={s.authorWrap}>
+                <Image source={{ uri: sender.avatar }} style={s.authorAvatar} />
+                <View>
+                  <Typography style={s.authorName}>{sender.name}</Typography>
+                  <Typography style={s.authorTime}>
+                    {sender.city || 'Warszawa'} · {isTarget ? 1 : currentIdx + 1}/{slides.length}
+                  </Typography>
+                </View>
               </View>
-            </View>
 
-            {!isTarget && sender.authorId === sessionUserId && (
-              <Pressable onPress={() => {
-                Alert.alert('Usuń relację?', 'Ta operacja jest nieodwracalna.', [
-                  { text: 'Anuluj', style: 'cancel' },
-                  {
-                    text: 'Usuń', style: 'destructive', onPress: async () => {
-                      try {
-                        await deleteStory(slideObj.id, sessionUserId);
-                        onClose();
-                      } catch (error) {
-                        Alert.alert('Nie usunięto relacji', error.message || 'Spróbuj ponownie.');
+              {!isTarget && sender.authorId === sessionUserId && (
+                <Pressable onPress={() => {
+                  Alert.alert('Usuń relację?', 'Ta operacja jest nieodwracalna.', [
+                    { text: 'Anuluj', style: 'cancel' },
+                    {
+                      text: 'Usuń', style: 'destructive', onPress: async () => {
+                        try {
+                          await deleteStory(slideObj.id, sessionUserId);
+                          onClose();
+                        } catch (error) {
+                          Alert.alert('Nie usunięto relacji', error.message || 'Spróbuj ponownie.');
+                        }
                       }
                     }
-                  }
-                ]);
-              }} style={s.deleteBtn} hitSlop={14}>
-                <Ionicons name="trash-outline" size={26} color="#FF6B6B" />
-              </Pressable>
-            )}
-            <Pressable onPress={onClose} style={s.closeBtn} hitSlop={14}>
-              <Ionicons name="close" size={26} color={c.white} />
-            </Pressable>
-          </View>
+                  ]);
+                }} style={s.deleteBtn} hitSlop={14}>
+                  <Ionicons name="trash-outline" size={26} color="#FF6B6B" />
+                </Pressable>
+              )}
+            </View>
         </View>
 
         {/* Caption */}
@@ -442,7 +439,14 @@ export default function StoryViewerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={s.container}>
+      <View style={s.container} {...panResponder.panHandlers}>
+        {/* Fixed top bar (close button) - NOT in 3D cube */}
+        <View style={s.fixedTopBar} pointerEvents="box-none">
+          <Pressable onPress={onClose} style={s.closeBtn} hitSlop={14} accessibilityLabel="Zamknij">
+            <Ionicons name="close" size={28} color={c.white} />
+          </Pressable>
+        </View>
+
         {/* Animated 3D Cube Viewport - entire screen rotates */}
         <Animated.View
           style={[
@@ -500,13 +504,13 @@ export default function StoryViewerModal({
           </View>
         )}
 
-        {/* Swipe detector for 3D cube transition - full screen horizontal swipe */}
+        {/* Tap detector for slide navigation (left/right thirds) */}
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={handleTap}
           onPressIn={() => setPaused(true)}
           onPressOut={() => setPaused(false)}
-          {...panResponder.panHandlers}
+          pointerEvents="box-none"
         />
       </View>
     </Modal>
@@ -517,6 +521,17 @@ const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000'
+  },
+  fixedTopBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 52,
+    paddingHorizontal: 14,
+    zIndex: 100,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
   cubeViewport: {
     ...StyleSheet.absoluteFill,
