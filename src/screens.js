@@ -26,6 +26,7 @@ import { supabase } from './lib/supabase';
 import { createChatRealtime, newClientMessageId } from './services/chatRealtime';
 import { addComment, createPost, createStory, deletePost, editPost, loadComments, loadFeed, loadStories, markStoryViewed, togglePostLike } from './services/socialApi';
 import { searchPeople, sendFriendRequest } from './services/friendsApi';
+import { readCached, writeCached } from './cache';
 import StoryCameraModal from './StoryCameraModal';
 import StoryViewerModal from './StoryViewerModal';
 import PublicProfileModal from './PublicProfileModal';
@@ -306,19 +307,39 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     return () => { alive = false };
   }, [sessionUserId]);
 
-  const refresh = async () => {
+  const CACHE_KEY = `feed:${city}:${sessionUserId || 'anon'}`;
+const STORIES_CACHE_KEY = `stories:${city}:${sessionUserId || 'anon'}`;
+
+  const loadCached = async () => {
     if (!sessionUserId) return;
+    try {
+      const [cachedFeed, cachedStories] = await Promise.all([
+        readCached(CACHE_KEY),
+        readCached(STORIES_CACHE_KEY)
+      ]);
+      if (cachedFeed?.length) setRemotePosts(cachedFeed);
+      if (cachedStories?.length) setStories(cachedStories);
+    } catch {}
+  };
+
+  const refresh = async (force = false) => {
+    if (!sessionUserId) return;
+    if (!force) await loadCached();
     setLoading(true);
     try {
       const [feed, storyRows] = await Promise.all([loadFeed(city, sessionUserId), loadStories(sessionUserId, city)]);
       setRemotePosts(feed);
       setStories(storyRows);
+      await Promise.all([
+        writeCached(CACHE_KEY, feed, 2 * 60 * 1000),
+        writeCached(STORIES_CACHE_KEY, storyRows, 2 * 60 * 1000)
+      ]);
     } catch (error) {
       Alert.alert('Nie udało się odświeżyć', 'Sprawdź połączenie i spróbuj ponownie.');
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { void refresh() }, [city, sessionUserId]);
+  useEffect(() => { loadCached(); void refresh() }, [city, sessionUserId]);
 
   const sourcePosts = remotePosts.length
     ? [...remotePosts, ...posts.filter(p => !remotePosts.some(r => r.body === p.body))]
