@@ -1,9 +1,9 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {Image,Linking,Pressable,ScrollView,StyleSheet,View} from 'react-native';
+import {Alert,Image,Linking,Modal,Pressable,ScrollView,StyleSheet,Switch,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,space as sp} from './theme';
-import {Chip,Typography} from './ui';
-import {loadPublishedCareArticles} from './services/careApi';
+import {Button,Chip,Typography} from './ui';
+import {isCareAdmin,loadPublishedCareArticles,saveCareArticle} from './services/careApi';
 
 const articles=[
   {
@@ -94,11 +94,38 @@ export default function PolkaCareScreen({onClose}){
   const [category,setCategory]=useState('Wszystkie');
   const [selected,setSelected]=useState(null);
   const [remoteArticles,setRemoteArticles]=useState([]);
+  const [admin,setAdmin]=useState(false);
+  const [editorOpen,setEditorOpen]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [editor,setEditor]=useState({slug:'',category:'Cykl',title:'',summary:'',body:'',icon:'book-outline',isPublished:false});
   useEffect(()=>{
     let alive=true;
-    loadPublishedCareArticles().then(rows=>{if(alive&&rows.length)setRemoteArticles(rows)}).catch(()=>{});
+    Promise.all([loadPublishedCareArticles().catch(()=>[]),isCareAdmin().catch(()=>false)]).then(([rows,isAdmin])=>{
+      if(!alive)return;
+      if(rows.length)setRemoteArticles(rows);
+      setAdmin(isAdmin);
+    });
     return ()=>{alive=false};
   },[]);
+
+  const saveRemoteArticle=async()=>{
+    const slug=editor.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const body=editor.body.split('\n').map(v=>v.trim()).filter(Boolean);
+    if(slug.length<3||editor.title.trim().length<4||editor.summary.trim().length<8||!body.length){
+      Alert.alert('Uzupełnij artykuł','Dodaj slug, tytuł, opis i przynajmniej jeden akapit.');
+      return;
+    }
+    setSaving(true);
+    try{
+      await saveCareArticle({...editor,slug,body});
+      const rows=await loadPublishedCareArticles();
+      if(rows.length)setRemoteArticles(rows);
+      setEditor({slug:'',category:'Cykl',title:'',summary:'',body:'',icon:'book-outline',isPublished:false});
+      setEditorOpen(false);
+      Alert.alert(editor.isPublished?'Opublikowano':'Szkic zapisany',editor.isPublished?'Artykuł jest dostępny w Polka Care.':'Artykuł zapisano zdalnie jako szkic.');
+    }catch(error){Alert.alert('Nie zapisano artykułu',error.message||'Spróbuj ponownie.');}
+    finally{setSaving(false);}
+  };
   const sourceArticles=remoteArticles.length?remoteArticles:articles;
   const dynamicCategories=useMemo(()=>['Wszystkie',...new Set(sourceArticles.map(a=>a.category))],[sourceArticles]);
   const visible=useMemo(()=>sourceArticles.filter(a=>category==='Wszystkie'||a.category===category),[category,sourceArticles]);
@@ -118,7 +145,7 @@ export default function PolkaCareScreen({onClose}){
   </View>;
 
   return <View style={s.root}>
-    <View style={s.header}><Pressable onPress={onClose} style={s.iconBtn}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable><Typography style={s.headerTitle}>Polka Care</Typography><View style={s.iconBtn}/></View>
+    <View style={s.header}><Pressable onPress={onClose} style={s.iconBtn}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable><Typography style={s.headerTitle}>Polka Care</Typography>{admin?<Pressable onPress={()=>setEditorOpen(true)} style={s.iconBtn}><Ionicons name="create-outline" size={22} color={c.pink}/></Pressable>:<View style={s.iconBtn}/>}</View>
 
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
       <View style={s.intro}>
@@ -159,6 +186,22 @@ export default function PolkaCareScreen({onClose}){
 
       <Typography style={s.footer}>Materiały Polka Care mają charakter edukacyjny. Treści opierają się na materiałach WHO i ACOG i nie zastępują konsultacji medycznej.</Typography>
     </ScrollView>
+
+    <Modal visible={editorOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setEditorOpen(false)}>
+      <View style={s.editorRoot}>
+        <View style={s.header}><Pressable onPress={()=>setEditorOpen(false)} style={s.iconBtn}><Ionicons name="close" size={24} color={c.ink}/></Pressable><Typography style={s.headerTitle}>Nowy artykuł</Typography><Pressable disabled={saving} onPress={saveRemoteArticle} style={s.editorSave}><Typography style={s.editorSaveText}>{saving?'Chwila…':'Zapisz'}</Typography></Pressable></View>
+        <ScrollView contentContainerStyle={s.editorContent} keyboardShouldPersistTaps="handled">
+          <Typography style={s.editorNote}>Edytor jest dostępny tylko dla roli admin/moderator. Publikowanie treści zdrowotnych nadal wymaga ręcznego przeglądu źródeł.</Typography>
+          <Typography style={s.editorLabel}>Slug</Typography><TextInput value={editor.slug} onChangeText={v=>setEditor(p=>({...p,slug:v}))} placeholder="np. bol-okresowy" placeholderTextColor={c.muted} style={s.editorInput}/>
+          <Typography style={s.editorLabel}>Kategoria</Typography><TextInput value={editor.category} onChangeText={v=>setEditor(p=>({...p,category:v}))} placeholder="Cykl" placeholderTextColor={c.muted} style={s.editorInput}/>
+          <Typography style={s.editorLabel}>Tytuł</Typography><TextInput value={editor.title} onChangeText={v=>setEditor(p=>({...p,title:v}))} placeholder="Tytuł artykułu" placeholderTextColor={c.muted} style={s.editorInput}/>
+          <Typography style={s.editorLabel}>Lead / podsumowanie</Typography><TextInput multiline value={editor.summary} onChangeText={v=>setEditor(p=>({...p,summary:v}))} placeholder="Krótko: czego dowie się czytelniczka?" placeholderTextColor={c.muted} style={[s.editorInput,s.editorMultiline]}/>
+          <Typography style={s.editorLabel}>Treść</Typography><TextInput multiline value={editor.body} onChangeText={v=>setEditor(p=>({...p,body:v}))} placeholder={"Każdy akapit w nowej linii…"} placeholderTextColor={c.muted} style={[s.editorInput,s.editorBody]}/>
+          <View style={s.editorPublishRow}><View style={{flex:1}}><Typography style={s.editorPublishTitle}>Opublikuj od razu</Typography><Typography style={s.editorPublishCopy}>Wyłącz, aby zapisać jako szkic.</Typography></View><Switch value={editor.isPublished} onValueChange={v=>setEditor(p=>({...p,isPublished:v}))} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={editor.isPublished?c.pink:'#fff'}/></View>
+          <Button title={saving?'Zapisywanie…':'Zapisz artykuł'} disabled={saving} onPress={saveRemoteArticle}/>
+        </ScrollView>
+      </View>
+    </Modal>
   </View>;
 }
 
@@ -206,5 +249,17 @@ const s=StyleSheet.create({
   sourceLabel:{fontFamily:f.regular,fontSize:10,color:c.muted},
   sourceName:{fontFamily:f.bold,fontSize:14,color:c.ink,marginTop:2},
   medicalNote:{marginTop:18,marginHorizontal:sp.lg,borderRadius:18,backgroundColor:c.blush,padding:14,flexDirection:'row',gap:10,alignItems:'flex-start'},
-  medicalText:{flex:1,fontFamily:f.regular,fontSize:11,lineHeight:17,color:c.muted}
+  medicalText:{flex:1,fontFamily:f.regular,fontSize:11,lineHeight:17,color:c.muted},
+  editorRoot:{flex:1,backgroundColor:c.canvas},
+  editorContent:{padding:sp.lg,paddingBottom:60},
+  editorSave:{minWidth:58,alignItems:'flex-end'},
+  editorSaveText:{fontFamily:f.bold,fontSize:13,color:c.pink},
+  editorNote:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,backgroundColor:c.blush,borderRadius:16,padding:13,marginBottom:18},
+  editorLabel:{fontFamily:f.bold,fontSize:12,color:c.ink,marginTop:12,marginBottom:6},
+  editorInput:{minHeight:50,borderRadius:14,borderWidth:1,borderColor:c.line,backgroundColor:c.white,paddingHorizontal:13,paddingVertical:11,fontFamily:f.regular,fontSize:14,color:c.ink},
+  editorMultiline:{minHeight:90,textAlignVertical:'top'},
+  editorBody:{minHeight:220,textAlignVertical:'top'},
+  editorPublishRow:{flexDirection:'row',alignItems:'center',gap:12,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:16,padding:14,marginVertical:16},
+  editorPublishTitle:{fontFamily:f.bold,fontSize:14,color:c.ink},
+  editorPublishCopy:{fontFamily:f.regular,fontSize:11,color:c.muted,marginTop:2}
 });
