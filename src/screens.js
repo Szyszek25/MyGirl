@@ -114,6 +114,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
       renderItem={({item})=><View style={s.feedPost}>
         <View style={s.postHeader}>{avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{item.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{item.city}</Typography></View></View>
         <Typography style={s.postBody}>{item.body}</Typography>
+        {!!item.image&&<Image source={{uri:item.image}} style={s.postImage} resizeMode="cover"/>}
         <View style={s.postActions}>
           <View style={s.postActionLeft}>
             <TextAction icon={likes.includes(item.id)?'heart':'heart-outline'} title={String(item.likes+(likes.includes(item.id)?1:0))} onPress={()=>setLikes(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id])}/>
@@ -137,6 +138,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
           <View style={s.commentPostBox}>
             <View style={s.postHeader}>{avatar(people.find(p=>p.name===commentPost.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{commentPost.city}</Typography></View></View>
             <Typography style={s.postBody}>{commentPost.body}</Typography>
+            {!!commentPost.image&&<Image source={{uri:commentPost.image}} style={s.commentPostImage} resizeMode="cover"/>}
           </View>
           {seededComments(commentPost).map(comment=><View key={comment.id} style={s.commentRow}>
             {comment.photo?avatar(comment.photo,38):<View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink}/></View>}
@@ -273,6 +275,8 @@ const s=StyleSheet.create({
   feedPost:{paddingHorizontal:sp.lg,paddingTop:16,paddingBottom:14,marginBottom:8,backgroundColor:c.white,borderTopWidth:StyleSheet.hairlineWidth,borderBottomWidth:StyleSheet.hairlineWidth,borderColor:c.line},
   postAuthor:{fontFamily:f.bold,fontSize:15,color:c.ink},
   postBody:{fontFamily:f.regular,fontSize:17,lineHeight:24,color:c.ink,marginTop:12,marginBottom:12},
+  postImage:{width:'100%',height:230,borderRadius:18,backgroundColor:c.blush,marginBottom:10},
+  commentPostImage:{width:'100%',height:240,borderRadius:18,backgroundColor:c.blush,marginBottom:8},
   feedEmpty:{padding:36,alignItems:'center'},
   emptyFeedTitle:{fontFamily:f.bold,fontSize:18,color:c.ink},
   emptyFeedText:{fontFamily:f.regular,fontSize:14,color:c.muted,marginTop:5,textAlign:'center'},
