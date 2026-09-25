@@ -25,7 +25,7 @@ const steps=[
   ['BEZPIECZNIE','Gotowe prawie','Potwierdź pełnoletność i przejdź do aplikacji.'],
 ];
 
-export default function Onboarding({onComplete}){
+export default function Onboarding({onComplete,online=false}){
   const [step,setStep]=useState(0);
   const [goal,setGoal]=useState('Nowe znajomości');
   const [city,setCity]=useState('Warszawa');
@@ -83,7 +83,7 @@ export default function Onboarding({onComplete}){
       {step===3&&<Field label="Imię" value={name} onChangeText={setName} placeholder="Jak się do Ciebie zwracać?"/>}
       {step===4&&PROFILE_PROMPTS.map((prompt,index)=><View key={prompt} style={s.prompt}><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{prompt}</Typography><TextInput multiline maxLength={160} value={answers[index]||''} onChangeText={value=>setAnswers(prev=>({...prev,[index]:value}))} placeholder="Twoja odpowiedź…" placeholderTextColor={c.muted} style={s.answer}/></View>)}
       {step===5&&<View style={s.photo}><Pressable onPress={pickPhoto} style={{alignItems:'center'}}>{photo?<Image source={{uri:photo}} style={s.preview}/>:<View style={s.photoPlaceholder}><Ionicons name="camera-outline" size={38} color={c.pink}/></View>}<Typography style={s.photoText}>{photo?'Zmień zdjęcie':'Wybierz z galerii'}</Typography></Pressable>{photo&&<Button title="Usuń zdjęcie" secondary onPress={()=>setPhoto(null)} style={{marginTop:sp.base}}/>}</View>}
-      {step===6&&<View><Typography style={{lineHeight:24}}>Polka jest przeznaczona dla osób pełnoletnich. W tej wersji profil zapisuje się lokalnie na urządzeniu.</Typography><Pressable accessibilityRole="checkbox" accessibilityState={{checked:adult}} onPress={()=>setAdult(v=>!v)} style={s.check}><Ionicons name={adult?'checkbox':'square-outline'} size={25} color={c.pink}/><Typography style={{flex:1}}>Mam ukończone 18 lat.</Typography></Pressable></View>}
+      {step===6&&<View><Typography style={{lineHeight:24}}>{online?'Polka jest przeznaczona dla osób pełnoletnich. Profil zostanie zapisany na Twoim koncie Polki.':'Polka jest przeznaczona dla osób pełnoletnich. Korzystasz teraz w trybie lokalnym.'}</Typography><Pressable accessibilityRole="checkbox" accessibilityState={{checked:adult}} onPress={()=>setAdult(v=>!v)} style={s.check}><Ionicons name={adult?'checkbox':'square-outline'} size={25} color={c.pink}/><Typography style={{flex:1}}>Mam ukończone 18 lat.</Typography></Pressable></View>}
     </ScrollView>
 
     <View style={s.footer}><Button title={busy?'Zapisywanie…':step===steps.length-1?'Wejdź do Polki':optionalEmpty?'Pomiń':'Dalej'} onPress={next} disabled={!ready||busy} icon="arrow-forward"/></View>
