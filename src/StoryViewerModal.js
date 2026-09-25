@@ -81,7 +81,10 @@ export default function StoryViewerModal({
     }
   }, [initialSenderIndex, initialStory, resolvedSenders]);
 
-  const [senderIndex, setSenderIndex] = useState(startIdx);
+  // Ensure startIdx is always a valid number (prevents hooks mismatch on fast refresh)
+  const safeStartIdx = typeof startIdx === 'number' ? startIdx : 0;
+
+  const [senderIndex, setSenderIndex] = useState(safeStartIdx);
   const [slideIndex, setSlideIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [replyText, setReplyText] = useState('');
