@@ -38,8 +38,8 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
     let alive=true;
     loadPlans(city,sessionUserId).then(rows=>{
       if(!alive)return;
-      if(rows.length){setPlans(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));}
-      else setPlans([]);
+      if(rows.length){setPlans([...rows, ...starterPlans.filter(sp=>!rows.some(r=>r.title===sp.title))]);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));}
+      else setPlans(starterPlans);
       setRemoteLoaded(true);
     }).catch(()=>{if(alive){setPlans(starterPlans);setRemoteLoaded(false)}});
     return ()=>{alive=false};

@@ -312,7 +312,9 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
 
   useEffect(()=>{void refresh()},[city,sessionUserId]);
 
-  const sourcePosts=sessionUserId?remotePosts:posts;
+  const sourcePosts=remotePosts.length
+    ? [...remotePosts, ...posts.filter(p=>!remotePosts.some(r=>r.body===p.body))]
+    : posts;
   const visiblePosts=sourcePosts.filter(post=>!blockedIds.includes(authorId(post))&&post.city===city);
 
   const pickPostMedia=async()=>{
@@ -439,7 +441,9 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
     {id:'demo-story-3',name:'Natalia',avatar:people[2]?.photo,mediaUrl:people[2]?.photo,caption:'girls night ✨'},
     {id:'demo-story-4',name:'Klara',avatar:people[3]?.photo,mediaUrl:people[3]?.photo,caption:'book club'}
   ];
-  const visibleStories=sessionUserId?stories:demoStories;
+  const visibleStories=stories.length
+    ? [...stories, ...demoStories.filter(d=>!stories.some(s=>s.name===d.name))]
+    : demoStories;
 
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     {loading&&<View style={s.feedLoading}><ActivityIndicator size="small" color={c.pink}/><Typography style={s.feedLoadingText}>Ładuję Polkę…</Typography></View>}
