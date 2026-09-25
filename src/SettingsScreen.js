@@ -6,6 +6,8 @@ import {Typography} from './ui';
 import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './featurePreferences';
 
 const SHARE_URL='https://polka.app';
+const ZODIAC_SIGNS=['Baran','Byk','Bliźnięta','Rak','Lew','Panna','Waga','Skorpion','Strzelec','Koziorożec','Wodnik','Ryby'];
+const STYLE_OPTIONS=['Casual','Minimal','Vintage','Streetwear','Sporty','Classy','Artsy'];
 
 function Row({icon,title,subtitle,onPress,right,danger=false}){
   return <Pressable accessibilityRole="button" onPress={onPress} style={s.row}>
@@ -65,6 +67,18 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
       <Row icon="sparkles-outline" title="Zodiak przy spotkaniach" subtitle="Astro vibe dla terminu spotkania" right={<Switch value={features.zodiacMeetingContext} onValueChange={value=>setFeature('zodiacMeetingContext',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.zodiacMeetingContext?c.pink:'#fff'}/>}/>
       <Row icon="people-outline" title="Astro matching w Poznaj" subtitle="Dopasowanie znaków na profilach" right={<Switch value={features.zodiacPeopleMatching} onValueChange={value=>setFeature('zodiacPeopleMatching',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.zodiacPeopleMatching?c.pink:'#fff'}/>}/>
       <Row icon="shirt-outline" title="Styl ubierania w Poznaj" subtitle="Dopasowanie estetyki i stylu" right={<Switch value={features.stylePeopleMatching} onValueChange={value=>setFeature('stylePeopleMatching',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.stylePeopleMatching?c.pink:'#fff'}/>}/>
+      {features.zodiacPeopleMatching&&<View style={s.preferencePicker}>
+        <Typography style={s.pickerLabel}>Mój znak</Typography>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerScroll}>
+          {ZODIAC_SIGNS.map(sign=><Pressable key={sign} onPress={()=>setFeature('zodiacSign',sign)} style={[s.preferenceChip,features.zodiacSign===sign&&s.preferenceChipActive]}><Typography style={[s.preferenceChipText,features.zodiacSign===sign&&s.preferenceChipTextActive]}>{sign}</Typography></Pressable>)}
+        </ScrollView>
+      </View>}
+      {features.stylePeopleMatching&&<View style={s.preferencePicker}>
+        <Typography style={s.pickerLabel}>Mój styl</Typography>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerScroll}>
+          {STYLE_OPTIONS.map(style=><Pressable key={style} onPress={()=>setFeature('stylePreference',style)} style={[s.preferenceChip,features.stylePreference===style&&s.preferenceChipActive]}><Typography style={[s.preferenceChipText,features.stylePreference===style&&s.preferenceChipTextActive]}>{style}</Typography></Pressable>)}
+        </ScrollView>
+      </View>}
       <Row icon="chatbubbles-outline" title="Grupa wsparcia w wiadomościach" subtitle="Seedowana rozmowa „Cykl i samopoczucie”" right={<Switch value={features.supportChat} onValueChange={value=>setFeature('supportChat',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.supportChat?c.pink:'#fff'}/>}/>
     </View>
 
@@ -101,5 +115,12 @@ const s=StyleSheet.create({
   iconBox:{width:38,height:38,borderRadius:12,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
   rowTitle:{fontFamily:f.semibold,fontSize:15},
   subtitle:{color:c.muted,marginTop:2},
+  preferencePicker:{paddingHorizontal:14,paddingVertical:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  pickerLabel:{fontFamily:f.bold,fontSize:12,color:c.ink,marginBottom:8},
+  pickerScroll:{paddingRight:10},
+  preferenceChip:{height:34,paddingHorizontal:12,borderRadius:999,borderWidth:1,borderColor:c.line,backgroundColor:c.canvas,alignItems:'center',justifyContent:'center',marginRight:7},
+  preferenceChipActive:{backgroundColor:c.pink,borderColor:c.pink},
+  preferenceChipText:{fontFamily:f.semibold,fontSize:11,color:c.ink},
+  preferenceChipTextActive:{color:c.white},
   footer:{textAlign:'center',color:c.muted,marginTop:sp.xl}
 });
