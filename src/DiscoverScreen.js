@@ -29,6 +29,7 @@ export default function DiscoverScreen({city='Warszawa'}){
   const [creating,setCreating]=useState(false);
   const [title,setTitle]=useState('');
   const [joined,setJoined]=useState([]);
+  const [selected,setSelected]=useState(null);
   const visible=useMemo(()=>plans.filter(p=>(city==='Wszystkie'||p.city===city)&&(category==='Wszystkie'||p.category===category)),[plans,city,category]);
 
   const addPlan=()=>{
@@ -50,7 +51,7 @@ export default function DiscoverScreen({city='Warszawa'}){
       {visible.map(plan=>{
         const isJoined=joined.includes(plan.id);
         const host=people.find(p=>p.name===plan.host);
-        return <View key={plan.id} style={s.planCard}>
+        return <Pressable key={plan.id} onPress={()=>setSelected(plan)} style={s.planCard}>
           <Image source={{uri:plan.photo}} style={s.cover}/>
           <View style={s.overlay}/>
           <View style={s.topPills}>
@@ -68,10 +69,32 @@ export default function DiscoverScreen({city='Warszawa'}){
               </Pressable>
             </View>
           </View>
-        </View>
+        </Pressable>
       })}
       {!visible.length&&<View style={s.empty}><Typography style={s.emptyTitle}>Jeszcze nic tu nie ma</Typography><Typography style={s.emptyText}>Utwórz pierwszy plan albo zmień filtr.</Typography></View>}
     </ScrollView>
+
+    <Modal visible={!!selected} animationType="slide" onRequestClose={()=>setSelected(null)}>
+      {!!selected&&<View style={s.detailRoot}>
+        <View style={s.detailHeader}>
+          <Pressable onPress={()=>setSelected(null)} style={s.detailIcon}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
+          <Typography style={s.detailHeaderTitle}>Plan</Typography>
+          <View style={s.detailIcon}/>
+        </View>
+        <ScrollView contentContainerStyle={s.detailContent} showsVerticalScrollIndicator={false}>
+          <Image source={{uri:selected.photo}} style={s.detailHero}/>
+          <Typography style={s.detailTitle}>{selected.title}</Typography>
+          <View style={s.detailMetaRow}><Ionicons name="calendar-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.when}</Typography></View>
+          <View style={s.detailMetaRow}><Ionicons name="location-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.city}</Typography></View>
+          <View style={s.detailMetaRow}><Ionicons name="people-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.spots} osób</Typography></View>
+          <View style={s.detailHost}>
+            {people.find(p=>p.name===selected.host)?<Image source={{uri:people.find(p=>p.name===selected.host).photo}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
+            <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
+          </View>
+          <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do planu'} secondary={joined.includes(selected.id)} onPress={()=>setJoined(prev=>prev.includes(selected.id)?prev.filter(id=>id!==selected.id):[...prev,selected.id])}/>
+        </ScrollView>
+      </View>}
+    </Modal>
 
     <Modal visible={creating} animationType="slide" transparent onRequestClose={()=>setCreating(false)}>
       <KeyboardAvoidingView style={s.modalBackdrop} behavior={Platform.OS==='ios'?'padding':'height'}>
@@ -127,5 +150,18 @@ const s=StyleSheet.create({
   sheetHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:sp.lg},
   sheetTitle:{fontFamily:f.bold,fontSize:24,letterSpacing:-.8,color:c.ink},
   fieldLabel:{fontFamily:f.semibold,fontSize:14,color:c.ink,marginBottom:8,marginTop:8},fixedCity:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:11,paddingVertical:8,marginBottom:8},fixedCityText:{fontFamily:f.bold,fontSize:12,color:c.pink},sheetChipScroll:{flexGrow:0,flexShrink:0,overflow:'visible'},sheetChipContent:{paddingTop:8,paddingBottom:12,alignItems:'center'},
+  detailRoot:{flex:1,backgroundColor:c.white},
+  detailHeader:{height:60,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  detailIcon:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center'},
+  detailHeaderTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
+  detailContent:{paddingBottom:40},
+  detailHero:{width:'100%',height:320,backgroundColor:c.blush},
+  detailTitle:{fontFamily:f.bold,fontSize:32,lineHeight:36,letterSpacing:-1.1,color:c.ink,paddingHorizontal:sp.lg,marginTop:20,marginBottom:10},
+  detailMetaRow:{flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:sp.lg,marginTop:8},
+  detailMeta:{fontFamily:f.semibold,fontSize:14,color:c.ink},
+  detailHost:{margin:sp.lg,padding:14,borderRadius:18,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',gap:12},
+  detailHostAvatar:{width:46,height:46,borderRadius:23,backgroundColor:c.blush},
+  detailHostLabel:{fontFamily:f.regular,fontSize:11,color:c.muted},
+  detailHostName:{fontFamily:f.bold,fontSize:16,color:c.ink,marginTop:2},
   input:{height:52,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,paddingHorizontal:sp.base,fontFamily:f.regular,fontSize:15,color:c.ink}
 });
