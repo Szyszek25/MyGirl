@@ -1,18 +1,163 @@
 <!doctype html>
 <html lang="pl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff"><meta name="description" content="MyGirl — nowe znajomości, grupy i wspólne wyjścia dla dziewczyn w Polsce. Poznaj wizję projektu."><title>MyGirl — Poznawaj po swojemu</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="pages.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ff4f9a">
+<meta name="description" content="Girly — aplikacja dla Ciebie i Twoich dziewczyn. Plany, ekipy, pytania i nowe znajomości w Twoim mieście.">
+<title>Girly — for you and your girls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-.homehero{min-height:calc(94svh - 76px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:65px 0 22px}.homehero h1{font-size:clamp(58px,10.5vw,144px);line-height:.88;letter-spacing:-.085em;color:var(--pink);max-width:1200px;margin:22px auto 32px;text-wrap:balance}.homehero h1 span{display:block}.homehero p{color:var(--muted);font-size:17px;max-width:510px;margin:0 auto 26px}.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.secondary{background:#f4edf1;color:var(--ink)!important}.cue{margin-top:auto;padding-top:48px;color:var(--muted);font-size:13px;font-weight:700}.photo-row{display:grid;grid-template-columns:1.1fr .85fr 1.1fr .85fr;gap:11px;align-items:start;margin-bottom:12px}.photo{height:clamp(250px,34vw,460px);position:relative;overflow:hidden;background:#f4dce5}.photo:nth-child(even){margin-top:38px}.photo img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}.photo:hover img{transform:scale(1.055)}.photo span{position:absolute;bottom:12px;left:12px;color:#21151e;background:#fff;padding:8px 13px;border-radius:99px;font-size:12px;font-weight:800}.home-section{padding:105px 0}.home-section h2{font-size:clamp(48px,7vw,96px);letter-spacing:-.07em;line-height:.94;max-width:1000px;margin:18px 0 23px}.home-section .lead{font-size:18px;color:var(--muted);max-width:560px;line-height:1.5}.feature-section{background:#f7f3f5;overflow:hidden}.feature-top{display:flex;align-items:end;justify-content:space-between;gap:20px}.feature-top h2{margin-bottom:0}.carousel-controls{display:flex;gap:8px;flex:none;padding-bottom:5px}.carousel-controls button{width:46px;height:46px;border-radius:50%;border:1px solid #ded1d9;background:white;color:var(--ink);font-size:24px;cursor:pointer}.carousel-controls button:hover{background:var(--pink);color:white}.carousel{display:flex;gap:16px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;scroll-padding-inline:24px;padding:38px max(24px,calc((100vw - 1220px)/2)) 40px;scrollbar-width:thin;scrollbar-color:#d7b2c3 transparent}.feature-card{position:relative;scroll-snap-align:start;flex:0 0 clamp(235px,23vw,290px);height:405px;border-radius:17px;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:space-between;text-decoration:none;overflow:hidden;padding:31px 19px 24px;background:#fff;color:var(--ink);border:1px solid #ebdce4;transition:transform .25s ease,box-shadow .25s ease}.feature-card:hover{transform:translateY(-7px);box-shadow:0 18px 36px #6f31501b}.feature-card:nth-child(2){background:#fae0ed}.feature-card:nth-child(3){background:#28202a;color:#fff}.feature-card:nth-child(4){background:#f5e8df}.feature-card:nth-child(5){background:#e4dde9}.feature-card:nth-child(6){background:#e3eee8}.feature-card .num{font-size:11px;letter-spacing:.15em;font-weight:800;align-self:flex-start}.feature-card .emoji{font-size:clamp(73px,8vw,104px);line-height:1;display:grid;place-items:center;flex:1;filter:drop-shadow(0 13px 8px #28111b13);transition:transform .35s ease}.feature-card:hover .emoji{transform:rotate(-8deg) scale(1.12)}.feature-card h3{font-size:29px;line-height:1;letter-spacing:-.055em;margin:0 0 9px}.feature-card p{font-size:13px;line-height:1.35;margin:0;opacity:.75;min-height:37px}.feature-card .more{margin-top:16px;font-size:12px;font-weight:800;text-decoration:underline;text-underline-offset:4px}.editorial{display:grid;grid-template-columns:1fr 1fr;gap:6%;align-items:center}.editorial img{height:550px;width:100%;object-fit:cover}.editorial h2{max-width:650px}.pink-band{background:var(--pink);color:white;padding:95px 0}.pink-band h2{font-size:clamp(52px,8vw,106px);line-height:.9;letter-spacing:-.075em;max-width:1050px;margin:17px 0 23px}.pink-band p{font-size:19px;color:#ffdfeb;max-width:620px}.pink-band .eyebrow{color:#ffdfeb}.pink-band .button{background:white;color:var(--pink)!important}.picture-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:35px}.picture-link{height:410px;position:relative;display:flex;align-items:flex-end;text-decoration:none;color:white;overflow:hidden}.picture-link img{position:absolute;inset:0;height:100%;width:100%;object-fit:cover;transition:transform .6s}.picture-link:hover img{transform:scale(1.06)}.picture-link:after{content:'';position:absolute;inset:40% 0 0;background:linear-gradient(transparent,#21131fd9)}.picture-link span{position:relative;z-index:1;font-size:clamp(30px,3vw,42px);font-weight:800;line-height:1;letter-spacing:-.06em;padding:24px}.bottom{background:#291b26;color:white;padding:94px 0;text-align:center}.bottom h2{font-size:clamp(50px,8vw,100px);line-height:.9;letter-spacing:-.075em;max-width:920px;margin:18px auto 30px}.bottom .eyebrow{color:#ffb2d1}.bottom .button{background:#fff;color:var(--pink)!important}.photo-credit{font-size:11px;color:var(--muted);margin:0 0 40px;line-height:1.5}.reveal{opacity:1;transform:none}@media(max-width:850px){.home-section{padding:72px 0}.editorial{grid-template-columns:1fr;gap:30px}.editorial img{height:450px}.picture-links{grid-template-columns:1fr 1fr}.picture-link:last-child{display:none}.carousel{padding-inline:24px}.feature-card{flex-basis:245px;height:370px}}@media(max-width:540px){.homehero{min-height:620px;padding-top:45px}.homehero h1{font-size:clamp(53px,13vw,80px)}.homehero p{font-size:15px}.actions .button{width:100%}.photo-row{grid-template-columns:1fr 1fr;gap:7px}.photo{height:245px}.photo:nth-child(even){margin-top:15px}.photo span{font-size:10px;padding:6px 9px;bottom:7px;left:7px}.home-section h2{font-size:clamp(47px,11vw,70px)}.feature-top{align-items:center}.carousel-controls button{width:39px;height:39px}.feature-card{flex-basis:224px;height:350px}.carousel{gap:12px;padding:28px 16px 38px}.feature-card .emoji{font-size:80px}.editorial img{height:340px}.picture-links{grid-template-columns:1fr}.picture-link{height:340px}.picture-link:last-child{display:flex}.pink-band{padding:72px 0}}@media(prefers-reduced-motion:reduce){.photo img,.feature-card,.feature-card .emoji,.picture-link img{transition:none!important}.feature-card:hover,.feature-card:hover .emoji{transform:none!important}}
-</style></head>
-<body><header class="wrap"><nav class="nav" aria-label="Nawigacja"><a class="logo" href="index.html">MyGirl.</a><div class="links"><a href="wizja.html">Wizja</a><a href="problem.html">Problem</a><a href="jak-to-dziala.html">Jak działa</a><a href="wspolpraca.html">Współpraca</a><a class="cta" href="zapisy.html">Zapisy ↗</a></div></nav></header>
-<main><section class="wrap homehero"><span class="eyebrow">Nowe znajomości. Bez presji.</span><h1><span>Poznawaj</span><span>po swojemu.</span></h1><p>Nowe koleżanki. Wspólne plany. Twoje miasto.</p><div class="actions"><a class="button" href="jak-to-dziala.html">Poznaj MyGirl ↗</a><a class="button secondary" href="zapisy.html">O premierze ↗</a></div><span class="cue">Zobacz, co tworzymy ↓</span></section>
-<section class="wrap" aria-label="Zdjęcia ilustrujące nowe znajomości"><div class="photo-row"><div class="photo"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=650&q=80" alt="Ilustracyjny portret kobiety"><span>Nowe znajomości</span></div><div class="photo"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=650&q=80" alt="Ilustracyjny portret kobiety" loading="lazy"><span>Twój vibe</span></div><div class="photo"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=650&q=80" alt="Ilustracyjny portret kobiety" loading="lazy"><span>Wspólne plany</span></div><div class="photo"><img src="https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=650&q=80" alt="Ilustracyjny portret kobiety" loading="lazy"><span>Twoje miasto</span></div></div><p class="photo-credit">Zdjęcia poglądowe, nie przedstawiają użytkowniczek MyGirl. Prawa do wykorzystania trzeba potwierdzić przed komercyjną publikacją.</p></section>
-<section class="feature-section home-section" aria-labelledby="funkcje"><div class="wrap feature-top"><div><span class="eyebrow">MyGirl / Produkt</span><h2 id="funkcje">Znajdź swój <span style="color:var(--pink)">vibe.</span></h2></div><div class="carousel-controls" aria-label="Przewiń funkcje"><button type="button" id="features-prev" aria-label="Poprzednie funkcje">←</button><button type="button" id="features-next" aria-label="Następne funkcje">→</button></div></div><div class="carousel" id="features-carousel" aria-label="Karuzela funkcji aplikacji" tabindex="0"><a class="feature-card" href="jak-to-dziala.html"><span class="num">01 / ODKRYWAJ</span><span class="emoji" aria-hidden="true">💗</span><div><h3>Odkrywaj.</h3><p>Dziewczyny z Twojego miasta.</p><span class="more">Poznaj funkcję ↗</span></div></a><a class="feature-card" href="jak-to-dziala.html"><span class="num">02 / PYTANIA</span><span class="emoji" aria-hidden="true">💬</span><div><h3>Łap vibe.</h3><p>Pytania, które przełamują lody.</p><span class="more">Poznaj funkcję ↗</span></div></a><a class="feature-card" href="jak-to-dziala.html"><span class="num">03 / GRUPY</span><span class="emoji" aria-hidden="true">👯‍♀️</span><div><h3>Znajdź ekipę.</h3><p>Kawa, książki, sport i więcej.</p><span class="more">Poznaj funkcję ↗</span></div></a><a class="feature-card" href="jak-to-dziala.html"><span class="num">04 / CZATY</span><span class="emoji" aria-hidden="true">✉️</span><div><h3>Napisz „hej”.</h3><p>Od wiadomości do spotkania.</p><span class="more">Poznaj funkcję ↗</span></div></a><a class="feature-card" href="jak-to-dziala.html"><span class="num">05 / PLANY</span><span class="emoji" aria-hidden="true">☕</span><div><h3>Wyjdź razem.</h3><p>Spontaniczny plan na weekend.</p><span class="more">Poznaj funkcję ↗</span></div></a><a class="feature-card" href="jak-to-dziala.html"><span class="num">06 / BEZPIECZEŃSTWO</span><span class="emoji" aria-hidden="true">🛡️</span><div><h3>Po swojemu.</h3><p>Blokowanie i zgłoszenia w planie.</p><span class="more">Więcej informacji ↗</span></div></a></div><p class="wrap photo-credit">Funkcje są projektowane i testowane. Karuzela prezentuje plan produktu, nie działającą usługę.</p></section>
-<section class="home-section"><div class="wrap editorial"><div><span class="eyebrow">01 / Nasza wizja</span><h2>Żebyś miała <span style="color:var(--pink)">z kim.</span></h2><p class="lead">Nowe miasto albo po prostu ochota na nowe znajomości? Tworzymy przestrzeń, w której łatwiej zrobić pierwszy krok.</p><a class="button" href="wizja.html">Poznaj naszą misję ↗</a></div><img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1100&q=80" loading="lazy" alt="Ilustracyjne zdjęcie grupy znajomych"></div></section>
-<section class="pink-band"><div class="wrap"><span class="eyebrow">02 / Problem</span><h2>Masz ochotę wyjść.<br>Ale z kim?</h2><p>Nie zawsze łatwo poznać kogoś poza pracą, uczelnią i swoją paczką.</p><a class="button" href="problem.html">O problemie ↗</a></div></section>
-<section class="home-section"><div class="wrap"><span class="eyebrow">Odkryj więcej</span><h2>Każda historia<br>zaczyna się gdzieś.</h2><div class="picture-links"><a class="picture-link" href="wizja.html"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=900&q=78" loading="lazy" alt="Ilustracyjny portret kobiety"><span>Nasza misja ↗</span></a><a class="picture-link" href="jak-to-dziala.html"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=900&q=78" loading="lazy" alt="Ilustracyjny portret kobiety"><span>Jak działa ↗</span></a><a class="picture-link" href="wspolpraca.html"><img src="https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=900&q=78" loading="lazy" alt="Ilustracyjny portret kobiety"><span>Współpraca ↗</span></a></div></div></section>
-<section class="bottom"><div class="wrap"><span class="eyebrow">MyGirl / W przygotowaniu</span><h2>Dołącz do naszej historii.</h2><a class="button" href="zapisy.html">Informacje o zapisach ↗</a></div></section></main>
-<footer class="footer"><div class="wrap foot"><a class="logo" href="index.html">MyGirl.</a><nav><a href="wizja.html">Wizja</a><a href="problem.html">Problem</a><a href="jak-to-dziala.html">Jak działa</a><a href="wspolpraca.html">Współpraca</a><a href="zapisy.html">Zapisy</a><a href="privacy.html">Prywatność</a><a href="terms.html">Regulamin</a></nav></div><p class="wrap note">Projekt w przygotowaniu. Rejestracja i konta online nie są jeszcze aktywne.</p></footer>
-<script src="pages.js" defer></script><script>const slider=document.getElementById('features-carousel');for(const [id,direction] of [['features-prev',-1],['features-next',1]]){document.getElementById(id).addEventListener('click',()=>{const card=slider.querySelector('.feature-card');const width=card.getBoundingClientRect().width+16;slider.scrollBy({left:direction*width,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});});}</script></body></html>
+:root{--pink:#ff4f9a;--pink2:#ff87ba;--ink:#171217;--cream:#fff7fb;--soft:#ffd8e9;--yellow:#fff079;--line:#eadde5}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;color:var(--ink);font:16px/1.45 "DM Sans",Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}img{display:block;max-width:100%;object-fit:cover}
+.wrap{width:min(1240px,calc(100% - 40px));margin:auto}
+.nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.logo{font-weight:900;letter-spacing:-.08em;font-size:33px;text-decoration:none}
+.logo i{font-style:normal;color:var(--pink)}
+.navlinks{display:flex;align-items:center;gap:22px}
+.navlinks a{font-size:13px;font-weight:800;text-decoration:none}
+.navcta,.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:var(--ink);color:white;text-decoration:none;padding:13px 22px;font-weight:900;cursor:pointer;transition:.22s transform,.22s background}
+.navcta:hover,.btn:hover{transform:translateY(-2px);background:var(--pink)}
+.hero{padding:54px 0 22px;text-align:center}
+.kicker{display:inline-flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900}
+.hero h1{font-size:clamp(72px,14vw,190px);line-height:.79;letter-spacing:-.09em;margin:30px auto 26px;max-width:1250px;font-weight:900}
+.hero h1 .pink{color:var(--pink);display:block}
+.hero .sub{font-size:clamp(18px,2vw,24px);max-width:700px;margin:0 auto 26px;color:#5e555c}
+.hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn.pink{background:var(--pink)} .btn.ghost{background:#f5edf2;color:var(--ink)}
+.micro{margin-top:12px;font-size:12px;color:#777}
+.hero-collage{display:grid;grid-template-columns:1.15fr .85fr 1fr;gap:10px;align-items:end;margin-top:52px}
+.hero-photo{height:clamp(260px,38vw,520px);overflow:hidden;position:relative;border-radius:24px}
+.hero-photo:nth-child(2){height:clamp(220px,31vw,430px);margin-bottom:34px}
+.hero-photo img{width:100%;height:100%;transition:transform .8s ease}
+.hero-photo:hover img{transform:scale(1.035)}
+.tag{position:absolute;left:14px;bottom:14px;background:#fff;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:900}
+.marquee{margin-top:18px;background:var(--pink);color:white;overflow:hidden;border-block:2px solid var(--ink);transform:rotate(-1deg)}
+.marquee-track{display:flex;width:max-content;gap:34px;padding:14px 0;font-size:clamp(24px,4vw,48px);font-weight:900;letter-spacing:-.05em;animation:marquee 24s linear infinite}
+@keyframes marquee{to{transform:translateX(-50%)}}
+.section{padding:110px 0}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:900;color:var(--pink)}
+.section h2{font-size:clamp(56px,9vw,120px);line-height:.86;letter-spacing:-.08em;margin:16px 0 30px;max-width:1080px}
+.section p.lead{font-size:20px;color:#61575e;max-width:680px}
+.feed{background:var(--cream)}
+.posts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:44px}
+.post{border:1px solid var(--line);background:white;border-radius:26px;padding:16px;min-height:420px;display:flex;flex-direction:column;justify-content:space-between;transition:.25s transform,.25s box-shadow}
+.post:hover{transform:translateY(-8px) rotate(-.5deg);box-shadow:0 22px 70px #9b35601e}
+.post-head{display:flex;align-items:center;gap:10px}
+.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover}
+.meta strong{display:block;font-size:14px}.meta span{font-size:12px;color:#7c7178}
+.post h3{font-size:clamp(32px,3vw,48px);line-height:.98;letter-spacing:-.06em;margin:28px 0 20px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{background:#f5eef2;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900}
+.post-photo{width:100%;height:190px;border-radius:18px;object-fit:cover;margin-top:16px}
+.post-foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:13px;font-weight:800}
+.post .join{background:var(--ink);color:white;border-radius:999px;padding:8px 12px}
+.post.hot{background:var(--pink);color:white}.post.hot .meta span,.post.hot .chip{color:white}.post.hot .chip{background:#ffffff25}.post.hot .join{background:white;color:var(--pink)}
+.types{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:40px}
+.type{aspect-ratio:.85;border-radius:24px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;font-weight:900;font-size:16px;transition:.25s transform}
+.type:hover{transform:rotate(-3deg) scale(1.03)}
+.type b{font-size:40px}.type:nth-child(1){background:#ffd8e9}.type:nth-child(2){background:#fff079}.type:nth-child(3){background:#dff5ff}.type:nth-child(4){background:#e3dbff}.type:nth-child(5){background:#dff6e6}.type:nth-child(6){background:#171217;color:white}
+.plan{background:var(--ink);color:white}
+.plan .eyebrow{color:#ff9cc7}.plan h2{max-width:1150px}
+.plan-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center}
+.phone{max-width:420px;margin:auto;background:#fff;border-radius:42px;padding:12px;color:var(--ink);box-shadow:0 30px 90px #0007;transform:rotate(3deg)}
+.phone-inner{border-radius:34px;overflow:hidden;background:#fff7fb;padding:14px}
+.plan-card{background:white;border-radius:24px;padding:18px}.plan-card img{height:235px;width:100%;border-radius:18px}.plan-card h3{font-size:34px;line-height:1;letter-spacing:-.05em;margin:15px 0 6px}.capacity{display:flex;justify-content:space-between;align-items:center;margin-top:14px}.capacity b{font-size:14px}.dots{display:flex}.dots img{width:34px;height:34px;border-radius:50%;border:2px solid #fff;margin-left:-8px}
+.signup{padding:100px 0;background:var(--pink);color:white;position:relative;overflow:hidden}
+.signup:before{content:"GIRLY GIRLY GIRLY";position:absolute;inset:auto -5% -5%;font-size:18vw;font-weight:900;letter-spacing:-.08em;white-space:nowrap;color:#ffffff12;pointer-events:none}
+.signup h2{font-size:clamp(62px,11vw,145px);line-height:.82;letter-spacing:-.09em;margin:14px 0 24px;max-width:1100px}
+.signup p{font-size:20px;max-width:650px}
+.signup-form{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr auto;gap:10px;max-width:900px;margin-top:34px}
+.signup-form input,.signup-form select{min-height:56px;border:0;border-radius:16px;padding:0 16px;font:inherit;font-weight:700}
+.signup-form button{min-height:56px;border:0;border-radius:16px;background:var(--ink);color:white;font-weight:900;padding:0 26px;cursor:pointer}
+.form-note{font-size:11px!important;opacity:.8;margin-top:10px}
+.final{padding:105px 0;text-align:center}.final h2{font-size:clamp(64px,13vw,170px);line-height:.8;letter-spacing:-.09em;margin:0}.final h2 span{color:var(--pink)}
+.footer{border-top:1px solid var(--line);padding:34px 0 50px}.foot{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}.foot nav{display:flex;gap:16px;flex-wrap:wrap}.foot a{font-size:12px;text-decoration:none;font-weight:800}
+.reveal{opacity:0;transform:translateY(30px);transition:.75s opacity,.75s transform}.reveal.visible{opacity:1;transform:none}
+@media(max-width:920px){.posts{grid-template-columns:1fr 1fr}.posts .post:last-child{grid-column:1/-1}.types{grid-template-columns:repeat(3,1fr)}.plan-grid{grid-template-columns:1fr}.phone{margin-top:30px}.signup-form{grid-template-columns:1fr 1fr}.signup-form button{grid-column:1/-1}}
+@media(max-width:680px){.wrap{width:calc(100% - 28px)}.navlinks a:not(.navcta){display:none}.hero{padding-top:30px}.hero h1{font-size:clamp(72px,25vw,118px)}.hero-collage{grid-template-columns:1fr 1fr}.hero-photo{height:310px}.hero-photo:nth-child(2){height:270px;margin-bottom:22px}.hero-photo:nth-child(3){display:none}.section{padding:78px 0}.section h2{font-size:clamp(52px,17vw,82px)}.posts{grid-template-columns:1fr}.posts .post:last-child{grid-column:auto}.post{min-height:390px}.types{grid-template-columns:1fr 1fr}.signup-form{grid-template-columns:1fr}.signup-form button{grid-column:auto}.signup h2{font-size:clamp(68px,21vw,100px)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.marquee-track{animation:none}.reveal{opacity:1;transform:none}*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap"><nav class="nav"><a class="logo" href="index.html">girly<i>.</i></a><div class="navlinks"><a href="#feed">Feed</a><a href="#vibe">Twój vibe</a><a href="#plans">Plany</a><a class="navcta" href="#signup">Dołącz ↗</a></div></nav></header>
+
+<main>
+<section class="hero wrap">
+<span class="kicker">🎀 nowa apka dla dziewczyn · Polska</span>
+<h1>YOU +<span class="pink">YOUR GIRLS.</span></h1>
+<p class="sub">Plany, ekipy, pytania i nowe znajomości. Nie kolejny swipe. Miejsce, które naprawdę coś zaczyna.</p>
+<div class="hero-actions"><a class="btn pink" href="#signup">Chcę early access ↗</a><a class="btn ghost" href="#feed">Zobacz vibe ↓</a></div>
+<p class="micro">Startujemy od Warszawy. Zero spamu. Tylko info o becie.</p>
+<div class="hero-collage reveal">
+<div class="hero-photo"><img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=900&q=85" alt="Dziewczyny spędzające razem czas"><span class="tag">girls night ✦</span></div>
+<div class="hero-photo"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=85" alt="Portret młodej kobiety"><span class="tag">your vibe ✦</span></div>
+<div class="hero-photo"><img src="https://images.unsplash.com/photo-1517292987719-0369a794ec0f?w=900&q=85" alt="Grupa znajomych na mieście"><span class="tag">who's coming? ✦</span></div>
+</div>
+</section>
+
+<div class="marquee" aria-hidden="true"><div class="marquee-track"><span>COFFEE GIRLY ☕</span><span>TRAVEL GIRLY ✈️</span><span>GYM GIRLY 🎧</span><span>PARTY GIRLY ✦</span><span>BOOK GIRLY 📚</span><span>COFFEE GIRLY ☕</span><span>TRAVEL GIRLY ✈️</span><span>GYM GIRLY 🎧</span><span>PARTY GIRLY ✦</span><span>BOOK GIRLY 📚</span></div></div>
+
+<section class="section feed" id="feed"><div class="wrap">
+<span class="eyebrow">01 / Nie katalog profili</span>
+<h2>Feed, który żyje.</h2>
+<p class="lead">Prawdziwe pytania, spontaniczne plany i dziewczyny z Twojego miasta. Tak, żeby łatwiej było napisać „idę”.</p>
+<div class="posts">
+<article class="post reveal"><div><div class="post-head"><img class="avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&q=80" alt=""><div class="meta"><strong>Maja · 22</strong><span>Warszawa · 8 min temu</span></div></div><h3>Ktoś na matchę po 17? 🍵</h3><div class="chips"><span class="chip">coffee</span><span class="chip">centrum</span><span class="chip">dzisiaj</span></div></div><div class="post-foot"><span>♡ 18 · 💬 7</span><span class="join">Dołącz</span></div></article>
+<article class="post hot reveal"><div><div class="post-head"><img class="avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=160&q=80" alt=""><div class="meta"><strong>Ola · 21</strong><span>Warszawa · sobota</span></div></div><h3>girls night. 3/6 ✦</h3><div class="chips"><span class="chip">karaoke</span><span class="chip">girls only</span></div><img class="post-photo" src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800&q=80" alt="Grupa znajomych podczas wyjścia"></div><div class="post-foot"><span>3 miejsca</span><span class="join">I'm in →</span></div></article>
+<article class="post reveal"><div><div class="post-head"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&q=80" alt=""><div class="meta"><strong>Julia · 23</strong><span>Warszawa · teraz</span></div></div><h3>Jaki second hand serio warto odwiedzić?</h3><div class="chips"><span class="chip">fashion</span><span class="chip">ask the girls</span></div></div><div class="post-foot"><span>♡ 41 · 💬 32</span><span class="join">Odpowiedz</span></div></article>
+</div>
+<p class="micro">Przykładowe posty pokazujące kierunek produktu — nie są treściami prawdziwych użytkowniczek.</p>
+</div></section>
+
+<section class="section" id="vibe"><div class="wrap">
+<span class="eyebrow">02 / What's your girly?</span>
+<h2>Każda ma swój vibe.</h2>
+<div class="types reveal">
+<div class="type"><b>☕</b><span>coffee girly</span></div><div class="type"><b>✈️</b><span>travel girly</span></div><div class="type"><b>🎧</b><span>gym girly</span></div><div class="type"><b>📚</b><span>book girly</span></div><div class="type"><b>🪩</b><span>party girly</span></div><div class="type"><b>＋</b><span>find yours</span></div>
+</div>
+</div></section>
+
+<section class="section plan" id="plans"><div class="wrap plan-grid">
+<div><span class="eyebrow">03 / Girly plans</span><h2>Nie masz z kim? Ktoś też nie ma.</h2><p class="lead" style="color:#cdbfc8">Tworzysz plan. Ustawiasz liczbę miejsc. Dziewczyny dołączają. Bez tygodnia pisania „musimy się kiedyś zgadać”.</p><a class="btn pink" href="#signup">Wejdź do pierwszej bety ↗</a></div>
+<div class="phone reveal"><div class="phone-inner"><div class="post-head"><img class="avatar" src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=160&q=80" alt=""><div class="meta"><strong>Girly Plan</strong><span>Warszawa · piątek 19:30</span></div></div><div class="plan-card"><img src="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=900&q=80" alt="Kawiarnia i wspólne wyjście"><h3>Matcha + photo walk</h3><p>Śródmieście · luźny plan · 18–26</p><div class="capacity"><div class="dots"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80" alt=""><img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80" alt=""><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80" alt=""></div><b>3/6 girls</b></div></div></div></div>
+</div></section>
+
+<section class="signup" id="signup"><div class="wrap">
+<span class="eyebrow" style="color:white">Early access / Warszawa</span>
+<h2>GET IN<br>BEFORE IT'S<br>EVERYWHERE.</h2>
+<p>Zostaw kontakt. Gdy otworzymy pierwszą betę Girly, dostaniesz zaproszenie jako jedna z pierwszych.</p>
+<form class="signup-form" id="early-form">
+<input id="name" name="name" placeholder="Twoje imię" autocomplete="given-name" required>
+<input id="email" name="email" type="email" placeholder="Twój e-mail" autocomplete="email" required>
+<select id="city" name="city" aria-label="Miasto"><option>Warszawa</option><option>Kraków</option><option>Wrocław</option><option>Trójmiasto</option><option>Poznań</option><option>Inne miasto</option></select>
+<button type="submit">Dołącz →</button>
+</form>
+<p class="form-note" id="form-note">Na tym etapie formularz przygotowuje wiadomość zgłoszeniową — automatyczny zapis Supabase pozostaje wyłączony do czasu podpięcia produkcyjnej konfiguracji i dokumentów prawnych.</p>
+</div></section>
+
+<section class="final"><div class="wrap"><h2>SEE YOU<br>ON <span>GIRLY.</span></h2></div></section>
+</main>
+
+<footer class="footer"><div class="wrap foot"><a class="logo" href="index.html">girly<i>.</i></a><nav><a href="privacy.html">Prywatność</a><a href="terms.html">Regulamin</a><a href="wspolpraca.html">Współpraca</a><a href="#signup">Early access</a></nav><span class="micro">Projekt w przygotowaniu.</span></div></footer>
+
+<script>
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const els=document.querySelectorAll('.reveal');
+if(reduced||!('IntersectionObserver'in window)){els.forEach(e=>e.classList.add('visible'))}else{const io=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');io.unobserve(entry.target)}}),{threshold:.08});els.forEach(e=>io.observe(e))}
+document.getElementById('early-form').addEventListener('submit',e=>{
+ e.preventDefault();
+ const name=document.getElementById('name').value.trim();
+ const email=document.getElementById('email').value.trim();
+ const city=document.getElementById('city').value;
+ const subject=encodeURIComponent('Girly — early access');
+ const body=encodeURIComponent('Hej! Chcę dołączyć do early access Girly.\n\nImię: '+name+'\nE-mail: '+email+'\nMiasto: '+city);
+ document.getElementById('form-note').textContent='Otwieram wiadomość zgłoszeniową — po podpięciu backendu ten krok stanie się automatyczny.';
+ window.location.href='mailto:mycampus.kontakt@gmail.com?subject='+subject+'&body='+body;
+});
+</script>
+</body>
+</html>
