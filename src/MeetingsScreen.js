@@ -23,10 +23,14 @@ const starterMeetings=[
 ];
 
 const meetingCategories=['Wszystkie','Kawa','Wyjścia','Sport','Spacer','Jedzenie','Książki','Koncert','Moda'];
-const zodiacFallback={
-  Maja:'Waga',Natalia:'Lew',Klara:'Panna',Daria:'Skorpion',Ola:'Strzelec',Sonia:'Bliźnięta',Julia:'Byk',Nela:'Wodnik',Kasia:'Rak',Sara:'Ryby',Wiktoria:'Baran',Dominika:'Koziorożec'
+const zodiacVibeFor=(sign,item)=>{
+  const date=new Date(item.when);
+  const seed=String(sign||'Lew')+item.id+date.getFullYear()+date.getMonth()+date.getDate()+item.category;
+  const score=Math.abs(seed.split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0))%3;
+  if(score===0)return {tone:'high',short:'dobry vibe na wyjście',title:'Dobry vibe na to spotkanie',copy:item.category==='Wyjścia'||item.category==='Koncert'?'Zodiakowo to bardziej towarzyski dzień — dobry fallback na większą energię i ludzi.':'Zodiakowo ten termin wypada lekko i społecznie.'};
+  if(score===1)return {tone:'soft',short:'raczej na spokojnie',title:'Raczej na spokojnie',copy:'Zodiakowo to dzień bardziej na małą ekipę, kawę albo plan bez dużej presji.'};
+  return {tone:'mixed',short:'sprawdź swój nastrój',title:'Vibe mieszany',copy:'Zodiakowo dzień jest neutralny — potraktuj to jako zabawny kontekst i kieruj się tym, jak faktycznie się czujesz.'};
 };
-const zodiacFor=host=>zodiacFallback[host]||['Waga','Lew','Panna','Skorpion','Strzelec','Bliźnięta'][Math.abs(String(host||'Polka').split('').reduce((a,ch)=>a+ch.charCodeAt(0),0))%6];
 const CYCLE_STORAGE_KEY='polka_cycle_tracker_v1';
 const DAY_MS=24*60*60*1000;
 const atNoon=value=>new Date(value.getFullYear(),value.getMonth(),value.getDate(),12);
@@ -55,7 +59,7 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',onReport}){
+export default function MeetingsScreen({city='Warszawa',onReport,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:'Lew'}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
@@ -95,8 +99,8 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
             <Typography style={s.cardTitle}>{item.title}</Typography>
             <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
             <View style={s.metaBadges}>
-              {(()=>{const ctx=cycleContextFor(new Date(item.when),cycleData);return ctx?<View style={[s.cycleMini,ctx.tone==='easy'&&s.cycleMiniEasy,ctx.tone==='careful'&&s.cycleMiniCareful,ctx.tone==='period'&&s.cycleMiniPeriod]}><Ionicons name={ctx.icon} size={12} color={ctx.tone==='easy'?c.success:ctx.tone==='careful'?c.warning:c.pink}/><Typography style={[s.cycleMiniText,ctx.tone==='easy'&&{color:c.success},ctx.tone==='careful'&&{color:c.warning},ctx.tone==='period'&&{color:c.pink}]}>{ctx.label} · {ctx.daysText}</Typography></View>:null})()}
-              <View style={s.zodiacMini}><Typography style={s.zodiacMiniText}>✦ {zodiacFor(item.host)}</Typography></View>
+              {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(item.when),cycleData);return ctx?<View style={[s.cycleMini,ctx.tone==='easy'&&s.cycleMiniEasy,ctx.tone==='careful'&&s.cycleMiniCareful,ctx.tone==='period'&&s.cycleMiniPeriod]}><Ionicons name={ctx.icon} size={12} color={ctx.tone==='easy'?c.success:ctx.tone==='careful'?c.warning:c.pink}/><Typography style={[s.cycleMiniText,ctx.tone==='easy'&&{color:c.success},ctx.tone==='careful'&&{color:c.warning},ctx.tone==='period'&&{color:c.pink}]}>{ctx.label} · {ctx.daysText}</Typography></View>:null})()}
+              {featurePreferences.zodiacMeetingContext&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign||'Lew',item);return <View style={s.zodiacMini}><Typography style={s.zodiacMiniText}>✦ Dla {featurePreferences.zodiacSign||'Lwa'}: {vibe.short}</Typography></View>})()}
             </View>
             <View style={s.cardBottom}>
               <View style={s.peopleRow}>{(cityPeople.length?cityPeople:people).slice(0,3).map(p=><Image key={p.id} source={{uri:p.photo}} style={s.avatar}/>)}</View>
@@ -123,12 +127,16 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
           <View style={s.infoRow}><Ionicons name="calendar-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{new Date(selected.when).toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</Typography></View>
           <View style={s.infoRow}><Ionicons name="location-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{selected.place}, {selected.city}</Typography></View>
 
-          {(()=>{const ctx=cycleContextFor(new Date(selected.when),cycleData);return <View style={s.careFit}>
+          {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(selected.when),cycleData);return <View style={s.careFit}>
             <View style={s.careFitTop}><View><Typography style={s.careFitOverline}>POLKA CARE</Typography><Typography style={s.careFitTitle}>{ctx?ctx.label:'Kontekst terminu'}</Typography></View><View style={[s.careFitIcon,ctx?.tone==='easy'&&{backgroundColor:'#EAF6F0'},ctx?.tone==='careful'&&{backgroundColor:'#FFF4E5'},ctx?.tone==='period'&&{backgroundColor:c.blush}]}><Ionicons name={ctx?.icon||'heart-circle-outline'} size={22} color={ctx?.tone==='easy'?c.success:ctx?.tone==='careful'?c.warning:c.pink}/></View></View>
             <Typography style={s.careFitDays}>{ctx?ctx.daysText:'Ustaw cykl, żeby zobaczyć prognozę'}</Typography>
-            <Typography style={s.careFitCopy}>{ctx?(ctx.tone==='easy'?'Termin nie wypada blisko przewidywanego okresu. Jeśli czujesz się dobrze, nic w trackerze nie sugeruje, żeby zmieniać plan.':ctx.tone==='careful'?'Termin wypada blisko przewidywanego okresu. Możesz zostawić sobie więcej luzu albo wybrać spokojniejszy plan — zależnie od samopoczucia.':'Termin może wypaść w przewidywane dni miesiączki. To nie znaczy, że masz rezygnować — potraktuj to tylko jako przypomnienie o własnym komforcie.'):'Na razie pokazujemy fallback, dopóki nie zapiszesz danych cyklu w Polka Care.'}</Typography>
-            <View style={s.zodiacRow}><Typography style={s.zodiacLabel}>ZODIAK · FALLBACK</Typography><Typography style={s.zodiacValue}>✦ {zodiacFor(selected.host)} organizatorki</Typography></View>
-            <Typography style={s.careFitNote}>Prognoza okresu jest orientacyjna. Zodiak to wyłącznie zabawny element społecznościowy.</Typography>
+            <Typography style={s.careFitCopy}>{ctx?(ctx.tone==='easy'?'Termin nie wypada blisko przewidywanego okresu. Jeśli czujesz się dobrze, nic w trackerze nie sugeruje, żeby zmieniać plan.':ctx.tone==='careful'?'Termin wypada blisko przewidywanego okresu. Możesz zostawić sobie więcej luzu albo wybrać spokojniejszy plan — zależnie od samopoczucia.':'Termin może wypaść w przewidywane dni miesiączki. To nie znaczy, że masz rezygnować — potraktuj to tylko jako przypomnienie o własnym komforcie.'):'Ustaw cykl w Polka Care, żeby zobaczyć kontekst terminu.'}</Typography>
+            <Typography style={s.careFitNote}>Prognoza okresu jest orientacyjna.</Typography>
+          </View>})()}
+          {featurePreferences.zodiacMeetingContext&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign||'Lew',selected);return <View style={s.zodiacFit}>
+            <Typography style={s.zodiacLabel}>DLA {String(featurePreferences.zodiacSign||'Lew').toUpperCase()} · DLA ZABAWY</Typography>
+            <Typography style={s.zodiacFitTitle}>{vibe.title}</Typography>
+            <Typography style={s.zodiacFitCopy}>{vibe.copy}</Typography>
           </View>})()}
 
           <Typography style={s.description}>{selected.description}</Typography>
@@ -188,6 +196,9 @@ const s=StyleSheet.create({
   cycleMiniText:{fontFamily:f.bold,fontSize:9},
   zodiacMini:{alignSelf:'flex-start',paddingHorizontal:8,paddingVertical:5,borderRadius:999,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line},
   zodiacMiniText:{fontFamily:f.bold,fontSize:9,color:c.muted},
+  zodiacFit:{marginHorizontal:sp.lg,paddingVertical:15,borderBottomWidth:1,borderBottomColor:c.line},
+  zodiacFitTitle:{fontFamily:f.bold,fontSize:19,color:c.ink,marginTop:4},
+  zodiacFitCopy:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,marginTop:5},
   cardBottom:{flexDirection:'row',alignItems:'center',marginTop:9},
   peopleRow:{flexDirection:'row',alignItems:'center'},
   avatar:{width:24,height:24,borderRadius:12,borderWidth:2,borderColor:c.white,marginRight:-6},
