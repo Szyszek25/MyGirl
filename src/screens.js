@@ -1,3 +1,19 @@
+
+function formatPostTime(createdAt) {
+  if (!createdAt) return 'przed chwilą';
+  if (typeof createdAt === 'string' && (createdAt.includes('min') || createdAt.includes('godz') || createdAt.includes('wczoraj'))) {
+    return createdAt;
+  }
+  const timestamp = typeof createdAt === 'number' ? createdAt : new Date(createdAt).getTime();
+  if (isNaN(timestamp)) return String(createdAt);
+  const diffMinutes = Math.max(1, Math.floor((Date.now() - timestamp) / 60000));
+  if (diffMinutes < 5) return 'przed chwilą';
+  if (diffMinutes < 60) return `${diffMinutes} min temu`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} godz. temu`;
+  return `${Math.floor(diffHours / 24)} d. temu`;
+}
+
 import React,{useMemo,useRef,useState} from 'react';
 import {Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
@@ -160,7 +176,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
   const publish=()=>{
     const body=draft.trim();
     if(!body)return;
-    setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,likes:0},...prev]);
+    setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,likes:0,createdAt:Date.now()},...prev]);
     setDraft('');
     setComposerOpen(false);
   };
@@ -191,7 +207,14 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
         </View>
       }
       renderItem={({item})=><View style={s.feedPost}>
-        <View style={s.postHeader}>{avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{item.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{item.city}</Typography></View></View>
+        <View style={s.postHeader}>
+          {avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}
+          <View style={{flex:1}}>
+            <Typography style={s.postAuthor}>{item.author}</Typography>
+            <Typography variant="caption" style={{color:c.muted}}>{item.city}</Typography>
+          </View>
+          <Typography variant="caption" style={s.postTime}>{formatPostTime(item.createdAt || item.time || (item.id === 'post-01' ? '12 min temu' : item.id === 'post-02' ? '35 min temu' : item.id === 'post-03' ? '1 godz. temu' : '2 godz. temu'))}</Typography>
+        </View>
         <Typography style={s.postBody}>{item.body}</Typography>
         {!!item.image&&<Image source={{uri:item.image}} style={s.postImage} resizeMode="cover"/>}
         <View style={s.postActions}>
@@ -400,7 +423,7 @@ const s=StyleSheet.create({
   composerAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
   composerPlaceholder:{flex:1,fontFamily:f.regular,fontSize:14,color:c.muted},
   feedPost:{paddingHorizontal:sp.lg,paddingTop:16,paddingBottom:14,marginBottom:8,backgroundColor:c.white,borderTopWidth:StyleSheet.hairlineWidth,borderBottomWidth:StyleSheet.hairlineWidth,borderColor:c.line},
-  postAuthor:{fontFamily:f.bold,fontSize:15,color:c.ink},
+  postTime:{fontSize:11,color:c.muted,fontFamily:f.semibold,alignSelf:'flex-start',marginTop:4},postAuthor:{fontFamily:f.bold,fontSize:15,color:c.ink},
   postBody:{fontFamily:f.regular,fontSize:17,lineHeight:24,color:c.ink,marginTop:12,marginBottom:12},
   postImage:{width:'100%',height:230,borderRadius:18,backgroundColor:c.blush,marginBottom:10},
   commentPostImage:{width:'100%',height:240,borderRadius:18,backgroundColor:c.blush,marginBottom:8},

@@ -22,7 +22,27 @@ export default function WelcomeScreen({onContinue,onBusiness}){
   return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':'height'}>
     <View style={s.hero}>
       <ImageBackground source={{uri:HERO}} style={StyleSheet.absoluteFill} imageStyle={s.image}/>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}/>
+      {Platform.OS === 'web' ? (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <video
+            src={HERO_VIDEO}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        </View>
+      ) : (
+        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}/>
+      )}
       <View style={s.overlay}/>
       <View style={s.brand}><Typography style={s.logo}>Polka</Typography></View>
       <View style={s.copy}>
@@ -55,7 +75,7 @@ const s=StyleSheet.create({
   image:{resizeMode:'cover'},
   overlay:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(24,11,18,.34)'},
   brand:{flexDirection:'row',alignItems:'center',gap:10,marginTop:sp.md},
-  logo:{fontFamily:f.bold,fontSize:34,letterSpacing:-1.8,color:c.white},
+  logo:{fontFamily:f.bold,fontWeight:"800",fontSize:36,letterSpacing:-1.8,color:c.white},
   copy:{marginBottom:sp.xl},
   title:{fontFamily:f.bold,fontSize:42,lineHeight:42,letterSpacing:-1.8,color:c.white},
   subtitle:{fontFamily:f.regular,fontSize:16,lineHeight:22,color:'#FFF9',marginTop:12,maxWidth:350},
