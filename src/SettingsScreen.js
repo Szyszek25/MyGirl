@@ -102,6 +102,8 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
         </ScrollView>
       </View>}
       <Row icon="chatbubbles-outline" title="Grupa wsparcia w wiadomościach" subtitle="Seedowana rozmowa „Cykl i samopoczucie”" right={<Switch value={features.supportChat} onValueChange={value=>setFeature('supportChat',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.supportChat?c.pink:'#fff'}/>}/>
+      {isAuthenticated&&<Row icon="cloud-upload-outline" title="Synchronizuj cykl w chmurze" subtitle="Opcjonalnie · prywatne dane Polka Care w Twoim koncie" right={<Switch value={features.cycleCloudSync} onValueChange={value=>setFeature('cycleCloudSync',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.cycleCloudSync?c.pink:'#fff'}/>}/>}
+      <Row icon="videocam-outline" title="Film na ekranie Start" subtitle="Krótki film Polki nad feedem" right={<Switch value={features.homeIntroVideo} onValueChange={value=>setFeature('homeIntroVideo',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.homeIntroVideo?c.pink:'#fff'}/>}/>
     </View>
 
     <Typography variant="eyebrow" style={s.sectionLabel}>PRYWATNOŚĆ I KONTO</Typography>
