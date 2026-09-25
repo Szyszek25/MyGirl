@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useState} from 'react';
 import {ImageBackground,KeyboardAvoidingView,Platform,Pressable,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useVideoPlayer,VideoView} from 'expo-video';
@@ -11,7 +11,6 @@ const HERO_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf5655
 export default function WelcomeScreen({onContinue,onBusiness}){
   const [emailMode,setEmailMode]=useState(false);
   const [email,setEmail]=useState('');
-  const [videoReady,setVideoReady]=useState(false);
   const valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const player=useVideoPlayer(HERO_VIDEO,p=>{
     p.loop=true;
@@ -19,19 +18,13 @@ export default function WelcomeScreen({onContinue,onBusiness}){
     p.play();
   });
 
-  useEffect(()=>{
-    const sub=player.addListener?.('statusChange',event=>{
-      if(event?.status==='readyToPlay')setVideoReady(true);
-    });
-    return ()=>sub?.remove?.();
-  },[player]);
 
   return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':'height'}>
     <View style={s.hero}>
       <ImageBackground source={{uri:HERO}} style={StyleSheet.absoluteFill} imageStyle={s.image}/>
-      <VideoView player={player} style={[StyleSheet.absoluteFill,{opacity:videoReady?1:0}]} contentFit="cover" nativeControls={false}/>
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false}/>
       <View style={s.overlay}/>
-      <View style={s.brand}><Typography style={s.logo}>Polka</Typography><View style={s.badge}><Typography style={s.badgeText}>BETA</Typography></View></View>
+      <View style={s.brand}><Typography style={s.logo}>Polka</Typography></View>
       <View style={s.copy}>
         <Typography style={s.title}>Twoje miasto.{"\n"}Twoje dziewczyny.{"\n"}Twoje plany.</Typography>
         <Typography style={s.subtitle}>Kawa, koncert, spacer, pilates albo spontaniczny weekend. Zobacz kto też chce iść.</Typography>
@@ -63,8 +56,6 @@ const s=StyleSheet.create({
   overlay:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(24,11,18,.34)'},
   brand:{flexDirection:'row',alignItems:'center',gap:10,marginTop:sp.md},
   logo:{fontFamily:f.bold,fontSize:34,letterSpacing:-1.8,color:c.white},
-  badge:{backgroundColor:'#FFFFFF26',borderWidth:1,borderColor:'#FFFFFF55',borderRadius:r.pill,paddingHorizontal:8,paddingVertical:4},
-  badgeText:{fontFamily:f.bold,fontSize:9,color:c.white,letterSpacing:1.2},
   copy:{marginBottom:sp.xl},
   title:{fontFamily:f.bold,fontSize:42,lineHeight:42,letterSpacing:-1.8,color:c.white},
   subtitle:{fontFamily:f.regular,fontSize:16,lineHeight:22,color:'#FFF9',marginTop:12,maxWidth:350},
