@@ -3,7 +3,7 @@ import {supabase} from '../lib/supabase';
 export async function loadRemoteProfile(userId){
   if(!userId)return null;
   const {data,error}=await supabase.from('profiles')
-    .select('id,display_name,city,bio,avatar_path,onboarding_complete,goal,adult_confirmed_at')
+    .select('id,display_name,city,bio,avatar_path,onboarding_complete,goal,adult_confirmed_at,headline,subtitle,instagram_handle,tiktok_handle,spotify_url')
     .eq('id',userId).maybeSingle();
   if(error)throw error;
   if(!data)return null;
@@ -23,6 +23,11 @@ export async function loadRemoteProfile(userId){
     name:data.display_name||'',
     city:data.city||'Warszawa',
     bio:data.bio||'',
+    headline:data.headline||'',
+    subtitle:data.subtitle||'',
+    instagramHandle:data.instagram_handle||'',
+    tiktokHandle:data.tiktok_handle||'',
+    spotifyUrl:data.spotify_url||'',
     goal:data.goal||'Nowe znajomości',
     interests:(interestRows||[]).map(row=>row.interest),
     photo,
@@ -58,6 +63,11 @@ export async function saveRemoteProfile(userId,profile){
     bio:profile.bio||null,
     avatar_path:avatarPath,
     goal:profile.goal||null,
+    headline:profile.headline||null,
+    subtitle:profile.subtitle||null,
+    instagram_handle:profile.instagramHandle||null,
+    tiktok_handle:profile.tiktokHandle||null,
+    spotify_url:profile.spotifyUrl||null,
     adult_confirmed_at:profile.adultConfirmed?new Date().toISOString():null,
     onboarding_complete:true
   };
