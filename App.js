@@ -165,7 +165,7 @@ function PolkaApp(){
           <Pressable onPress={()=>setCityPickerOpen(true)} style={s.cityBlock} accessibilityRole="button" accessibilityLabel="Zmień miasto"><Ionicons name="location-outline" size={18} color={c.pink}/><Typography style={s.cityName}>{activeCity}</Typography><Ionicons name="chevron-down" size={17} color={c.muted}/></Pressable>
         </View>
       )}
-        <View style={[s.fill,{display:clubsVisible?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} onReport={setReportTarget}/></View>
+        <View style={[s.fill,{display:clubsVisible?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget}/></View>
         {!clubsVisible&&<View style={s.fill}>{content}</View>}
       </View>
     </ShiftTransition>
