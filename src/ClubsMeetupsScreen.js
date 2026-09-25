@@ -1,5 +1,5 @@
 import React,{useMemo,useState} from 'react';
-import {Alert,FlatList,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,FlatList,KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {groups as seedGroups,cities,people} from './data';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
@@ -65,7 +65,7 @@ export default function ClubsMeetupsScreen({onReport}){
     const club=clubs.find(g=>g.id===activeClub.id)||activeClub;
     const related=meetups.filter(m=>m.clubId===club.id);
     const isJoined=joined.includes(club.id);
-    return <ScrollView contentContainerStyle={s.detailPage}>
+    return <Modal visible animationType="slide" transparent onRequestClose={()=>setActiveClub(null)}><View style={s.modalBackdrop}><Pressable style={StyleSheet.absoluteFill} onPress={()=>setActiveClub(null)}/><View style={s.detailModal}><View style={s.modalHandle}/><ScrollView contentContainerStyle={s.detailPage} showsVerticalScrollIndicator={false}>
       <Pressable style={s.back} onPress={()=>setActiveClub(null)}><Ionicons name="arrow-back" size={23} color={c.ink}/><Typography style={{fontFamily:f.bold}}>Grupy</Typography></Pressable>
       <View style={s.heroIcon}><Ionicons name={club.icon||'people-outline'} size={42} color={c.pink}/></View>
       <Typography variant="hero" style={s.detailTitle}>{club.name}</Typography>
@@ -79,26 +79,26 @@ export default function ClubsMeetupsScreen({onReport}){
       </View>
       <Typography variant="subtitle" style={s.sectionTitle}>Nadchodzące wydarzenia</Typography>
       {related.length?related.map(m=><Pressable key={m.id} onPress={()=>{setActiveClub(null);setActiveMeetup(m)}} style={s.compactCard}><View style={s.dateBadge}><Typography style={s.dateBig}>{new Date(m.startsAt).getDate()}</Typography><Typography variant="caption">{new Date(m.startsAt).toLocaleString('pl-PL',{month:'short'})}</Typography></View><View style={{flex:1}}><Typography style={s.compactTitle}>{m.title}</Typography><Typography variant="caption" style={s.meta}>{new Date(m.startsAt).toLocaleString('pl-PL')} · {m.joined}/{m.spots}</Typography></View><Ionicons name="chevron-forward" size={20} color={c.muted}/></Pressable>):<Typography style={s.meta}>Jeszcze nie ma wydarzeń w tym klubie.</Typography>}
-    </ScrollView>;
+    </ScrollView></View></View></Modal>;
   }
 
   if(activeMeetup){
     const meetup=meetups.find(m=>m.id===activeMeetup.id)||activeMeetup;
     const isGoing=interested.includes(meetup.id);
-    return <ScrollView contentContainerStyle={s.detailPage}>
+    return <Modal visible animationType="slide" transparent onRequestClose={()=>setActiveMeetup(null)}><View style={s.modalBackdrop}><Pressable style={StyleSheet.absoluteFill} onPress={()=>setActiveMeetup(null)}/><View style={s.detailModal}><View style={s.modalHandle}/><ScrollView contentContainerStyle={s.detailPage} showsVerticalScrollIndicator={false}>
       <Pressable style={s.back} onPress={()=>setActiveMeetup(null)}><Ionicons name="arrow-back" size={23} color={c.ink}/><Typography style={{fontFamily:f.bold}}>Wydarzenia</Typography></Pressable>
-      <View style={s.eventHero}><Ionicons name="calendar-outline" size={34} color={c.pink}/><Typography variant="eyebrow" style={{color:c.pink}}>WYDARZENIE</Typography></View>
+      <View style={s.eventHero}><Ionicons name="calendar-outline" size={28} color={c.pink}/><Typography style={s.screenSubtitle}>Szczegóły wydarzenia</Typography></View>
       <Typography variant="hero" style={s.detailTitle}>{meetup.title}</Typography>
       <Typography style={s.meta}>{meetup.city} · {new Date(meetup.startsAt).toLocaleString('pl-PL')}</Typography>
       {!!meetup.clubName&&<Typography style={s.clubLink}>{meetup.clubName}</Typography>}
       <Typography style={s.description}>{meetup.description}</Typography>
-      <Surface style={s.attendance}><View><Typography variant="caption" style={s.meta}>UCZESTNICZKI</Typography><Typography variant="heading">{meetup.joined}/{meetup.spots}</Typography></View><View style={s.memberRow}>{people.slice(0,4).map(p=><View key={p.id} style={s.memberBubble}><Typography style={{fontSize:12,fontFamily:f.bold}}>{p.name[0]}</Typography></View>)}</View></Surface>
+      <Surface style={s.attendance}><View><Typography style={s.screenSubtitle}>Uczestniczki</Typography><Typography variant="heading">{meetup.joined}/{meetup.spots}</Typography></View><View style={s.memberRow}>{people.slice(0,4).map(p=><View key={p.id} style={s.memberBubble}><Typography style={{fontSize:12,fontFamily:f.bold}}>{p.name[0]}</Typography></View>)}</View></Surface>
       <Button title={meetup.owned?'Jesteś organizatorką':isGoing?'Dołączono · wycofaj':'Dołącz do wydarzenia'} secondary={isGoing||meetup.owned} disabled={meetup.owned} onPress={()=>setInterested(old=>isGoing?old.filter(id=>id!==meetup.id):[...old,meetup.id])}/>
       <View style={s.detailActions}>
         <Pressable style={s.actionCell}><Ionicons name="share-social-outline" size={22} color={c.pink}/><Typography style={s.actionLabel}>Udostępnij</Typography></Pressable>
         <Pressable style={s.actionCell} onPress={()=>onReport?.({kind:'meetup',id:meetup.id,label:`Wydarzenie: ${meetup.title}`})}><Ionicons name="flag-outline" size={22} color={c.pink}/><Typography style={s.actionLabel}>Zgłoś</Typography></Pressable>
       </View>
-    </ScrollView>;
+    </ScrollView></View></View></Modal>;
   }
 
   if(form)return <KeyboardAvoidingView style={{flex:1,backgroundColor:c.canvas}} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?8:0}>
@@ -142,7 +142,7 @@ export default function ClubsMeetupsScreen({onReport}){
 }
 
 const s=StyleSheet.create({
-  root:{flex:1,backgroundColor:c.canvas},
+  root:{flex:1,backgroundColor:c.canvas},modalBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.28)'},detailModal:{backgroundColor:c.white,borderTopLeftRadius:30,borderTopRightRadius:30,maxHeight:'90%',overflow:'hidden'},modalHandle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginTop:10,marginBottom:2},
   topArea:{paddingHorizontal:sp.lg,paddingTop:sp.lg,paddingBottom:sp.sm},
   titleRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:sp.md,marginBottom:sp.base},screenTitle:{fontFamily:f.bold,fontSize:28,letterSpacing:-1.1,color:c.ink},screenSubtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},formHeader:{marginBottom:sp.lg},
   plus:{width:44,height:44,borderRadius:22,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
