@@ -1,4 +1,4 @@
-// MyGirl account deletion. NOT DEPLOYED until a dedicated Supabase project is connected.
+// Polka account deletion. Deployed to the dedicated Polka Supabase project.
 // Requires a verified user JWT, explicit confirmation and server-only service_role.
 // All future user media must be stored under <auth.uid()>/ in each Storage bucket.
 // Apple Sign In token revocation must be integrated BEFORE enabling Apple login.
