@@ -875,6 +875,14 @@ export const initialPosts=[
 
 export const groups=[
   {
+    "id": "cycle-support-pl",
+    "name": "Cykl i samopoczucie",
+    "city": "Polska",
+    "category": "Samopoczucie",
+    "description": "Prywatna przestrzeń do rozmów o cyklu, samopoczuciu i codziennych doświadczeniach. Wsparcie społeczności, nie diagnoza.",
+    "icon": "heart-circle-outline"
+  },
+  {
     "id": "coffee-waw",
     "name": "Matcha & Coffee Girls",
     "city": "Warszawa",
