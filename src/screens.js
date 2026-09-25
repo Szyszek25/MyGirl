@@ -37,7 +37,7 @@ export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
 
   const stack=[0,1,2].map(offset=>filtered.length?filtered[(index+offset)%filtered.length]:null).filter(Boolean);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page,{paddingBottom:110}]}>
-    <View style={s.discoverTop}><View><Typography style={s.topTitle}>Poznaj</Typography><Typography style={s.topSub}>Dziewczyny, które mogą pasować do Ciebie</Typography></View><Ionicons name="options-outline" size={23} color={c.ink}/></View>
+    <View style={s.discoverControls}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography><Ionicons name="options-outline" size={22} color={c.ink}/></View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingBottom:4}}>{['Wszystkie',...cities].map(v=><Chip key={v} label={v} selected={city===v} onPress={()=>{setCity(v);setIndex(0)}}/>)}</ScrollView>
     {person?<>
       <View style={s.stackWrap}>
@@ -50,7 +50,7 @@ export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
             {transform:[{translateY:realOffset*11},{scale:1-realOffset*0.035}],opacity:1-realOffset*0.12}
           ];
           const Wrapper=isTop?Animated.View:View;
-          return <Wrapper key={p.id+'-'+realOffset} {...(isTop?pan.panHandlers:{})} style={cardStyle}>
+          return <Wrapper key={p.id} {...(isTop?pan.panHandlers:{})} style={cardStyle}>
             <Image source={{uri:p.photo}} style={s.swipePhoto} resizeMode="cover"/>
             <View style={s.cardScrim}/>
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
@@ -81,7 +81,7 @@ export function CommunityScreen({posts=[],setPosts,blockedIds=[],onReport}){
   ]);
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
     <FlatList data={visiblePosts} keyExtractor={item=>item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}
-      ListHeaderComponent={<><PageHeading kicker="TWOJA SPOŁECZNOŚĆ" title="Co nowego?"/><Surface><Field label="Dodaj wpis" value={draft} onChangeText={value=>setDraft(value.slice(0,2000))} placeholder="Kto ma ochotę na kawę?" multiline/><Button title="Dodaj wpis demo" disabled={!draft.trim()} onPress={()=>{setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city:'Demo',body:draft.trim(),likes:0},...prev]);setDraft('')}}/><Typography variant="caption" style={s.disclaimer}>Wpis widoczny tylko w tej sesji. Wersja online wymaga moderacji.</Typography></Surface></>}
+      ListHeaderComponent={<><Surface><Field label="Dodaj wpis" value={draft} onChangeText={value=>setDraft(value.slice(0,2000))} placeholder="Kto ma ochotę na kawę?" multiline/><Button title="Dodaj wpis demo" disabled={!draft.trim()} onPress={()=>{setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city:'Demo',body:draft.trim(),likes:0},...prev]);setDraft('')}}/><Typography variant="caption" style={s.disclaimer}>Wpis widoczny tylko w tej sesji. Wersja online wymaga moderacji.</Typography></Surface></>}
       renderItem={({item})=><Surface>
         <View style={s.postHeader}>{avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo)}<View style={{flex:1}}><Typography variant="subtitle">{item.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{item.city} · DEMO</Typography></View></View>
         <Typography style={{fontSize:18,marginBottom:sp.lg}}>{item.body}</Typography>
@@ -135,9 +135,8 @@ export function ProfileScreen({account,onSafety}){
 }
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
-  discoverTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:sp.base},
-  topTitle:{fontFamily:f.bold,fontSize:28,letterSpacing:-1.1,color:c.ink},
-  topSub:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},
+  discoverControls:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8},
+  discoverHint:{fontFamily:f.semibold,fontSize:14,color:c.muted},
   stackWrap:{height:520,marginTop:8,marginBottom:12,position:'relative'},
   swipeCard:{position:'absolute',left:0,right:0,top:0,height:490,borderRadius:28,overflow:'hidden',backgroundColor:c.white,borderWidth:1,borderColor:c.line,shadowColor:'#27151D',shadowOpacity:.12,shadowRadius:18,shadowOffset:{width:0,height:10},elevation:4},
   stackCard:{pointerEvents:'none'},
