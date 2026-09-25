@@ -12,8 +12,7 @@ const starterPlans=[
 ];
 const categories=['Wszystkie','Kawa','Wyjścia','Sport','Koncert','Spacer','Podróże'];
 
-export default function DiscoverScreen(){
-  const [city,setCity]=useState('Warszawa');
+export default function DiscoverScreen({city='Warszawa'}){
   const [category,setCategory]=useState('Wszystkie');
   const [plans,setPlans]=useState(starterPlans);
   const [creating,setCreating]=useState(false);
@@ -32,9 +31,6 @@ export default function DiscoverScreen(){
 
   return <View style={s.root}>
     <View style={s.planControls}><Typography style={s.contextText}>Plany blisko Ciebie</Typography><Pressable style={s.addBtn} onPress={()=>setCreating(true)} accessibilityLabel="Utwórz plan"><Ionicons name="add" size={22} color={c.white}/></Pressable></View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScroll} contentContainerStyle={s.filters}>
-      {['Wszystkie',...cities].map(v=><Chip key={'city-'+v} label={v} selected={city===v} onPress={()=>setCity(v)}/>)}
-    </ScrollView>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScroll} contentContainerStyle={s.filtersSecondary}>
       {categories.map(v=><Chip key={'cat-'+v} label={v} selected={category===v} onPress={()=>setCategory(v)}/>)}
     </ScrollView>
@@ -74,8 +70,7 @@ export default function DiscoverScreen(){
           <View style={s.sheetHeader}><Typography style={s.sheetTitle}>Nowy plan</Typography><Pressable onPress={()=>setCreating(false)}><Ionicons name="close" size={24} color={c.ink}/></Pressable></View>
           <Typography style={s.fieldLabel}>Co chcesz zrobić?</Typography>
           <TextInput value={title} onChangeText={setTitle} maxLength={80} placeholder="Np. matcha w centrum po 18" placeholderTextColor={c.muted} style={s.input}/>
-          <Typography style={s.fieldLabel}>Miasto</Typography>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.sheetChipScroll} contentContainerStyle={s.sheetChipContent}>{cities.map(v=><Chip key={v} label={v} selected={city===v} onPress={()=>setCity(v)}/>)}</ScrollView>
+          <View style={s.fixedCity}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.fixedCityText}>{city}</Typography></View>
           <Typography style={s.fieldLabel}>Kategoria</Typography>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.sheetChipScroll} contentContainerStyle={s.sheetChipContent}>{categories.filter(v=>v!=='Wszystkie').map(v=><Chip key={v} label={v} selected={category===v} onPress={()=>setCategory(v)}/>)}</ScrollView>
           <Button title="Utwórz plan" onPress={addPlan} style={{marginTop:sp.lg}}/>
@@ -120,6 +115,6 @@ const s=StyleSheet.create({
   handle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:18},
   sheetHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:sp.lg},
   sheetTitle:{fontFamily:f.bold,fontSize:24,letterSpacing:-.8,color:c.ink},
-  fieldLabel:{fontFamily:f.semibold,fontSize:14,color:c.ink,marginBottom:8,marginTop:8},sheetChipScroll:{flexGrow:0,flexShrink:0,overflow:'visible'},sheetChipContent:{paddingTop:8,paddingBottom:12,alignItems:'center'},
+  fieldLabel:{fontFamily:f.semibold,fontSize:14,color:c.ink,marginBottom:8,marginTop:8},fixedCity:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:11,paddingVertical:8,marginBottom:8},fixedCityText:{fontFamily:f.bold,fontSize:12,color:c.pink},sheetChipScroll:{flexGrow:0,flexShrink:0,overflow:'visible'},sheetChipContent:{paddingTop:8,paddingBottom:12,alignItems:'center'},
   input:{height:52,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,paddingHorizontal:sp.base,fontFamily:f.regular,fontSize:15,color:c.ink}
 });
