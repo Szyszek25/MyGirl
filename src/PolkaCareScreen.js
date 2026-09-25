@@ -1,8 +1,9 @@
-import React,{useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {Image,Linking,Pressable,ScrollView,StyleSheet,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,space as sp} from './theme';
 import {Chip,Typography} from './ui';
+import {loadPublishedCareArticles} from './services/careApi';
 
 const articles=[
   {
@@ -92,18 +93,26 @@ const categories=['Wszystkie','Cykl','Objawy','Plany'];
 export default function PolkaCareScreen({onClose}){
   const [category,setCategory]=useState('Wszystkie');
   const [selected,setSelected]=useState(null);
-  const visible=useMemo(()=>articles.filter(a=>category==='Wszystkie'||a.category===category),[category]);
+  const [remoteArticles,setRemoteArticles]=useState([]);
+  useEffect(()=>{
+    let alive=true;
+    loadPublishedCareArticles().then(rows=>{if(alive&&rows.length)setRemoteArticles(rows)}).catch(()=>{});
+    return ()=>{alive=false};
+  },[]);
+  const sourceArticles=remoteArticles.length?remoteArticles:articles;
+  const dynamicCategories=useMemo(()=>['Wszystkie',...new Set(sourceArticles.map(a=>a.category))],[sourceArticles]);
+  const visible=useMemo(()=>sourceArticles.filter(a=>category==='Wszystkie'||a.category===category),[category,sourceArticles]);
 
   if(selected)return <View style={s.root}>
     <View style={s.header}><Pressable onPress={()=>setSelected(null)} style={s.iconBtn}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable><Typography style={s.headerTitle}>Polka Care</Typography><View style={s.iconBtn}/></View>
     <ScrollView contentContainerStyle={s.articlePage}>
-      <Image source={{uri:selected.image}} style={s.articleHero}/>
+      {!!selected.image&&<Image source={{uri:selected.image}} style={s.articleHero}/>}
       <View style={s.articleIcon}><Ionicons name={selected.icon} size={28} color={c.pink}/></View>
       <Typography style={s.articleCategory}>{selected.category.toUpperCase()}</Typography>
       <Typography style={s.articleTitle}>{selected.title}</Typography>
       <Typography style={s.articleLead}>{selected.summary}</Typography>
       {selected.body.map((p,i)=><Typography key={i} style={s.articleBody}>{p}</Typography>)}
-      <Pressable onPress={()=>Linking.openURL(selected.url)} style={s.sourceRow}><Ionicons name="open-outline" size={18} color={c.pink}/><View style={{flex:1}}><Typography style={s.sourceLabel}>Źródło</Typography><Typography style={s.sourceName}>{selected.source}</Typography></View><Ionicons name="chevron-forward" size={18} color={c.muted}/></Pressable>
+      {!!selected.url&&<Pressable onPress={()=>Linking.openURL(selected.url)} style={s.sourceRow}><Ionicons name="open-outline" size={18} color={c.pink}/><View style={{flex:1}}><Typography style={s.sourceLabel}>Źródło</Typography><Typography style={s.sourceName}>{selected.source}</Typography></View><Ionicons name="chevron-forward" size={18} color={c.muted}/></Pressable>}
       <View style={s.medicalNote}><Ionicons name="information-circle-outline" size={20} color={c.pink}/><Typography style={s.medicalText}>Polka Care ma charakter edukacyjny. Nie stawia diagnoz i nie zastępuje konsultacji medycznej.</Typography></View>
     </ScrollView>
   </View>;
@@ -123,15 +132,15 @@ export default function PolkaCareScreen({onClose}){
         style={s.coverImage}
       />
 
-      <Pressable onPress={()=>setSelected(articles[1])} style={s.leadStory}>
+      <Pressable onPress={()=>setSelected(sourceArticles.find(a=>a.id==='late-period')||sourceArticles[0])} style={s.leadStory}>
         <Typography style={s.cardCategory}>NA POCZĄTEK</Typography>
-        <Typography style={s.leadTitle}>{articles[1].title}</Typography>
-        <Typography style={s.leadSummary}>{articles[1].summary}</Typography>
+        <Typography style={s.leadTitle}>{(sourceArticles.find(a=>a.id==='late-period')||sourceArticles[0])?.title}</Typography>
+        <Typography style={s.leadSummary}>{(sourceArticles.find(a=>a.id==='late-period')||sourceArticles[0])?.summary}</Typography>
         <View style={s.readRow}><Typography style={s.readText}>Czytaj artykuł</Typography><Ionicons name="arrow-forward" size={18} color={c.pink}/></View>
       </Pressable>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>
-        {categories.map(item=><Chip key={item} label={item} selected={category===item} onPress={()=>setCategory(item)}/>)}
+        {dynamicCategories.map(item=><Chip key={item} label={item} selected={category===item} onPress={()=>setCategory(item)}/>)}
       </ScrollView>
 
       <View style={s.quote}>
@@ -140,7 +149,7 @@ export default function PolkaCareScreen({onClose}){
 
       <Typography style={s.sectionLabel}>WIĘCEJ DO PRZECZYTANIA</Typography>
       {visible.filter(article=>article.id!=='late-period').map(article=><Pressable key={article.id} onPress={()=>setSelected(article)} style={s.listRow}>
-        <Image source={{uri:article.image}} style={s.listImage}/>
+        {article.image?<Image source={{uri:article.image}} style={s.listImage}/>:<View style={[s.listImage,s.remoteArticleIcon]}><Ionicons name={article.icon||'book-outline'} size={28} color={c.pink}/></View>}
         <View style={s.listText}>
           <Typography style={s.cardCategory}>{article.category}</Typography>
           <Typography style={s.listTitle}>{article.title}</Typography>
@@ -179,6 +188,7 @@ const s=StyleSheet.create({
   sectionLabel:{fontFamily:f.bold,fontSize:11,letterSpacing:1.2,color:c.muted,marginHorizontal:sp.lg,marginBottom:4},
   listRow:{marginHorizontal:sp.lg,paddingVertical:16,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',gap:14},
   listImage:{width:88,height:88,borderRadius:16,backgroundColor:c.blush},
+  remoteArticleIcon:{alignItems:'center',justifyContent:'center'},
   listText:{flex:1},
   listTitle:{fontFamily:f.bold,fontSize:16,lineHeight:20,color:c.ink,marginTop:2},
   cardCategory:{fontFamily:f.bold,fontSize:10,letterSpacing:.8,color:c.pink,textTransform:'uppercase'},
