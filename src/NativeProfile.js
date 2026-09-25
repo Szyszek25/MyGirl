@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,Image,KeyboardAvoidingView,Platform,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import {colors as c,space as sp,fonts as f,radii as r} from './theme';
@@ -8,7 +8,7 @@ import {PROFILE_PROMPTS} from './Onboarding';
 import {cities,interests as availableInterests} from './data';
 
 const copy=account=>({...account,interests:[...(account.interests||[])],answers:{...(account.answers||{})}});
-export default function NativeProfile({account,onSafety,onPartner,onSave}){
+export default function NativeProfile({account,onSafety,onPartner,onSettings,onSave}){
   const [editing,setEditing]=useState(false);
   const [draft,setDraft]=useState(()=>copy(account));
   const [busy,setBusy]=useState(false);
@@ -41,7 +41,7 @@ export default function NativeProfile({account,onSafety,onPartner,onSave}){
   };
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
-      <PageHeading kicker="MOJA PRZESTRZEŃ" title={editing?'Edytuj profil.':'Twój profil.'}/>
+      <View style={s.profileTop}><View style={{flex:1}}><PageHeading kicker="MOJA PRZESTRZEŃ" title={editing?'Edytuj profil.':'Twój profil.'}/></View>{!editing&&<Pressable accessibilityRole="button" accessibilityLabel="Ustawienia" onPress={onSettings} style={s.settingsButton}><Ionicons name="settings-outline" size={23} color={c.ink}/></Pressable>}</View>
       <Surface style={s.head}>
         {(editing?draft.photo:account.photo)?<Image source={{uri:editing?draft.photo:account.photo}} style={s.avatar} accessibilityLabel="Twoje zdjęcie profilowe"/>:<View style={[s.avatar,s.placeholder]}><Ionicons name="person-outline" size={54} color={c.pink}/></View>}
         {!editing?<>
@@ -60,7 +60,7 @@ export default function NativeProfile({account,onSafety,onPartner,onSave}){
           <Typography variant="subtitle" style={s.title}>Miasto</Typography>
           <View style={s.wrap}>{cities.map(city=><Chip key={city} label={city} selected={draft.city===city} onPress={()=>edit('city',city)}/>)}</View>
           <Typography variant="subtitle" style={s.title}>Po co tu jesteś?</Typography>
-          <View style={s.wrap}>{['Przyjaźń','Wspólne wyjścia','Nowe miasto','Grupy zainteresowań'].map(goal=><Chip key={goal} label={goal} selected={draft.goal===goal} onPress={()=>edit('goal',goal)}/>)}</View>
+          <View style={s.wrap}>{['Nowe znajomości','Wspólne wyjścia','Nowe miasto','Grupy i hobby'].map(goal=><Chip key={goal} label={goal} selected={draft.goal===goal} onPress={()=>edit('goal',goal)}/>)}</View>
           <Typography variant="subtitle" style={s.title}>Zainteresowania</Typography>
           <View style={s.wrap}>{availableInterests.map(interest=><Chip key={interest} label={interest} selected={draft.interests.includes(interest)} onPress={()=>edit('interests',draft.interests.includes(interest)?draft.interests.filter(item=>item!==interest):[...draft.interests,interest])}/>)}</View>
         </Surface>
@@ -78,11 +78,12 @@ export default function NativeProfile({account,onSafety,onPartner,onSave}){
         <Surface><Typography variant="subtitle" style={s.title}>Moje zainteresowania</Typography><View style={s.wrap}>{(account.interests||[]).map(interest=><Chip key={interest} label={interest}/>)}</View></Surface>
         {Object.entries(account.answers||{}).filter(([,answer])=>typeof answer==='string'&&answer.trim()).map(([key,answer])=><Surface key={key}><Typography variant="subtitle" style={s.title}>{PROFILE_PROMPTS[Number(key)]||'Moja odpowiedź'}</Typography><Typography>{answer}</Typography></Surface>)}
         <Button title="Edytuj profil i zdjęcie" onPress={()=>{setDraft(copy(account));setEditing(true);}} icon="create-outline"/>
-        <Button title="Panel dla biznesu i organizacji" secondary onPress={onPartner} style={s.secondary} icon="storefront-outline"/>
+        <Button title="Ustawienia" secondary onPress={onSettings} style={s.secondary} icon="settings-outline"/>
+        <Button title="Dla firm i organizacji" secondary onPress={onPartner} style={s.secondary} icon="storefront-outline"/>
         <Button title="Bezpieczeństwo i moje dane" secondary icon="shield-checkmark-outline" style={s.secondary} onPress={onSafety}/>
         <Typography variant="caption" style={s.note}>To lokalny profil. Edycja nie aktualizuje profilu online. Wpisy i wiadomości na pozostałych ekranach nadal są demonstracyjne.</Typography>
       </>}
     </ScrollView>
   </KeyboardAvoidingView>;
 }
-const s=StyleSheet.create({page:{flexGrow:1,padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas},head:{alignItems:'center',paddingVertical:sp.xl},avatar:{height:124,width:124,borderRadius:62,backgroundColor:c.blush},placeholder:{alignItems:'center',justifyContent:'center'},title:{marginBottom:sp.sm},wrap:{flexDirection:'row',flexWrap:'wrap'},note:{color:c.muted,marginTop:sp.base,lineHeight:20,textAlign:'center'},muted:{color:c.muted},photoAction:{marginTop:sp.md,width:'100%'},secondary:{marginTop:sp.md},prompt:{paddingVertical:sp.md,borderBottomWidth:1,borderColor:c.line},answer:{fontFamily:f.regular,color:c.ink,minHeight:56,textAlignVertical:'top'},notice:{color:c.pink,marginTop:sp.md}});
+const s=StyleSheet.create({page:{flexGrow:1,padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas},profileTop:{flexDirection:'row',alignItems:'flex-start',gap:12},settingsButton:{width:44,height:44,borderRadius:22,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',marginTop:6},head:{alignItems:'center',paddingVertical:sp.xl},avatar:{height:124,width:124,borderRadius:62,backgroundColor:c.blush},placeholder:{alignItems:'center',justifyContent:'center'},title:{marginBottom:sp.sm},wrap:{flexDirection:'row',flexWrap:'wrap'},note:{color:c.muted,marginTop:sp.base,lineHeight:20,textAlign:'center'},muted:{color:c.muted},photoAction:{marginTop:sp.md,width:'100%'},secondary:{marginTop:sp.md},prompt:{paddingVertical:sp.md,borderBottomWidth:1,borderColor:c.line},answer:{fontFamily:f.regular,color:c.ink,minHeight:56,textAlignVertical:'top'},notice:{color:c.pink,marginTop:sp.md}});
