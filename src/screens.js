@@ -151,20 +151,68 @@ export function GroupsScreen({onReport}){
 
 export function ChatsScreen({blockedIds=[],onReport}){
   const [active,setActive]=useState(null),[draft,setDraft]=useState(''),[messages,setMessages]=useState({});
-  const chats=[{id:'maja',name:'Maja',photo:people[0].photo},{id:'group',name:'Coffee Girls',photo:people[1].photo}].filter(chat=>!blockedIds.includes(chat.id));
-  const opened=active&&!blockedIds.includes(active.id)?active:null;
-  return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-    {!opened?<FlatList data={chats} keyExtractor={item=>item.id} contentContainerStyle={s.page} ListHeaderComponent={<PageHeading kicker="ROZMOWY DEMO" title="Czaty."/>}
-      renderItem={({item})=><Pressable accessibilityRole="button" onPress={()=>setActive(item)}><Surface style={s.chatRow}>{avatar(item.photo)}<View style={{flex:1}}><Typography variant="subtitle">{item.name}</Typography><Typography variant="caption" style={{color:c.muted}}>Otwórz rozmowę demo</Typography></View><Ionicons name="chevron-forward" size={18} color={c.pink}/></Surface></Pressable>}
-      ListFooterComponent={<Typography variant="caption" style={s.disclaimer}>Wiadomości są demonstracyjne. Nic nie jest wysyłane do innych osób.</Typography>}/>
-    :<View style={[s.page,{flex:1}]}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Wróć do czatów" onPress={()=>setActive(null)} style={s.chatBack}><Ionicons name="arrow-back" size={24} color={c.pink}/><Typography variant="subtitle">{opened.name}</Typography></Pressable>
-      <TextAction icon="flag-outline" title="Zgłoś rozmowę (demo)" danger onPress={()=>onReport({kind:'chat',id:opened.id,label:`Rozmowa: ${opened.name}`})}/>
-      <Typography variant="caption" style={s.disclaimer}>Symulacja czatu — wiadomości nie są wysyłane do innych osób.</Typography>
-      <ScrollView style={{flex:1}} keyboardShouldPersistTaps="handled"><Surface><Typography>Hej! Miło Cię poznać 🌸</Typography></Surface>{(messages[opened.id]||[]).map((message,i)=><Surface key={i} style={{backgroundColor:c.blush,alignSelf:'flex-end',maxWidth:'85%'}}><Typography>{message}</Typography></Surface>)}</ScrollView>
-      <View style={s.compose}><TextInput value={draft} onChangeText={setDraft} placeholder="Wiadomość..." accessibilityLabel="Wiadomość" style={s.messageInput}/><Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość demonstracyjną" onPress={()=>{if(!draft.trim())return;setMessages(prev=>({...prev,[opened.id]:[...(prev[opened.id]||[]),draft.trim()]}));setDraft('')}} style={s.send}><Ionicons name="send" color={c.white} size={21}/></Pressable></View>
-    </View>}
-  </KeyboardAvoidingView>;
+  const chats=[
+    {id:'maja',name:'Maja',photo:people[0].photo,last:'Hej! Widzimy się jutro? 💗',time:'18:42',unread:2},
+    {id:'group',name:'Coffee Girls',photo:people[1].photo,last:'Ola: mam stolik na 18:30',time:'17:10',unread:5}
+  ].filter(chat=>!blockedIds.includes(chat.id));
+
+  const send=()=>{
+    if(!active||!draft.trim())return;
+    const body=draft.trim();
+    setMessages(prev=>({...prev,[active.id]:[...(prev[active.id]||[]),body]}));
+    setDraft('');
+  };
+
+  return <View style={s.chatListRoot}>
+    <View style={s.chatListHeader}><Typography style={s.chatListTitle}>Wiadomości</Typography><Pressable style={s.chatHeaderButton}><Ionicons name="create-outline" size={21} color={c.ink}/></Pressable></View>
+    <FlatList
+      data={chats}
+      keyExtractor={item=>item.id}
+      contentContainerStyle={s.chatList}
+      renderItem={({item})=><Pressable accessibilityRole="button" onPress={()=>setActive(item)} style={s.chatListRow}>
+        {avatar(item.photo,54)}
+        <View style={s.chatListBody}>
+          <View style={s.chatTitleRow}><Typography style={s.chatName}>{item.name}</Typography><Typography style={s.chatTime}>{item.time}</Typography></View>
+          <View style={s.chatPreviewRow}><Typography numberOfLines={1} style={s.chatPreview}>{item.last}</Typography>{item.unread>0&&<View style={s.unread}><Typography style={s.unreadText}>{item.unread}</Typography></View>}</View>
+        </View>
+      </Pressable>}
+    />
+
+    <Modal visible={!!active} animationType="slide" onRequestClose={()=>setActive(null)}>
+      {!!active&&<KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={0}>
+        <View style={s.fullChatHeader}>
+          <Pressable onPress={()=>setActive(null)} style={s.fullChatIcon}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
+          {avatar(active.photo,42)}
+          <View style={{flex:1}}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>aktywna niedawno</Typography></View>
+          <Pressable onPress={()=>onReport?.({kind:'chat',id:active.id,label:`Rozmowa: ${active.name}`})} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
+        </View>
+
+        <ScrollView style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
+          <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>
+          <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Hej! Miło Cię poznać 🌸</Typography></View></View>
+          <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Masz już jakiś plan na weekend?</Typography></View></View>
+          {(messages[active.id]||[]).map((message,i)=><View key={i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
+        </ScrollView>
+
+        <View style={s.fullComposer}>
+          <Pressable style={s.attachButton}><Ionicons name="add" size={24} color={c.pink}/></Pressable>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Napisz wiadomość…"
+            placeholderTextColor={c.muted}
+            accessibilityLabel="Wiadomość"
+            multiline
+            maxLength={1200}
+            style={s.fullMessageInput}
+          />
+          <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()} onPress={send} style={[s.fullSend,!draft.trim()&&{opacity:.35}]}>
+            <Ionicons name="arrow-up" color={c.white} size={21}/>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>}
+    </Modal>
+  </View>;
 }
 
 export function ProfileScreen({account,onSafety}){
@@ -232,5 +280,38 @@ const s=StyleSheet.create({
   groupRow:{flexDirection:'row',gap:sp.base,alignItems:'center'},
   chatRow:{flexDirection:'row',alignItems:'center',gap:sp.md},
   chatBack:{flexDirection:'row',alignItems:'center',gap:12,marginBottom:sp.base},
-  compose:{flexDirection:'row',gap:8,alignItems:'center'}
+  compose:{flexDirection:'row',gap:8,alignItems:'center'},
+  chatListRoot:{flex:1,backgroundColor:c.canvas},
+  chatListHeader:{height:54,paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  chatListTitle:{fontFamily:f.bold,fontSize:24,letterSpacing:-.8,color:c.ink},
+  chatHeaderButton:{width:38,height:38,borderRadius:19,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
+  chatList:{paddingBottom:40},
+  chatListRow:{minHeight:76,paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',gap:12,backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  chatListBody:{flex:1,minWidth:0},
+  chatTitleRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  chatName:{fontFamily:f.bold,fontSize:15,color:c.ink},
+  chatTime:{fontFamily:f.regular,fontSize:11,color:c.muted},
+  chatPreviewRow:{flexDirection:'row',alignItems:'center',gap:8,marginTop:3},
+  chatPreview:{flex:1,fontFamily:f.regular,fontSize:13,color:c.muted},
+  unread:{minWidth:20,height:20,borderRadius:10,backgroundColor:c.pink,alignItems:'center',justifyContent:'center',paddingHorizontal:5},
+  unreadText:{fontFamily:f.bold,fontSize:10,color:c.white},
+  fullChat:{flex:1,backgroundColor:c.white},
+  fullChatHeader:{minHeight:64,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  fullChatIcon:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center'},
+  fullChatName:{fontFamily:f.bold,fontSize:15,color:c.ink},
+  fullChatStatus:{fontFamily:f.regular,fontSize:11,color:c.muted,marginTop:1},
+  messageArea:{flex:1,backgroundColor:'#FFF9FA'},
+  messageContent:{padding:sp.lg,paddingBottom:30},
+  dayPill:{alignSelf:'center',backgroundColor:c.white,borderRadius:999,paddingHorizontal:10,paddingVertical:5,marginBottom:16,borderWidth:1,borderColor:c.line},
+  dayText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
+  incomingWrap:{alignItems:'flex-start',marginBottom:8},
+  outgoingWrap:{alignItems:'flex-end',marginBottom:8},
+  incomingBubble:{maxWidth:'78%',backgroundColor:c.white,borderRadius:20,borderTopLeftRadius:6,paddingHorizontal:14,paddingVertical:10,borderWidth:1,borderColor:c.line},
+  outgoingBubble:{maxWidth:'78%',backgroundColor:c.pink,borderRadius:20,borderTopRightRadius:6,paddingHorizontal:14,paddingVertical:10},
+  bubbleText:{fontFamily:f.regular,fontSize:15,lineHeight:20,color:c.ink},
+  outgoingText:{fontFamily:f.regular,fontSize:15,lineHeight:20,color:c.white},
+  fullComposer:{paddingHorizontal:12,paddingTop:8,paddingBottom:12,flexDirection:'row',alignItems:'flex-end',gap:8,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,backgroundColor:c.white},
+  attachButton:{width:40,height:40,borderRadius:20,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  fullMessageInput:{flex:1,maxHeight:120,minHeight:42,borderRadius:21,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,paddingHorizontal:14,paddingTop:10,paddingBottom:10,fontFamily:f.regular,fontSize:15,color:c.ink,textAlignVertical:'center'},
+  fullSend:{width:40,height:40,borderRadius:20,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'}
 });
