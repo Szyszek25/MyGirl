@@ -21,6 +21,7 @@ import {ReportForm,SafetyCenter} from './src/Safety';
 import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localProfile';
 import {getSession,handleAuthCallback,onAuthStateChange,signOut} from './src/services/authApi';
 import {loadRemoteProfile,saveRemoteProfile} from './src/services/profileApi';
+import {supabase} from './src/lib/supabase';
 import {cities,initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
@@ -47,6 +48,7 @@ function PolkaApp(){
   const [partnerOpen,setPartnerOpen]=useState(false);
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [messagesOpen,setMessagesOpen]=useState(false);
+  const [pendingConversationId,setPendingConversationId]=useState(null);
   const [cycleOpen,setCycleOpen]=useState(false);
   const [careOpen,setCareOpen]=useState(false);
   const [resetPasswordOpen,setResetPasswordOpen]=useState(false);
@@ -112,6 +114,20 @@ function PolkaApp(){
     if(saved?.city)setActiveCity(saved.city);
     return saved;
   };
+  const openDirectChat=async otherUserId=>{
+    if(!authSession?.user?.id){
+      Alert.alert('Zaloguj się','Wiadomości online są dostępne po zalogowaniu.');
+      return;
+    }
+    try{
+      const {data,error}=await supabase.rpc('polka_start_direct_conversation',{p_other_user:otherUserId});
+      if(error)throw error;
+      setPendingConversationId(data);
+      setMessagesOpen(true);
+    }catch(error){
+      Alert.alert('Nie udało się otworzyć rozmowy',error.message||'Spróbuj ponownie.');
+    }
+  };
   const block=id=>setBlockedIds(prev=>prev.includes(id)?prev:[...prev,id]);
   const reset=async()=>{
     try{await deleteLocalProfile();}
@@ -134,8 +150,8 @@ function PolkaApp(){
     partnerOpen?<PartnerPanel onClose={()=>setPartnerOpen(false)}/>:
     cycleOpen?<CycleScreen onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onClose={()=>setMessagesOpen(false)}/></View>:
-    ({'Start':<View style={s.fill}><CommunityScreen city={activeCity} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} featurePreferences={featurePreferences} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)}/>})[tab];
+    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null)}}/></View>:
+    ({'Start':<View style={s.fill}><CommunityScreen city={activeCity} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} onMessage={openDirectChat} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} featurePreferences={featurePreferences} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)}/>})[tab];
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
@@ -178,7 +194,7 @@ function PolkaApp(){
 
     {showTabs && (
       <Pressable
-        onPress={() => setMessagesOpen(true)}
+        onPress={() => {setPendingConversationId(null);setMessagesOpen(true)}}
         style={[s.floatingChatFab, { bottom: Math.max(insets.bottom, sp.sm) + 84 }]}
         accessibilityRole="button"
         accessibilityLabel="Otwórz wiadomości"
