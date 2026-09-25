@@ -1,4 +1,4 @@
-name: MyGirl Android bundle smoke test
+name: Polka mobile bundle smoke test
 on:
   push:
     branches: [main]
@@ -16,10 +16,11 @@ on:
       - 'src/**'
       - '.github/workflows/mobile-bundle.yml'
   workflow_dispatch:
+
 jobs:
   bundle:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -31,5 +32,9 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify Expo dependency compatibility
         run: npx expo install --check
-      - name: Bundle native Android JavaScript
-        run: npx expo export --platform android --output-dir /tmp/mygirl-android-export
+      - name: Expo doctor
+        run: npx expo-doctor
+      - name: Bundle iOS JavaScript
+        run: npx expo export --platform ios --output-dir /tmp/polka-ios-export
+      - name: Bundle Android JavaScript
+        run: npx expo export --platform android --output-dir /tmp/polka-android-export
