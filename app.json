@@ -6,8 +6,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FFF9FB",
-    "primaryColor": "#F43F75",
+    "backgroundColor": "#FFF9FA",
+    "primaryColor": "#B8325A",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "pl.polka.app",
@@ -20,7 +20,7 @@
     "android": {
       "package": "pl.polka.app",
       "versionCode": 1,
-      "adaptiveIcon": { "backgroundColor": "#FFF9FB" }
+      "adaptiveIcon": { "backgroundColor": "#FFF9FA" }
     },
     "plugins": [
       ["expo-image-picker", {
