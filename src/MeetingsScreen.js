@@ -84,9 +84,18 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
             <Image source={{uri:(people.find(p=>p.name===selected.host)||people[0]).photo}} style={s.hostAvatar}/>
           </View>
 
-          <View style={s.section}>
-            <View><Typography style={s.sectionLabel}>Uczestniczki</Typography><Typography style={s.bigNumber}>{selected.joined}/{selected.spots}</Typography></View>
-            <View style={s.peopleRow}>{(cityPeople.length?cityPeople:people).slice(0,4).map(p=><Image key={p.id} source={{uri:p.photo}} style={s.detailAvatar}/>)}</View>
+          <View style={s.participantsSection}>
+            <View style={s.participantsHeader}>
+              <View><Typography style={s.sectionLabel}>Uczestniczki</Typography><Typography style={s.participantsCount}>{selected.joined}/{selected.spots} miejsc</Typography></View>
+              <Ionicons name="people-outline" size={20} color={c.pink}/>
+            </View>
+            <View style={s.participantsGrid}>
+              {(cityPeople.length?cityPeople:people).slice(0,Math.min(selected.joined,5)).map(p=><View key={p.id} style={s.participant}>
+                <Image source={{uri:p.photo}} style={s.participantPhoto}/>
+                <Typography numberOfLines={1} style={s.participantName}>{p.name}</Typography>
+              </View>)}
+              {selected.joined>5&&<View style={s.participantMore}><Typography style={s.participantMoreText}>+{selected.joined-5}</Typography></View>}
+            </View>
           </View>
 
           <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do spotkania'} secondary={joined.includes(selected.id)} onPress={()=>toggle(selected.id)}/>
@@ -141,6 +150,15 @@ const s=StyleSheet.create({
   host:{fontFamily:f.bold,fontSize:18,color:c.ink,marginTop:3},
   hostAvatar:{width:46,height:46,borderRadius:23},
   bigNumber:{fontFamily:f.bold,fontSize:26,color:c.ink,marginTop:2},
+  participantsSection:{marginHorizontal:sp.lg,marginBottom:16,padding:16,borderRadius:20,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line},
+  participantsHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:14},
+  participantsCount:{fontFamily:f.bold,fontSize:18,color:c.ink,marginTop:2},
+  participantsGrid:{flexDirection:'row',alignItems:'flex-start',gap:10},
+  participant:{width:52,alignItems:'center'},
+  participantPhoto:{width:50,height:50,borderRadius:25,backgroundColor:c.blush,borderWidth:2,borderColor:c.white},
+  participantName:{fontFamily:f.semibold,fontSize:10,color:c.ink,marginTop:5,maxWidth:52,textAlign:'center'},
+  participantMore:{width:50,height:50,borderRadius:25,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  participantMoreText:{fontFamily:f.bold,fontSize:13,color:c.pink},
   detailAvatar:{width:34,height:34,borderRadius:17,borderWidth:2,borderColor:c.white,marginRight:-7},
   shareRow:{height:52,marginHorizontal:sp.lg,marginTop:10,borderRadius:16,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},
   shareText:{fontFamily:f.semibold,fontSize:14,color:c.ink}
