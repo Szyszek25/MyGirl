@@ -6,6 +6,8 @@ import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
 import {loadMeetups,setMeetupRsvp} from './services/meetupsApi';
+import TemporaryChatScreen from './TemporaryChatScreen';
+import {ensureTemporaryRoom} from './services/tempChatApi';
 
 const starterMeetings=[
   {id:'m1',category:'Kawa',title:'Matcha + spacer po centrum',city:'Warszawa',when:'2026-09-27T17:30:00',place:'Śródmieście',description:'Najpierw matcha, potem luźny spacer po centrum. Bez spiny — poznajemy się na żywo.',spots:6,joined:4,host:'Maja',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88'},
@@ -65,6 +67,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
   const [cycleData,setCycleData]=useState(null);
+  const [tempRoom,setTempRoom]=useState(null);
   const [remoteMeetups,setRemoteMeetups]=useState([]);
   const sourceMeetings=remoteMeetups.length?remoteMeetups:starterMeetings;
   const data=useMemo(()=>sourceMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[sourceMeetings,city,category]);
@@ -102,6 +105,14 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       }
     }
   };
+  const openTempChat=async item=>{
+    if(!sessionUserId)return;
+    try{
+      const room=await ensureTemporaryRoom({userId:sessionUserId,title:item.title,contextType:item.category==='Sport'?'sport':'meetup',contextId:item.remote?item.id:null,hours:12});
+      setTempRoom(room);
+    }catch{}
+  };
+
 
   return <View style={s.root}>
     <View style={s.header}>
@@ -139,6 +150,10 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       })}
       {!data.length&&<View style={s.empty}><Typography style={s.emptyTitle}>Brak spotkań w {city}</Typography><Typography style={s.emptyText}>Zmień miasto u góry albo wróć później.</Typography></View>}
     </ScrollView>
+
+    <Modal visible={!!tempRoom} animationType="slide" onRequestClose={()=>setTempRoom(null)}>
+      {!!tempRoom&&<TemporaryChatScreen room={tempRoom} userId={sessionUserId} onClose={()=>setTempRoom(null)}/>}
+    </Modal>
 
     <Modal visible={!!selected} animationType="slide" onRequestClose={()=>setSelected(null)}>
       {!!selected&&<View style={s.detailRoot}>
@@ -187,6 +202,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
           </View>
 
           <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do spotkania'} secondary={joined.includes(selected.id)} onPress={()=>toggle(selected.id)}/>
+          {sessionUserId&&joined.includes(selected.id)&&<Pressable onPress={()=>openTempChat(selected)} style={s.shareRow}><Ionicons name="eye-off-outline" size={20} color={c.pink}/><Typography style={s.shareText}>Anonimowy czat do spotkania</Typography></Pressable>}
           <Pressable onPress={()=>Share.share({message:`${selected.title} · ${selected.place}, ${selected.city} · ${new Date(selected.when).toLocaleString('pl-PL')}`})} style={s.shareRow}><Ionicons name="share-social-outline" size={20} color={c.ink}/><Typography style={s.shareText}>Udostępnij spotkanie</Typography></Pressable>
         </ScrollView>
       </View>}
