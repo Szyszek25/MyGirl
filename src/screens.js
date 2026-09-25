@@ -297,6 +297,14 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
   const [postMedia,setPostMedia]=useState(null);
   const [spotifyUrl,setSpotifyUrl]=useState('');
   const [editingPost,setEditingPost]=useState(null);
+  const [isAdmin,setIsAdmin]=useState(false);
+
+  useEffect(()=>{
+    if(!sessionUserId){setIsAdmin(false);return;}
+    let alive=true;
+    supabase.rpc('polka_is_admin').then(({data})=>{if(alive)setIsAdmin(!!data)}).catch(()=>{if(alive)setIsAdmin(false)});
+    return ()=>{alive=false};
+  },[sessionUserId]);
 
   const refresh=async()=>{
     if(!sessionUserId)return;
@@ -480,8 +488,8 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
             <TextAction icon={(item.likedByMe||likes.includes(item.id))?'heart':'heart-outline'} title={String((item.likes||0)+(!item.remote&&likes.includes(item.id)?1:0))} onPress={()=>toggleLike(item)}/>
             <TextAction icon="chatbubble-outline" title={String(item.remote?(item.commentsCount||0):seededComments(item).length)} onPress={()=>openComments(item)}/>
           </View>
-          {item.authorId===sessionUserId||item.author==='Ty'
-            ? <View style={{flexDirection:'row'}}><TextAction icon="create-outline" title="Edytuj" onPress={()=>startEdit(item)}/><TextAction icon="trash-outline" title="Usuń" danger onPress={()=>deleteOwnPost(item)}/></View>
+          {(item.authorId===sessionUserId||item.author==='Ty'||(isAdmin&&item.remote))
+            ? <View style={{flexDirection:'row'}}><TextAction icon="create-outline" title={isAdmin&&item.authorId!==sessionUserId?'Edytuj jako admin':'Edytuj'} onPress={()=>startEdit(item)}/><TextAction icon="trash-outline" title="Usuń" danger onPress={()=>deleteOwnPost(item)}/></View>
             : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'post',id:item.id,label:`Wpis: ${item.author}`})}/>}
         </View>
         <Pressable onPress={()=>openComments(item)} style={s.commentPreview}><Typography style={s.commentPreviewText}>Zobacz komentarze</Typography></Pressable>
