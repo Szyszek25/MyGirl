@@ -14,7 +14,7 @@ function Row({icon,title,subtitle,onPress,right,danger=false}){
   </Pressable>;
 }
 
-export default function SettingsScreen({onClose,onSafety,onPartner,onReset}){
+export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset}){
   const [push,setPush]=useState(true);
   const [plans,setPlans]=useState(true);
   const [messages,setMessages]=useState(true);
@@ -44,6 +44,7 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset}){
     <Typography variant="eyebrow" style={s.sectionLabel}>PRYWATNOŚĆ I KONTO</Typography>
     <View style={s.group}>
       <Row icon="shield-checkmark-outline" title="Bezpieczeństwo i prywatność" subtitle="Blokady, zgłoszenia i Twoje dane" onPress={onSafety}/>
+      <Row icon="key-outline" title="Resetuj hasło" subtitle="Wyślij bezpieczny link na e-mail" onPress={onPasswordReset}/>
       <Row icon="lock-closed-outline" title="Prywatność profilu" subtitle="Kto może zobaczyć Twój profil"/>
       <Row icon="person-add-outline" title="Kto może do mnie pisać" subtitle="Kontakty i wiadomości"/>
       <Row icon="location-outline" title="Miasto i lokalizacja" subtitle="Używaj miasta zamiast dokładnego adresu"/>
