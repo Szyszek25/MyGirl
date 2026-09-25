@@ -1,3 +1,4 @@
+import {File} from 'expo-file-system';
 import {supabase} from '../lib/supabase';
 
 async function signed(bucket,path,seconds=3600){
@@ -7,13 +8,24 @@ async function signed(bucket,path,seconds=3600){
   return data?.signedUrl||null;
 }
 
+function mediaMimeFromUri(uri,fileType=''){
+  const normalized=(fileType||'').toLowerCase();
+  if(normalized.startsWith('image/')||normalized.startsWith('video/'))return normalized;
+  const clean=(uri||'').split('?')[0].toLowerCase();
+  if(clean.endsWith('.png'))return 'image/png';
+  if(clean.endsWith('.webp'))return 'image/webp';
+  if(clean.endsWith('.mp4')||clean.endsWith('.m4v'))return 'video/mp4';
+  return 'image/jpeg';
+}
+
 async function upload(bucket,userId,uri,prefix='media'){
-  const response=await fetch(uri);
-  const blob=await response.blob();
-  const type=blob.type||'image/jpeg';
-  const ext=type.includes('png')?'png':type.includes('webp')?'webp':type.includes('mp4')?'mp4':'jpg';
+  const file=new File(uri);
+  const bytes=await file.arrayBuffer();
+  if(!bytes.byteLength)throw new Error('Nie udało się odczytać wybranego pliku.');
+  const type=mediaMimeFromUri(uri,file.type);
+  const ext=type==='image/png'?'png':type==='image/webp'?'webp':type.startsWith('video/')?'mp4':'jpg';
   const path=`${userId}/${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;
-  const {error}=await supabase.storage.from(bucket).upload(path,blob,{contentType:type,upsert:false});
+  const {error}=await supabase.storage.from(bucket).upload(path,bytes,{contentType:type,upsert:false});
   if(error)throw error;
   return {path,type};
 }
