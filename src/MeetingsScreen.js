@@ -1,10 +1,11 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {Image,Modal,Pressable,ScrollView,StyleSheet,View} from 'react-native';
+import {Image,Linking,Modal,Pressable,ScrollView,Share,StyleSheet,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
+import {loadMeetups,setMeetupRsvp} from './services/meetupsApi';
 
 const starterMeetings=[
   {id:'m1',category:'Kawa',title:'Matcha + spacer po centrum',city:'Warszawa',when:'2026-09-27T17:30:00',place:'Śródmieście',description:'Najpierw matcha, potem luźny spacer po centrum. Bez spiny — poznajemy się na żywo.',spots:6,joined:4,host:'Maja',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88'},
@@ -59,13 +60,26 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',onReport,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
+export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
   const [cycleData,setCycleData]=useState(null);
-  const data=useMemo(()=>starterMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[city,category]);
+  const [remoteMeetups,setRemoteMeetups]=useState([]);
+  const sourceMeetings=remoteMeetups.length?remoteMeetups:starterMeetings;
+  const data=useMemo(()=>sourceMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category||item.category==='Spotkanie')),[sourceMeetings,city,category]);
   const cityPeople=useMemo(()=>people.filter(p=>p.city===city),[city]);
+  useEffect(()=>{
+    if(!sessionUserId){setRemoteMeetups([]);return;}
+    let alive=true;
+    loadMeetups(city,sessionUserId).then(rows=>{
+      if(!alive)return;
+      setRemoteMeetups(rows);
+      setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+    }).catch(()=>{if(alive)setRemoteMeetups([])});
+    return ()=>{alive=false};
+  },[city,sessionUserId]);
+
   useEffect(()=>{
     let alive=true;
     AsyncStorage.getItem(CYCLE_STORAGE_KEY).then(raw=>{
@@ -75,7 +89,19 @@ export default function MeetingsScreen({city='Warszawa',onReport,featurePreferen
     return ()=>{alive=false;};
   },[]);
 
-  const toggle=id=>setJoined(prev=>prev.includes(id)?prev.filter(v=>v!==id):[...prev,id]);
+  const toggle=async id=>{
+    const item=sourceMeetings.find(row=>row.id===id);
+    const currently=joined.includes(id);
+    setJoined(prev=>currently?prev.filter(v=>v!==id):[...prev,id]);
+    if(item?.remote&&sessionUserId){
+      try{
+        await setMeetupRsvp(id,sessionUserId,!currently);
+        setRemoteMeetups(prev=>prev.map(row=>row.id===id?{...row,joined:Math.max(0,row.joined+(currently?-1:1)),joinedByMe:!currently}:row));
+      }catch(error){
+        setJoined(prev=>currently?[...new Set([...prev,id])]:prev.filter(v=>v!==id));
+      }
+    }
+  };
 
   return <View style={s.root}>
     <View style={s.header}>
@@ -125,7 +151,7 @@ export default function MeetingsScreen({city='Warszawa',onReport,featurePreferen
           <Image source={{uri:selected.photo}} style={s.hero}/>
           <Typography style={s.detailTitle}>{selected.title}</Typography>
           <View style={s.infoRow}><Ionicons name="calendar-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{new Date(selected.when).toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</Typography></View>
-          <View style={s.infoRow}><Ionicons name="location-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{selected.place}, {selected.city}</Typography></View>
+          <Pressable onPress={()=>Linking.openURL(selected.mapsUrl||`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.place+', '+selected.city)}`)} style={s.infoRow}><Ionicons name="location-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{selected.place}, {selected.city}</Typography><Ionicons name="open-outline" size={16} color={c.muted}/></Pressable>
 
           {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(selected.when),cycleData);return <View style={s.careFit}>
             <View style={s.careFitTop}><View><Typography style={s.careFitOverline}>POLKA CARE</Typography><Typography style={s.careFitTitle}>{ctx?ctx.label:'Kontekst terminu'}</Typography></View><View style={[s.careFitIcon,ctx?.tone==='easy'&&{backgroundColor:'#EAF6F0'},ctx?.tone==='careful'&&{backgroundColor:'#FFF4E5'},ctx?.tone==='period'&&{backgroundColor:c.blush}]}><Ionicons name={ctx?.icon||'heart-circle-outline'} size={22} color={ctx?.tone==='easy'?c.success:ctx?.tone==='careful'?c.warning:c.pink}/></View></View>
@@ -161,7 +187,7 @@ export default function MeetingsScreen({city='Warszawa',onReport,featurePreferen
           </View>
 
           <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do spotkania'} secondary={joined.includes(selected.id)} onPress={()=>toggle(selected.id)}/>
-          <Pressable style={s.shareRow}><Ionicons name="share-social-outline" size={20} color={c.ink}/><Typography style={s.shareText}>Udostępnij spotkanie</Typography></Pressable>
+          <Pressable onPress={()=>Share.share({message:`${selected.title} · ${selected.place}, ${selected.city} · ${new Date(selected.when).toLocaleString('pl-PL')}`})} style={s.shareRow}><Ionicons name="share-social-outline" size={20} color={c.ink}/><Typography style={s.shareText}>Udostępnij spotkanie</Typography></Pressable>
         </ScrollView>
       </View>}
     </Modal>
