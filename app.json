@@ -7,11 +7,22 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#FFF9FA",
-    "primaryColor": "#B8325A",
+    "primaryColor": "#CE0459",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#CE0459"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "pl.polka.app",
       "buildNumber": "1",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#CE0459"
+      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Polka używa wybranego zdjęcia do Twojego profilu.",
         "ITSAppUsesNonExemptEncryption": false
@@ -20,9 +31,18 @@
     "android": {
       "package": "pl.polka.app",
       "versionCode": 1,
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#CE0459"
+      },
       "adaptiveIcon": {
-        "backgroundColor": "#FFF9FA"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#CE0459"
       }
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       [

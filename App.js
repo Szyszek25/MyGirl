@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
+import {Alert,Image,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView,useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@expo-google-fonts/dm-sans';
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
@@ -185,7 +185,12 @@ function PolkaApp(){
     setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);setSettingsOpen(false);setMessagesOpen(false);setCycleOpen(false);setCareOpen(false);setMoreOpen(false);setResetPasswordOpen(false);setPlansView('Plany');
     setPosts(initialPosts);setSession(v=>v+1);
   };
-  if(!loaded||booting)return <View style={s.safe}/>;
+  if(!loaded||booting)return (
+    <View style={s.splashRoot}>
+      <StatusBar barStyle="light-content" backgroundColor="#CE0459"/>
+      <Image source={require('./assets/splash.png')} style={s.splashLogo} resizeMode="contain"/>
+    </View>
+  );
   if(!account){
     if(preBusiness)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><PartnerPanel userId={authSession?.user?.id||null} onClose={()=>setPreBusiness(false)}/></SafeAreaView>;
     if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={({method}={})=>{if(method==='skip')setEntryStarted(true)}} onBusiness={()=>setPreBusiness(true)}/></View>;
@@ -296,5 +301,7 @@ const s=StyleSheet.create({safe:{flex:1,backgroundColor:c.canvas},fill:{flex:1},
   sleepSubtitle:{fontFamily:f.semibold,fontWeight:'700',fontSize:15,color:c.pink,textAlign:'center',marginBottom:12},
   sleepDesc:{fontFamily:f.regular,fontSize:14,lineHeight:20,textAlign:'center',color:c.muted,marginBottom:22},
   sleepButton:{width:'100%',height:50,backgroundColor:c.pink,borderRadius:16,alignItems:'center',justifyContent:'center'},
-  sleepButtonText:{fontFamily:f.bold,fontWeight:'700',fontSize:15,color:c.white}
+  sleepButtonText:{fontFamily:f.bold,fontWeight:'700',fontSize:15,color:c.white},
+  splashRoot:{flex:1,backgroundColor:'#CE0459',alignItems:'center',justifyContent:'center'},
+  splashLogo:{width:180,height:180}
 });
