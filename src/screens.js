@@ -25,7 +25,7 @@ export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
     {text:'Anuluj',style:'cancel'},{text:'Zablokuj',style:'destructive',onPress:()=>onBlock(person.id)}
   ]);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
-    <PageHeading kicker="MYGIRL / ODKRYWAJ" title="Poznaj się."/>
+    <PageHeading kicker="POLKA / ODKRYWAJ" title="Poznaj się."/>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom:sp.base}}>{['Wszystkie',...cities].map(v=><Chip key={v} label={v} selected={city===v} onPress={()=>{setCity(v);setIndex(0)}}/>)}</ScrollView>
     {person?<>
       <Animated.View {...pan.panHandlers} style={[s.profileCard,{transform:[{translateX:xy.x},{translateY:xy.y},{rotate:xy.x.interpolate({inputRange:[-W,0,W],outputRange:['-9deg','0deg','9deg']})}]}]}>
