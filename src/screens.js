@@ -15,13 +15,15 @@ function formatPostTime(createdAt) {
 }
 
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {ActivityIndicator,Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {people,groups,cities} from './data';
 import {Button,Chip,Field,PageHeading,Surface,Typography} from './ui';
 import {supabase} from './lib/supabase';
 import {createChatRealtime,newClientMessageId} from './services/chatRealtime';
+import {addComment,createPost,createStory,deletePost,editPost,loadComments,loadFeed,loadStories,markStoryViewed,togglePostLike} from './services/socialApi';
 const W=Dimensions.get('window').width;
 const avatar=(photo,size=48)=><Image source={{uri:photo}} style={{width:size,height:size,borderRadius:size/2,backgroundColor:c.blush}}/>;
 const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
@@ -214,67 +216,221 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
   </ScrollView>;
 }
 
-export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport}){
-  const [draft,setDraft]=useState(''),[likes,setLikes]=useState([]),[composerOpen,setComposerOpen]=useState(false),[commentPost,setCommentPost]=useState(null),[commentDraft,setCommentDraft]=useState(''),[comments,setComments]=useState({});
-  const visiblePosts=posts.filter(post=>!blockedIds.includes(authorId(post))&&post.city===city);
-  const deleteOwnPost=item=>Alert.alert('Usunąć wpis?','Wpis zniknie z tej sesji.',[
-    {text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:()=>setPosts(prev=>prev.filter(p=>p.id!==item.id))}
-  ]);
-  const publish=()=>{
-    const body=draft.trim();
-    if(!body)return;
-    setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,likes:0,createdAt:Date.now()},...prev]);
-    setDraft('');
-    setComposerOpen(false);
+export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport,sessionUserId=null}){
+  const [draft,setDraft]=useState('');
+  const [likes,setLikes]=useState([]);
+  const [composerOpen,setComposerOpen]=useState(false);
+  const [commentPost,setCommentPost]=useState(null);
+  const [commentDraft,setCommentDraft]=useState('');
+  const [comments,setComments]=useState({});
+  const [remotePosts,setRemotePosts]=useState([]);
+  const [stories,setStories]=useState([]);
+  const [storyOpen,setStoryOpen]=useState(null);
+  const [loading,setLoading]=useState(!!sessionUserId);
+  const [publishing,setPublishing]=useState(false);
+  const [postMedia,setPostMedia]=useState(null);
+  const [spotifyUrl,setSpotifyUrl]=useState('');
+  const [editingPost,setEditingPost]=useState(null);
+
+  const refresh=async()=>{
+    if(!sessionUserId)return;
+    setLoading(true);
+    try{
+      const [feed,storyRows]=await Promise.all([loadFeed(city,sessionUserId),loadStories(sessionUserId,city)]);
+      setRemotePosts(feed);
+      setStories(storyRows);
+    }catch(error){
+      Alert.alert('Nie udało się odświeżyć','Sprawdź połączenie i spróbuj ponownie.');
+    }finally{setLoading(false);}
   };
+
+  useEffect(()=>{void refresh()},[city,sessionUserId]);
+
+  const sourcePosts=sessionUserId?remotePosts:posts;
+  const visiblePosts=sourcePosts.filter(post=>!blockedIds.includes(authorId(post))&&post.city===city);
+
+  const pickPostMedia=async()=>{
+    try{
+      const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],allowsEditing:false,quality:.82});
+      if(!result.canceled&&result.assets?.[0]?.uri)setPostMedia(result.assets[0]);
+    }catch(error){Alert.alert('Galeria',error.message||'Nie udało się wybrać pliku.');}
+  };
+
+  const takeStory=async()=>{
+    if(!sessionUserId)return Alert.alert('Zaloguj się','Stories online wymagają konta.');
+    try{
+      const permission=await ImagePicker.requestCameraPermissionsAsync();
+      if(!permission.granted)return Alert.alert('Aparat','Włącz dostęp do aparatu w ustawieniach telefonu.');
+      const result=await ImagePicker.launchCameraAsync({mediaTypes:['images','videos'],videoMaxDuration:15,quality:.75});
+      if(result.canceled||!result.assets?.[0]?.uri)return;
+      setLoading(true);
+      await createStory({userId:sessionUserId,uri:result.assets[0].uri});
+      await refresh();
+    }catch(error){Alert.alert('Story',error.message||'Nie udało się dodać story.');setLoading(false);}
+  };
+
+  const openStory=async story=>{
+    setStoryOpen(story);
+    if(sessionUserId&&story?.id)markStoryViewed(story.id,sessionUserId).catch(()=>{});
+  };
+
+  const publish=async()=>{
+    const body=draft.trim();
+    if(!body||publishing)return;
+    if(sessionUserId){
+      setPublishing(true);
+      try{
+        if(editingPost){
+          await editPost(editingPost.id,sessionUserId,body,spotifyUrl);
+        }else{
+          await createPost({userId:sessionUserId,body,imageUri:postMedia?.uri||null,spotifyUrl});
+        }
+        setDraft('');setPostMedia(null);setSpotifyUrl('');setEditingPost(null);setComposerOpen(false);
+        await refresh();
+      }catch(error){
+        Alert.alert('Nie zapisano posta',error.message||'Spróbuj ponownie.');
+      }finally{setPublishing(false);}
+      return;
+    }
+    setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,image:postMedia?.uri||null,spotifyUrl:spotifyUrl||null,likes:0,createdAt:Date.now()},...prev]);
+    setDraft('');setPostMedia(null);setSpotifyUrl('');setComposerOpen(false);
+  };
+
+  const startEdit=item=>{
+    setEditingPost(item);
+    setDraft(item.body||'');
+    setSpotifyUrl(item.spotifyUrl||'');
+    setPostMedia(null);
+    setComposerOpen(true);
+  };
+
+  const deleteOwnPost=item=>Alert.alert('Usunąć wpis?','Ta operacja jest nieodwracalna.',[
+    {text:'Anuluj',style:'cancel'},
+    {text:'Usuń',style:'destructive',onPress:async()=>{
+      if(sessionUserId&&item.remote){
+        try{await deletePost(item.id,sessionUserId);await refresh();}
+        catch(error){Alert.alert('Nie usunięto posta',error.message||'Spróbuj ponownie.');}
+      }else setPosts(prev=>prev.filter(p=>p.id!==item.id));
+    }}
+  ]);
+
   const seededComments=post=>comments[post.id]||[
     {id:`${post.id}-c1`,author:'Maja',body:'Ja jestem chętna 🙋‍♀️',photo:people[0].photo},
     {id:`${post.id}-c2`,author:'Ola',body:'Brzmi super, o której dokładnie?',photo:people[1].photo}
   ];
-  const addComment=()=>{
-    if(!commentPost||!commentDraft.trim())return;
-    const next={id:`${commentPost.id}-${Date.now()}`,author:'Ty',body:commentDraft.trim(),photo:null};
-    setComments(prev=>({...prev,[commentPost.id]:[...seededComments(commentPost),next]}));
-    setCommentDraft('');
+
+  const openComments=async post=>{
+    setCommentPost(post);
+    if(sessionUserId&&post.remote){
+      try{
+        const rows=await loadComments(post.id);
+        setComments(prev=>({...prev,[post.id]:rows}));
+      }catch{}
+    }
   };
 
+  const addCommentLocalOrRemote=async()=>{
+    if(!commentPost||!commentDraft.trim())return;
+    const body=commentDraft.trim();
+    setCommentDraft('');
+    if(sessionUserId&&commentPost.remote){
+      try{
+        await addComment(commentPost.id,sessionUserId,body);
+        const rows=await loadComments(commentPost.id);
+        setComments(prev=>({...prev,[commentPost.id]:rows}));
+        setRemotePosts(prev=>prev.map(p=>p.id===commentPost.id?{...p,commentsCount:(p.commentsCount||0)+1}:p));
+      }catch(error){setCommentDraft(body);Alert.alert('Nie dodano komentarza',error.message||'Spróbuj ponownie.');}
+      return;
+    }
+    const next={id:`${commentPost.id}-${Date.now()}`,author:'Ty',body,photo:null,createdAt:new Date().toISOString()};
+    setComments(prev=>({...prev,[commentPost.id]:[...seededComments(commentPost),next]}));
+  };
+
+  const toggleLike=async item=>{
+    if(sessionUserId&&item.remote){
+      try{
+        const nextLiked=await togglePostLike(item.id,sessionUserId,!!item.likedByMe);
+        setRemotePosts(prev=>prev.map(p=>p.id===item.id?{...p,likedByMe:nextLiked,likes:Math.max(0,(p.likes||0)+(nextLiked?1:-1))}:p));
+      }catch(error){Alert.alert('Nie zapisano polubienia',error.message||'Spróbuj ponownie.');}
+      return;
+    }
+    setLikes(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id]);
+  };
+
+  const demoStories=[
+    {id:'demo-story-1',name:'Maja',avatar:people[0]?.photo,mediaUrl:people[0]?.photo,caption:'matcha run ☕'},
+    {id:'demo-story-2',name:'Ola',avatar:people[1]?.photo,mediaUrl:people[1]?.photo,caption:'spacer po mieście'},
+    {id:'demo-story-3',name:'Natalia',avatar:people[2]?.photo,mediaUrl:people[2]?.photo,caption:'girls night ✨'},
+    {id:'demo-story-4',name:'Klara',avatar:people[3]?.photo,mediaUrl:people[3]?.photo,caption:'book club'}
+  ];
+  const visibleStories=sessionUserId?stories:demoStories;
+
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+    {loading&&<View style={s.feedLoading}><ActivityIndicator size="small" color={c.pink}/><Typography style={s.feedLoadingText}>Ładuję Polkę…</Typography></View>}
     <FlatList
       data={visiblePosts}
       keyExtractor={item=>item.id}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={s.feedPage}
+      refreshing={loading}
+      onRefresh={refresh}
       ListHeaderComponent={
-        <View style={s.feedHeader}>
-          <Pressable onPress={()=>setComposerOpen(true)} style={s.composerTrigger}>
-            <View style={s.composerAvatar}><Ionicons name="person" size={18} color={c.pink}/></View>
-            <Typography style={s.composerPlaceholder}>Napisz coś do dziewczyn w {city}…</Typography>
-            <Ionicons name="add-circle" size={24} color={c.pink}/>
-          </Pressable>
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.storiesRow}>
+            <Pressable onPress={takeStory} style={s.storyItem}>
+              <View style={[s.storyRing,s.storyAddRing]}><View style={s.storyAdd}><Ionicons name="camera" size={22} color={c.pink}/></View></View>
+              <Typography numberOfLines={1} style={s.storyName}>Dodaj</Typography>
+            </Pressable>
+            {visibleStories.map(story=><Pressable key={story.id} onPress={()=>openStory(story)} style={s.storyItem}>
+              <View style={s.storyRing}><Image source={{uri:story.avatar||story.mediaUrl||people[0]?.photo}} style={s.storyAvatar}/></View>
+              <Typography numberOfLines={1} style={s.storyName}>{story.name}</Typography>
+            </Pressable>)}
+          </ScrollView>
+          <View style={s.feedHeader}>
+            <Pressable onPress={()=>{setEditingPost(null);setDraft('');setSpotifyUrl('');setPostMedia(null);setComposerOpen(true)}} style={s.composerTrigger}>
+              <View style={s.composerAvatar}><Ionicons name="person" size={18} color={c.pink}/></View>
+              <Typography style={s.composerPlaceholder}>Napisz coś do dziewczyn w {city}…</Typography>
+              <Ionicons name="add-circle" size={24} color={c.pink}/>
+            </Pressable>
+          </View>
         </View>
       }
       renderItem={({item})=><View style={s.feedPost}>
         <View style={s.postHeader}>
-          {avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}
+          {avatar(item.avatar||people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}
           <View style={{flex:1}}>
             <Typography style={s.postAuthor}>{item.author}</Typography>
-            <Typography variant="caption" style={{color:c.muted}}>{item.city}</Typography>
+            <Typography variant="caption" style={{color:c.muted}}>{item.city}{item.editedAt?' · edytowano':''}</Typography>
           </View>
-          <Typography variant="caption" style={s.postTime}>{formatPostTime(item.createdAt || item.time || (item.id === 'post-01' ? '12 min temu' : item.id === 'post-02' ? '35 min temu' : item.id === 'post-03' ? '1 godz. temu' : '2 godz. temu'))}</Typography>
+          <Typography variant="caption" style={s.postTime}>{formatPostTime(item.createdAt||item.time||'2 godz. temu')}</Typography>
         </View>
         <Typography style={s.postBody}>{item.body}</Typography>
         {!!item.image&&<Image source={{uri:item.image}} style={s.postImage} resizeMode="cover"/>}
+        {!!item.spotifyUrl&&<View style={s.spotifyCard}><Ionicons name="musical-notes" size={20} color={c.pink}/><View style={{flex:1}}><Typography style={s.spotifyTitle}>Spotify</Typography><Typography numberOfLines={1} style={s.spotifyUrl}>{item.spotifyUrl}</Typography></View></View>}
+        {item.moderationStatus==='pending'&&<View style={s.pendingBadge}><Typography style={s.pendingText}>Czeka na publikację</Typography></View>}
         <View style={s.postActions}>
           <View style={s.postActionLeft}>
-            <TextAction icon={likes.includes(item.id)?'heart':'heart-outline'} title={String(item.likes+(likes.includes(item.id)?1:0))} onPress={()=>setLikes(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id])}/>
-            <TextAction icon="chatbubble-outline" title={String(seededComments(item).length)} onPress={()=>setCommentPost(item)}/>
+            <TextAction icon={(item.likedByMe||likes.includes(item.id))?'heart':'heart-outline'} title={String((item.likes||0)+(!item.remote&&likes.includes(item.id)?1:0))} onPress={()=>toggleLike(item)}/>
+            <TextAction icon="chatbubble-outline" title={String(item.remote?(item.commentsCount||0):seededComments(item).length)} onPress={()=>openComments(item)}/>
           </View>
-          {item.author==='Ty'?<TextAction icon="trash-outline" title="Usuń" danger onPress={()=>deleteOwnPost(item)}/>:<TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'post',id:item.id,label:`Wpis: ${item.author}`})}/>}
+          {item.authorId===sessionUserId||item.author==='Ty'
+            ? <View style={{flexDirection:'row'}}><TextAction icon="create-outline" title="Edytuj" onPress={()=>startEdit(item)}/><TextAction icon="trash-outline" title="Usuń" danger onPress={()=>deleteOwnPost(item)}/></View>
+            : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'post',id:item.id,label:`Wpis: ${item.author}`})}/>}
         </View>
-        <Pressable onPress={()=>setCommentPost(item)} style={s.commentPreview}><Typography style={s.commentPreviewText}>Zobacz komentarze</Typography></Pressable>
+        <Pressable onPress={()=>openComments(item)} style={s.commentPreview}><Typography style={s.commentPreviewText}>Zobacz komentarze</Typography></Pressable>
       </View>}
-      ListEmptyComponent={<View style={s.feedEmpty}><Typography style={s.emptyFeedTitle}>Jeszcze cicho w {city}</Typography><Typography style={s.emptyFeedText}>Napisz pierwszy post albo zmień miasto u góry.</Typography></View>}
+      ListEmptyComponent={!loading?<View style={s.feedEmpty}><Typography style={s.emptyFeedTitle}>Jeszcze cicho w {city}</Typography><Typography style={s.emptyFeedText}>Napisz pierwszy post albo zmień miasto u góry.</Typography></View>:null}
     />
+
+    <Modal visible={!!storyOpen} transparent animationType="fade" onRequestClose={()=>setStoryOpen(null)}>
+      <Pressable style={s.storyViewerBackdrop} onPress={()=>setStoryOpen(null)}>
+        {!!storyOpen&&<View style={s.storyViewerCard}>
+          <View style={s.storyViewerTop}>{avatar(storyOpen.avatar||people[0]?.photo,34)}<Typography style={s.storyViewerName}>{storyOpen.name}</Typography><View style={{flex:1}}/><Ionicons name="close" size={24} color={c.white}/></View>
+          <Image source={{uri:storyOpen.mediaUrl||storyOpen.avatar||people[0]?.photo}} style={s.storyViewerMedia} resizeMode="cover"/>
+          {!!storyOpen.caption&&<Typography style={s.storyCaption}>{storyOpen.caption}</Typography>}
+        </View>}
+      </Pressable>
+    </Modal>
 
     <Modal visible={!!commentPost} animationType="slide" onRequestClose={()=>setCommentPost(null)}>
       {!!commentPost&&<KeyboardAvoidingView style={s.commentsRoot} behavior={Platform.OS==='ios'?'padding':'height'}>
@@ -285,19 +441,19 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
         </View>
         <ScrollView style={s.commentsScroll} contentContainerStyle={s.commentsContent} keyboardShouldPersistTaps="handled">
           <View style={s.commentPostBox}>
-            <View style={s.postHeader}>{avatar(people.find(p=>p.name===commentPost.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{commentPost.city}</Typography></View></View>
+            <View style={s.postHeader}>{avatar(commentPost.avatar||people.find(p=>p.name===commentPost.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{commentPost.city}</Typography></View></View>
             <Typography style={s.postBody}>{commentPost.body}</Typography>
             {!!commentPost.image&&<Image source={{uri:commentPost.image}} style={s.commentPostImage} resizeMode="cover"/>}
           </View>
           {seededComments(commentPost).map(comment=><View key={comment.id} style={s.commentRow}>
             {comment.photo?avatar(comment.photo,38):<View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink}/></View>}
-            <View style={s.commentBubble}><Typography style={s.commentAuthor}>{comment.author}</Typography><Typography style={s.commentBody}>{comment.body}</Typography><View style={s.commentMetaRow}><Typography style={s.commentMeta}>teraz</Typography><Typography style={s.commentMeta}>Lubię</Typography><Typography style={s.commentMeta}>Odpowiedz</Typography></View></View>
+            <View style={s.commentBubble}><Typography style={s.commentAuthor}>{comment.author}</Typography><Typography style={s.commentBody}>{comment.body}</Typography><View style={s.commentMetaRow}><Typography style={s.commentMeta}>{formatPostTime(comment.createdAt||Date.now())}</Typography><Typography style={s.commentMeta}>Odpowiedz</Typography></View></View>
           </View>)}
         </ScrollView>
         <View style={s.commentComposer}>
           <View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink}/></View>
           <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Napisz komentarz…" placeholderTextColor={c.muted} multiline maxLength={800} style={s.commentInput}/>
-          <Pressable onPress={addComment} disabled={!commentDraft.trim()} style={[s.commentSend,!commentDraft.trim()&&{opacity:.35}]}><Ionicons name="arrow-up" size={19} color={c.white}/></Pressable>
+          <Pressable onPress={addCommentLocalOrRemote} disabled={!commentDraft.trim()} style={[s.commentSend,!commentDraft.trim()&&{opacity:.35}]}><Ionicons name="arrow-up" size={19} color={c.white}/></Pressable>
         </View>
       </KeyboardAvoidingView>}
     </Modal>
@@ -309,19 +465,16 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
           <View style={s.postSheetHandle}/>
           <View style={s.postSheetTop}>
             <Pressable onPress={()=>setComposerOpen(false)}><Typography style={s.cancelText}>Anuluj</Typography></Pressable>
-            <Typography style={s.postSheetTitle}>Nowy post</Typography>
-            <Pressable disabled={!draft.trim()} onPress={publish}><Typography style={[s.publishText,!draft.trim()&&{opacity:.35}]}>Publikuj</Typography></Pressable>
+            <Typography style={s.postSheetTitle}>{editingPost?'Edytuj post':'Nowy post'}</Typography>
+            <Pressable disabled={!draft.trim()||publishing} onPress={publish}><Typography style={[s.publishText,(!draft.trim()||publishing)&&{opacity:.35}]}>{publishing?'Chwila…':'Publikuj'}</Typography></Pressable>
           </View>
           <View style={s.postAudience}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.postAudienceText}>{city}</Typography></View>
-          <TextInput
-            autoFocus
-            multiline
-            value={draft}
-            onChangeText={value=>setDraft(value.slice(0,1200))}
-            placeholder={`Co dzieje się w ${city}?`}
-            placeholderTextColor={c.muted}
-            style={s.postInput}
-          />
+          <TextInput autoFocus multiline value={draft} onChangeText={value=>setDraft(value.slice(0,1200))} placeholder={`Co dzieje się w ${city}?`} placeholderTextColor={c.muted} style={s.postInput}/>
+          {!!postMedia?.uri&&<Image source={{uri:postMedia.uri}} style={s.postComposerPreview}/>}
+          <View style={s.postComposerTools}>
+            {!editingPost&&<Pressable onPress={pickPostMedia} style={s.postTool}><Ionicons name="images-outline" size={22} color={c.pink}/><Typography style={s.postToolText}>Galeria</Typography></Pressable>}
+            <View style={s.postTool}><Ionicons name="musical-notes-outline" size={22} color={c.pink}/><TextInput value={spotifyUrl} onChangeText={setSpotifyUrl} autoCapitalize="none" placeholder="Link Spotify (opcjonalnie)" placeholderTextColor={c.muted} style={s.spotifyInput}/></View>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -537,6 +690,31 @@ export function ProfileScreen({account,onSafety}){
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
   feedPage:{paddingBottom:110,backgroundColor:'#F7F3F5'},
+  feedLoading:{position:'absolute',top:6,alignSelf:'center',zIndex:30,flexDirection:'row',gap:8,alignItems:'center',backgroundColor:c.white,paddingHorizontal:12,paddingVertical:8,borderRadius:999,borderWidth:1,borderColor:c.line},
+  feedLoadingText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
+  storiesRow:{paddingHorizontal:sp.lg,paddingTop:8,paddingBottom:12,gap:12},
+  storyItem:{width:68,alignItems:'center'},
+  storyRing:{width:62,height:62,borderRadius:31,borderWidth:3,borderColor:c.pink,padding:2,alignItems:'center',justifyContent:'center'},
+  storyAddRing:{borderColor:c.line},
+  storyAvatar:{width:52,height:52,borderRadius:26,backgroundColor:c.blush},
+  storyAdd:{width:52,height:52,borderRadius:26,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  storyName:{fontFamily:f.semibold,fontSize:10,color:c.ink,marginTop:5,maxWidth:66},
+  storyViewerBackdrop:{flex:1,backgroundColor:'rgba(18,9,14,.95)',alignItems:'center',justifyContent:'center',padding:12},
+  storyViewerCard:{width:'100%',maxWidth:430,height:'88%',borderRadius:28,overflow:'hidden',backgroundColor:'#1b1116'},
+  storyViewerTop:{position:'absolute',top:0,left:0,right:0,zIndex:3,padding:14,flexDirection:'row',alignItems:'center',gap:9,backgroundColor:'rgba(0,0,0,.18)'},
+  storyViewerName:{fontFamily:f.bold,fontSize:13,color:c.white},
+  storyViewerMedia:{width:'100%',height:'100%'},
+  storyCaption:{position:'absolute',left:16,right:16,bottom:22,color:c.white,fontFamily:f.semibold,fontSize:15,textAlign:'center',backgroundColor:'rgba(0,0,0,.28)',padding:10,borderRadius:14},
+  spotifyCard:{flexDirection:'row',alignItems:'center',gap:10,borderWidth:1,borderColor:c.line,borderRadius:16,padding:12,marginBottom:10,backgroundColor:c.canvas},
+  spotifyTitle:{fontFamily:f.bold,fontSize:12,color:c.ink},
+  spotifyUrl:{fontFamily:f.regular,fontSize:11,color:c.muted,marginTop:2},
+  pendingBadge:{alignSelf:'flex-start',backgroundColor:c.blush,borderRadius:999,paddingHorizontal:10,paddingVertical:6,marginBottom:8},
+  pendingText:{fontFamily:f.bold,fontSize:10,color:c.pink},
+  postComposerPreview:{width:'100%',height:180,borderRadius:16,marginTop:10,backgroundColor:c.blush},
+  postComposerTools:{borderTopWidth:1,borderTopColor:c.line,paddingTop:10,gap:8},
+  postTool:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8},
+  postToolText:{fontFamily:f.semibold,fontSize:13,color:c.ink},
+  spotifyInput:{flex:1,height:42,borderRadius:12,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,paddingHorizontal:12,fontFamily:f.regular,fontSize:13,color:c.ink},
   feedHeader:{paddingHorizontal:sp.lg,paddingTop:6,paddingBottom:12,backgroundColor:c.canvas},
   composerTrigger:{minHeight:54,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:18,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:12},
   composerAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
