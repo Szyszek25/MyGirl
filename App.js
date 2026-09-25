@@ -10,6 +10,7 @@ import NativeProfile from './src/NativeProfile';
 import SettingsScreen from './src/SettingsScreen';
 import CycleScreen from './src/CycleScreen';
 import ResetPasswordScreen from './src/ResetPasswordScreen';
+import PolkaCareScreen from './src/PolkaCareScreen';
 import PartnerPanel from './src/PartnerPanel';
 import ShiftTransition from './src/ShiftTransition';
 import DiscoverScreen from './src/DiscoverScreen';
@@ -42,6 +43,7 @@ function PolkaApp(){
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [messagesOpen,setMessagesOpen]=useState(false);
   const [cycleOpen,setCycleOpen]=useState(false);
+  const [careOpen,setCareOpen]=useState(false);
   const [resetPasswordOpen,setResetPasswordOpen]=useState(false);
   const [plansView,setPlansView]=useState('Plany');
   const [posts,setPosts]=useState(initialPosts);
@@ -64,7 +66,7 @@ function PolkaApp(){
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
     setAccount(null);setEntryStarted(false);setPreBusiness(false);setTab('Start');setActiveCity('Warszawa');setCityPickerOpen(false);setBlockedIds([]);setReports([]);
-    setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);setSettingsOpen(false);setMessagesOpen(false);setCycleOpen(false);setResetPasswordOpen(false);setPlansView('Plany');
+    setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);setSettingsOpen(false);setMessagesOpen(false);setCycleOpen(false);setCareOpen(false);setResetPasswordOpen(false);setPlansView('Plany');
     setPosts(initialPosts);setSession(v=>v+1);
   };
   if(!loaded||booting)return <View style={s.safe}/>;
@@ -73,7 +75,7 @@ function PolkaApp(){
     if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={()=>setEntryStarted(true)} onBusiness={()=>setPreBusiness(true)}/></View>;
     return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={saveProfile}/></SafeAreaView>;
   }
-  const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!settingsOpen&&!messagesOpen&&!cycleOpen&&!resetPasswordOpen;
+  const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!settingsOpen&&!messagesOpen&&!cycleOpen&&!careOpen&&!resetPasswordOpen;
   const clubsVisible=tab==='Grupy'&&showTabs;
   const content=reportTarget?
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
@@ -81,10 +83,11 @@ function PolkaApp(){
     partnerOpen?<PartnerPanel onClose={()=>setPartnerOpen(false)}/>:
     settingsOpen?<SettingsScreen onClose={()=>setSettingsOpen(false)} onSafety={()=>{setSettingsOpen(false);setSafetyOpen(true)}} onPartner={()=>{setSettingsOpen(false);setPartnerOpen(true)}} onPasswordReset={()=>{setSettingsOpen(false);setResetPasswordOpen(true)}} onReset={reset}/>:
     resetPasswordOpen?<ResetPasswordScreen onClose={()=>{setResetPasswordOpen(false);setSettingsOpen(true)}}/>:
-    cycleOpen?<CycleScreen onClose={()=>setCycleOpen(false)} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
+    cycleOpen?<CycleScreen onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
+    careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     messagesOpen?<View style={s.fill}><ChatsScreen blockedIds={blockedIds} onReport={setReportTarget} onClose={()=>setMessagesOpen(false)}/></View>:
-    ({'Start':<View style={s.fill}><Pressable onPress={()=>setMessagesOpen(true)} style={s.messageShortcut} accessibilityRole="button" accessibilityLabel="Otwórz wiadomości"><Ionicons name="chatbubble-ellipses-outline" size={22} color={c.ink}/></Pressable><CommunityScreen city={activeCity} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)}/>})[tab];
-  const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':settingsOpen?'settings':resetPasswordOpen?'reset-password':cycleOpen?'cycle':messagesOpen?'messages':tab;
+    ({'Start':<View style={s.fill}><Pressable onPress={()=>setMessagesOpen(true)} style={s.messageShortcut} accessibilityRole="button" accessibilityLabel="Otwórz wiadomości"><Ionicons name="chatbubble-ellipses-outline" size={22} color={c.ink}/></Pressable><CommunityScreen city={activeCity} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)}/>})[tab];
+  const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':settingsOpen?'settings':resetPasswordOpen?'reset-password':cycleOpen?'cycle':careOpen?'polka-care':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
       <View style={s.fill}>
