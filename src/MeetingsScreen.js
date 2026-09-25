@@ -44,7 +44,7 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
           <Image source={{uri:item.photo}} style={s.thumb}/>
           <View style={s.cardBody}>
             <Typography style={s.cardTitle}>{item.title}</Typography>
-            <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · {item.place}</Typography>
+            <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
             <View style={s.cardBottom}>
               <View style={s.peopleRow}>{people.slice(0,3).map(p=><Image key={p.id} source={{uri:p.photo}} style={s.avatar}/>)}</View>
               <Typography style={s.spots}>{item.joined}/{item.spots}</Typography>
@@ -102,6 +102,7 @@ const s=StyleSheet.create({
   cardBody:{flex:1,minWidth:0},
   cardTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
   meta:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:3},
+  placeMeta:{fontFamily:f.semibold,fontSize:12,color:c.ink,marginTop:2},
   cardBottom:{flexDirection:'row',alignItems:'center',marginTop:9},
   peopleRow:{flexDirection:'row',alignItems:'center'},
   avatar:{width:24,height:24,borderRadius:12,borderWidth:2,borderColor:c.white,marginRight:-6},
