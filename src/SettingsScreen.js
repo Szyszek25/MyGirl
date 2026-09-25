@@ -17,7 +17,7 @@ function Row({icon,title,subtitle,onPress,right,danger=false}){
   </Pressable>;
 }
 
-export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange}){
+export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange,onSignOut,isAuthenticated=false,accountEmail=''}){
   const [push,setPush]=useState(true);
   const [plans,setPlans]=useState(true);
   const [messages,setMessages]=useState(true);
@@ -84,11 +84,13 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
 
     <Typography variant="eyebrow" style={s.sectionLabel}>PRYWATNOŚĆ I KONTO</Typography>
     <View style={s.group}>
+      {isAuthenticated&&<Row icon="person-circle-outline" title={accountEmail||'Konto Polki'} subtitle="Zalogowane konto Supabase"/>}
       <Row icon="shield-checkmark-outline" title="Bezpieczeństwo i prywatność" subtitle="Blokady, zgłoszenia i Twoje dane" onPress={onSafety}/>
-      <Row icon="key-outline" title="Resetuj hasło" subtitle="Wyślij bezpieczny link na e-mail" onPress={onPasswordReset}/>
+      {isAuthenticated&&<Row icon="key-outline" title="Zmień hasło" subtitle="Ustaw nowe hasło do konta" onPress={onPasswordReset}/>}
       <Row icon="lock-closed-outline" title="Prywatność profilu" subtitle="Kto może zobaczyć Twój profil"/>
       <Row icon="person-add-outline" title="Kto może do mnie pisać" subtitle="Kontakty i wiadomości"/>
       <Row icon="location-outline" title="Miasto i lokalizacja" subtitle="Używaj miasta zamiast dokładnego adresu"/>
+      {isAuthenticated&&<Row icon="log-out-outline" title="Wyloguj się" subtitle="Zakończ sesję na tym urządzeniu" danger onPress={()=>Alert.alert('Wylogować się?','Będziesz musiała zalogować się ponownie.',[{text:'Anuluj',style:'cancel'},{text:'Wyloguj',style:'destructive',onPress:onSignOut}])}/>}
     </View>
 
     <Typography variant="eyebrow" style={s.sectionLabel}>POMOC</Typography>
@@ -102,7 +104,7 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
     <View style={[s.group,{marginTop:sp.lg}]}>
       <Row icon="trash-outline" title="Usuń dane demo" danger onPress={()=>Alert.alert('Usunąć dane demo?','Profil lokalny i dane tej wersji zostaną usunięte z telefonu.',[{text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:onReset}])}/>
     </View>
-    <Typography variant="caption" style={s.footer}>Polka 1.0.0 · część ustawień jest UI-em przygotowanym pod backend produkcyjny.</Typography>
+    <Typography variant="caption" style={s.footer}>{isAuthenticated?'Polka 1.0.0 · konto online aktywne':'Polka 1.0.0 · tryb lokalny'}</Typography>
   </ScrollView>;
 }
 
