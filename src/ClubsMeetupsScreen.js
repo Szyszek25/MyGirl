@@ -5,7 +5,7 @@ import {groups as seedGroups,people} from './data';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {Button,Chip,Field,Typography} from './ui';
 
-const categories=['Kawa','Sport','Książki','Podróże','Jedzenie','Muzyka','Studia','Inne'];
+const categories=['Kawa','Sport','Książki','Podróże','Jedzenie','Muzyka','Samopoczucie','Studia','Inne'];
 const clean=(value,max)=>String(value||'').trim().slice(0,max);
 const localId=()=>`group-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
@@ -22,7 +22,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
   const withCategory=club=>club.category||({
     'cafe-outline':'Kawa','fitness-outline':'Sport','book-outline':'Książki','airplane-outline':'Podróże','restaurant-outline':'Jedzenie','sparkles-outline':'Muzyka'
   }[club.icon]||'Inne');
-  const data=clubs.filter(item=>item.city===city&&(groupFilter==='Wszystkie'||withCategory(item)===groupFilter));
+  const data=clubs.filter(item=>(item.city===city||item.city==='Polska')&&(groupFilter==='Wszystkie'||withCategory(item)===groupFilter));
 
   const resetForm=()=>{
     setName('');
