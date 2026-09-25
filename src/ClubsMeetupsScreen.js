@@ -1,16 +1,21 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {Alert,FlatList,KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StyleSheet,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {groups as seedGroups,people} from './data';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {Button,Chip,Field,Typography} from './ui';
+import TemporaryChatScreen from './TemporaryChatScreen';
+import {createGroup,deleteGroup,loadGroups,setGroupJoined} from './services/groupsApi';
+import {ensureTemporaryRoom} from './services/tempChatApi';
 
 const categories=['Kawa','Sport','Książki','Podróże','Jedzenie','Muzyka','Samopoczucie','Studia','Inne'];
 const clean=(value,max)=>String(value||'').trim().slice(0,max);
 const localId=()=>`group-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
-export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
+export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,onReport}){
   const [clubs,setClubs]=useState(seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
+  const [remoteLoaded,setRemoteLoaded]=useState(false);
+  const [tempRoom,setTempRoom]=useState(null);
   const [joined,setJoined]=useState(['coffee-waw']);
   const [activeClub,setActiveClub]=useState(null);
   const [creating,setCreating]=useState(false);
@@ -18,6 +23,23 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
   const [description,setDescription]=useState('');
   const [category,setCategory]=useState('Kawa');
   const [groupFilter,setGroupFilter]=useState('Wszystkie');
+  useEffect(()=>{
+    if(!sessionUserId){
+      setClubs(seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
+      setRemoteLoaded(false);
+      return;
+    }
+    let alive=true;
+    loadGroups(city,sessionUserId).then(rows=>{
+      if(!alive)return;
+      setClubs(rows.length?rows:[]);
+      setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+      setRemoteLoaded(true);
+    }).catch(()=>{if(alive){setRemoteLoaded(false)}});
+    return ()=>{alive=false};
+  },[city,sessionUserId]);
+
+
 
   const withCategory=club=>club.category||({
     'cafe-outline':'Kawa','fitness-outline':'Sport','book-outline':'Książki','airplane-outline':'Podróże','restaurant-outline':'Jedzenie','sparkles-outline':'Muzyka'
@@ -31,8 +53,18 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
     setCreating(false);
   };
 
-  const toggleJoin=club=>{
-    setJoined(prev=>prev.includes(club.id)?prev.filter(id=>id!==club.id):[...prev,club.id]);
+  const toggleJoin=async club=>{
+    const currently=joined.includes(club.id);
+    setJoined(prev=>currently?prev.filter(id=>id!==club.id):[...prev,club.id]);
+    if(club.remote&&sessionUserId){
+      try{
+        await setGroupJoined(club.id,sessionUserId,!currently);
+        const rows=await loadGroups(city,sessionUserId);
+        setClubs(rows);
+      }catch(error){
+        setJoined(prev=>currently?[...new Set([...prev,club.id])]:prev.filter(id=>id!==club.id));
+      }
+    }
   };
 
   const joinAndOpen=club=>{
@@ -40,24 +72,29 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
     setActiveClub(club);
   };
 
-  const createClub=()=>{
+  const openGroupChat=async club=>{
+    if(!sessionUserId)return Alert.alert('Zaloguj się','Tymczasowy czat grupy wymaga konta.');
+    try{
+      const room=await ensureTemporaryRoom({userId:sessionUserId,title:club.name,contextType:'group',contextId:club.id,hours:24});
+      setTempRoom(room);
+    }catch(error){Alert.alert('Czat grupy',error.message||'Nie udało się otworzyć czatu.');}
+  };
+
+  const createClub=async()=>{
     const title=clean(name,80);
     if(title.length<2)return Alert.alert('Podaj nazwę grupy','Wpisz przynajmniej 2 znaki.');
-    const club={
-      id:localId(),
-      name:title,
-      city,
-      description:clean(description,500)||'Nowa grupa w Polce',
-      icon:'people-outline',
-      category,
-      owned:true,
-      demo:true,
-      members:1
-    };
-    setClubs(prev=>[club,...prev]);
-    setJoined(prev=>[club.id,...prev]);
-    resetForm();
-    setActiveClub(club);
+    if(sessionUserId){
+      try{
+        const created=await createGroup(sessionUserId,{name:title,description:clean(description,500)||'Nowa grupa w Polce',city,category});
+        const rows=await loadGroups(city,sessionUserId);
+        setClubs(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+        resetForm();
+        setActiveClub(rows.find(row=>row.id===created.id)||null);
+        return;
+      }catch(error){Alert.alert('Nie utworzono grupy',error.message||'Spróbuj ponownie.');return;}
+    }
+    const club={id:localId(),name:title,city,description:clean(description,500)||'Nowa grupa w Polce',icon:'people-outline',category,owned:true,demo:true,members:1};
+    setClubs(prev=>[club,...prev]);setJoined(prev=>[club.id,...prev]);resetForm();setActiveClub(club);
   };
 
   return <View style={s.root}>
@@ -120,15 +157,20 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
               </View>
 
               <Button title={isJoined?'Opuść grupę':'Dołącz do grupy'} secondary={isJoined} onPress={()=>toggleJoin(club)}/>
+              {club.remote&&club.owned&&<Button title="Usuń grupę" secondary style={{marginTop:sp.sm}} onPress={()=>Alert.alert('Usunąć grupę?','Tej operacji nie można cofnąć.',[{text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:async()=>{try{await deleteGroup(club.id,sessionUserId);setActiveClub(null);setClubs(await loadGroups(city,sessionUserId));}catch(error){Alert.alert('Nie usunięto grupy',error.message||'Spróbuj ponownie.')}}}])}/>} 
 
               <View style={s.actions}>
-                <Pressable style={s.action}><Ionicons name="chatbubbles-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Czat grupy</Typography></Pressable>
+                <Pressable style={s.action} onPress={()=>openGroupChat(club)}><Ionicons name="chatbubbles-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Czat 24h</Typography></Pressable>
                 <Pressable style={s.action} onPress={()=>onReport?.({kind:'group',id:club.id,label:`Grupa: ${club.name}`})}><Ionicons name="flag-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Zgłoś</Typography></Pressable>
               </View>
             </ScrollView>
           </View>
         </View>;
       })()}
+    </Modal>
+
+    <Modal visible={!!tempRoom} animationType="slide" onRequestClose={()=>setTempRoom(null)}>
+      {!!tempRoom&&<TemporaryChatScreen room={tempRoom} userId={sessionUserId} onClose={()=>setTempRoom(null)}/>}
     </Modal>
 
     <Modal visible={creating} transparent animationType="slide" onRequestClose={resetForm}>
