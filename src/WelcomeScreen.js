@@ -6,7 +6,7 @@ import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
 
 const HERO='https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
-const HERO_VIDEO='https://videos.pexels.com/video-files/6565403/6565403-uhd_2160_3840_24fps.mp4';
+const HERO_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
 
 export default function WelcomeScreen({onContinue,onBusiness}){
   const [emailMode,setEmailMode]=useState(false);
