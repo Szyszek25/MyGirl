@@ -104,7 +104,7 @@ export default function ClubsMeetupsScreen({onReport}){
   if(form)return <KeyboardAvoidingView style={{flex:1,backgroundColor:c.canvas}} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?8:0}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
       <Pressable onPress={reset} style={s.back}><Ionicons name="arrow-back" size={22} color={c.ink}/><Typography style={{fontFamily:f.bold}}>Wróć</Typography></Pressable>
-      <PageHeading kicker={form==='club'?'NOWY KLUB':'NOWE WYDARZENIE'} title={form==='club'?'Załóż klub':'Utwórz wydarzenie'}/>
+      <View style={s.formHeader}><Typography style={s.screenTitle}>{form==='club'?'Nowa grupa':'Nowe wydarzenie'}</Typography><Typography style={s.screenSubtitle}>{form==='club'?'Stwórz własną społeczność':'Zaproś dziewczyny na konkretny plan'}</Typography></View>
       <Field label={form==='club'?'Nazwa klubu':'Tytuł wydarzenia'} value={name} onChangeText={v=>setName(v.slice(0,form==='club'?80:100))} placeholder={form==='club'?'Np. Matcha Girls Warszawa':'Np. Girls night w piątek'}/>
       <Field label="Opis" value={description} onChangeText={v=>setDescription(v.slice(0,500))} placeholder="Co planujesz?" multiline/>
       <Typography style={s.label}>Miasto</Typography><ScrollView horizontal showsHorizontalScrollIndicator={false}>{cities.map(item=><Chip key={item} label={item} selected={city===item} onPress={()=>setCity(item)}/>)}</ScrollView>
@@ -120,7 +120,7 @@ export default function ClubsMeetupsScreen({onReport}){
   const data=view==='Kluby'?clubs:meetups;
   return <View style={s.root}>
     <View style={s.topArea}>
-      <View style={s.titleRow}><View><Typography variant="eyebrow" style={{color:c.pink}}>POLKA / RAZEM</Typography><Typography variant="heading">Grupy i wydarzenia</Typography></View><Pressable style={s.plus} onPress={()=>{reset();setForm(view==='Kluby'?'club':'meetup')}}><Ionicons name="add" size={25} color={c.white}/></Pressable></View>
+      <View style={s.titleRow}><View><Typography style={s.screenTitle}>Razem</Typography><Typography style={s.screenSubtitle}>Grupy i wydarzenia w Twoim mieście</Typography></View><Pressable style={s.plus} onPress={()=>{reset();setForm(view==='Kluby'?'club':'meetup')}}><Ionicons name="add" size={25} color={c.white}/></Pressable></View>
       <View style={s.switch}>{['Kluby','Wydarzenia'].map(item=>{const mapped=item==='Wydarzenia'?'Spotkania':item;return <Pressable key={item} style={[s.segment,view===mapped&&s.selected]} onPress={()=>setView(mapped)}><Typography style={{color:view===mapped?c.white:c.ink,fontFamily:f.bold}}>{item}</Typography></Pressable>})}</View>
     </View>
     <FlatList data={data} keyExtractor={item=>item.id} contentContainerStyle={s.list} showsVerticalScrollIndicator={false}
@@ -144,10 +144,10 @@ export default function ClubsMeetupsScreen({onReport}){
 const s=StyleSheet.create({
   root:{flex:1,backgroundColor:c.canvas},
   topArea:{paddingHorizontal:sp.lg,paddingTop:sp.lg,paddingBottom:sp.sm},
-  titleRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:sp.md,marginBottom:sp.base},
+  titleRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:sp.md,marginBottom:sp.base},screenTitle:{fontFamily:f.bold,fontSize:28,letterSpacing:-1.1,color:c.ink},screenSubtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},formHeader:{marginBottom:sp.lg},
   plus:{width:44,height:44,borderRadius:22,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
   page:{padding:sp.lg,paddingBottom:100},
-  detailPage:{padding:sp.lg,paddingBottom:120,backgroundColor:c.canvas,flexGrow:1},
+  detailPage:{padding:sp.lg,paddingBottom:120,backgroundColor:c.white,flexGrow:1,borderTopLeftRadius:28,borderTopRightRadius:28},
   list:{paddingHorizontal:sp.lg,paddingBottom:110,gap:10},
   back:{flexDirection:'row',alignItems:'center',gap:8,marginBottom:sp.lg},
   switch:{flexDirection:'row',gap:8},
@@ -163,12 +163,12 @@ const s=StyleSheet.create({
   dateBig:{fontSize:19,fontFamily:f.bold,color:c.pink,lineHeight:20},
   heroIcon:{width:76,height:76,borderRadius:24,backgroundColor:c.blush,alignItems:'center',justifyContent:'center',marginBottom:sp.base},
   eventHero:{flexDirection:'row',alignItems:'center',gap:10,marginBottom:sp.base},
-  detailTitle:{fontSize:42,lineHeight:44,marginBottom:sp.sm},
+  detailTitle:{fontFamily:f.bold,fontSize:30,lineHeight:34,letterSpacing:-1,marginBottom:sp.sm},
   description:{fontSize:17,lineHeight:25,color:c.ink,marginVertical:sp.lg},
   memberRow:{flexDirection:'row',alignItems:'center',gap:6,marginVertical:sp.base},
   memberBubble:{width:32,height:32,borderRadius:16,backgroundColor:c.blush,borderWidth:2,borderColor:c.white,alignItems:'center',justifyContent:'center'},
   detailActions:{flexDirection:'row',gap:10,marginTop:sp.md},
-  actionCell:{flex:1,minHeight:62,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,alignItems:'center',justifyContent:'center',gap:5},
+  actionCell:{flex:1,minHeight:48,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},
   actionLabel:{fontSize:12,fontFamily:f.semibold,color:c.ink},
   sectionTitle:{marginTop:sp.xl,marginBottom:sp.md},
   attendance:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',padding:sp.lg},
