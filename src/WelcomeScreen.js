@@ -1,25 +1,42 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {ImageBackground,KeyboardAvoidingView,Platform,Pressable,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import {useVideoPlayer,VideoView} from 'expo-video';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
 
 const HERO='https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
+const HERO_VIDEO='https://videos.pexels.com/video-files/6565403/6565403-uhd_2160_3840_24fps.mp4';
 
 export default function WelcomeScreen({onContinue,onBusiness}){
   const [emailMode,setEmailMode]=useState(false);
   const [email,setEmail]=useState('');
+  const [videoReady,setVideoReady]=useState(false);
   const valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const player=useVideoPlayer(HERO_VIDEO,p=>{
+    p.loop=true;
+    p.muted=true;
+    p.play();
+  });
+
+  useEffect(()=>{
+    const sub=player.addListener?.('statusChange',event=>{
+      if(event?.status==='readyToPlay')setVideoReady(true);
+    });
+    return ()=>sub?.remove?.();
+  },[player]);
 
   return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':'height'}>
-    <ImageBackground source={{uri:HERO}} style={s.hero} imageStyle={s.image}>
+    <View style={s.hero}>
+      <ImageBackground source={{uri:HERO}} style={StyleSheet.absoluteFill} imageStyle={s.image}/>
+      <VideoView player={player} style={[StyleSheet.absoluteFill,{opacity:videoReady?1:0}]} contentFit="cover" nativeControls={false}/>
       <View style={s.overlay}/>
       <View style={s.brand}><Typography style={s.logo}>Polka</Typography><View style={s.badge}><Typography style={s.badgeText}>BETA</Typography></View></View>
       <View style={s.copy}>
         <Typography style={s.title}>Twoje miasto.{"\n"}Twoje dziewczyny.{"\n"}Twoje plany.</Typography>
         <Typography style={s.subtitle}>Kawa, koncert, spacer, pilates albo spontaniczny weekend. Zobacz kto też chce iść.</Typography>
       </View>
-    </ImageBackground>
+    </View>
 
     <View style={s.sheet}>
       {emailMode?<View>
@@ -41,9 +58,9 @@ export default function WelcomeScreen({onContinue,onBusiness}){
 
 const s=StyleSheet.create({
   root:{flex:1,backgroundColor:c.white},
-  hero:{flex:1,minHeight:390,justifyContent:'space-between',padding:sp.lg},
+  hero:{flex:1,minHeight:390,justifyContent:'space-between',padding:sp.lg,overflow:'hidden',backgroundColor:'#201318'},
   image:{resizeMode:'cover'},
-  overlay:{...StyleSheet.absoluteFillObject,backgroundColor:'#180B123D'},
+  overlay:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(24,11,18,.34)'},
   brand:{flexDirection:'row',alignItems:'center',gap:10,marginTop:sp.md},
   logo:{fontFamily:f.bold,fontSize:34,letterSpacing:-1.8,color:c.white},
   badge:{backgroundColor:'#FFFFFF26',borderWidth:1,borderColor:'#FFFFFF55',borderRadius:r.pill,paddingHorizontal:8,paddingVertical:4},
