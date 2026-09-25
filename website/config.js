@@ -4,8 +4,8 @@
 // reviewed/published privacy + terms, legal_documents rows, working unsubscribe,
 // tested RLS and storage policies, and configured Supabase email OTP template.
 export const config = Object.freeze({
-  supabaseUrl: 'https://YOUR-MYGIRL-PROJECT.supabase.co',
-  supabasePublishableKey: 'YOUR_SUPABASE_PUBLISHABLE_KEY',
+  supabaseUrl: 'https://jnygupsfbkpqvoewrxpf.supabase.co',
+  supabasePublishableKey: 'sb_publishable_VS9kUDKjyjd_cCeTtuQqwA_fsXDHG9P',
   privacyNoticeVersion: 'draft-2026-09-21',
   termsVersion: 'draft-2026-09-21',
   legalApproved: false,
