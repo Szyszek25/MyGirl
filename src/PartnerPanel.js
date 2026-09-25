@@ -37,7 +37,7 @@ export default function PartnerPanel({onClose}){
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
       <Pressable accessibilityRole="button" accessibilityLabel="Wróć do profilu" onPress={onClose} style={s.back}><Ionicons name="arrow-back" size={24} color={c.pink}/><Typography style={{color:c.pink,fontFamily:f.bold}}>Wróć</Typography></Pressable>
-      <PageHeading kicker="MYGIRL / PARTNERZY" title="Twoje miejsce. Nasza społeczność."/>
+      <PageHeading kicker="POLKA / PARTNERZY" title="Twoje miejsce. Nasza społeczność."/>
       <Typography style={s.lead}>Zaplanuj wizytówkę kawiarni, organizacji lub koła oraz propozycję dla dziewczyn w Twoim mieście.</Typography>
       <Surface><Typography variant="subtitle" style={s.title}>1. Twoja organizacja</Typography>
         <Field label="Nazwa" value={draft.name} onChangeText={v=>change('name',v,80)} placeholder="Np. Kawiarnia przy parku"/>
