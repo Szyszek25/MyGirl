@@ -17,8 +17,12 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
   const [name,setName]=useState('');
   const [description,setDescription]=useState('');
   const [category,setCategory]=useState('Kawa');
+  const [groupFilter,setGroupFilter]=useState('Wszystkie');
 
-  const data=clubs.filter(item=>item.city===city);
+  const withCategory=club=>club.category||({
+    'cafe-outline':'Kawa','fitness-outline':'Sport','book-outline':'Książki','airplane-outline':'Podróże','restaurant-outline':'Jedzenie','sparkles-outline':'Muzyka'
+  }[club.icon]||'Inne');
+  const data=clubs.filter(item=>item.city===city&&(groupFilter==='Wszystkie'||withCategory(item)===groupFilter));
 
   const resetForm=()=>{
     setName('');
@@ -64,6 +68,10 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
       </Pressable>
     </View>
 
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.groupFilterScroll} contentContainerStyle={s.groupFilters}>
+      {['Wszystkie',...categories].map(item=><Chip key={item} label={item} selected={groupFilter===item} onPress={()=>setGroupFilter(item)}/>)}
+    </ScrollView>
+
     <FlatList
       data={data}
       keyExtractor={item=>item.id}
@@ -75,7 +83,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
           <View style={s.icon}><Ionicons name={item.icon||'people-outline'} size={23} color={c.pink}/></View>
           <View style={s.cardBody}>
             <Typography style={s.cardTitle}>{item.name}</Typography>
-            <Typography style={s.meta}>{item.category||'Grupa'} · {item.members||1} członkiń</Typography>
+            <Typography style={s.meta}>{withCategory(item)} · {item.members||1} członkiń</Typography>
             {!!item.description&&<Typography numberOfLines={1} style={s.descriptionPreview}>{item.description}</Typography>}
           </View>
           <Pressable hitSlop={10} onPress={()=>joinAndOpen(item)} style={[s.joinButton,isJoined&&s.joinedButton]}>
@@ -103,7 +111,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
 
               <View style={s.heroIcon}><Ionicons name={club.icon||'people-outline'} size={42} color={c.pink}/></View>
               <Typography style={s.detailTitle}>{club.name}</Typography>
-              <Typography style={s.meta}>{club.city} · {club.category||'Grupa'} · {club.members||1} członkiń</Typography>
+              <Typography style={s.meta}>{club.city} · {withCategory(club)} · {club.members||1} członkiń</Typography>
               <Typography style={s.detailDescription}>{club.description}</Typography>
 
               <View style={s.membersRow}>
@@ -146,6 +154,8 @@ const s=StyleSheet.create({
   controls:{paddingHorizontal:sp.lg,paddingTop:4,paddingBottom:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
   context:{fontFamily:f.semibold,fontSize:15,color:c.muted},
   plus:{width:44,height:44,borderRadius:22,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
+  groupFilterScroll:{flexGrow:0,flexShrink:0},
+  groupFilters:{paddingLeft:sp.lg,paddingRight:sp.sm,paddingBottom:10,alignItems:'center'},
   list:{paddingHorizontal:sp.lg,paddingBottom:110,gap:10},
   card:{minHeight:78,backgroundColor:c.white,borderRadius:r.md,borderWidth:1,borderColor:c.line,padding:12,flexDirection:'row',alignItems:'center',gap:12},
   icon:{width:50,height:50,borderRadius:16,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
