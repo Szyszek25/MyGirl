@@ -8,7 +8,7 @@ import {PROFILE_PROMPTS} from './Onboarding';
 import {cities,interests as availableInterests} from './data';
 
 const copy=account=>({...account,interests:[...(account.interests||[])],answers:{...(account.answers||{})}});
-export default function NativeProfile({account,showCare=true,onSafety,onPartner,onSettings,onCycle,onCare,onSave}){
+export default function NativeProfile({account,showCare=true,onSafety,onPartner,onSettings,onCycle,onCare,onMore,onSave}){
   const [editing,setEditing]=useState(false);
   const [shareOpen,setShareOpen]=useState(false);
   const [draft,setDraft]=useState(()=>copy(account));
@@ -77,6 +77,7 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
           <Button title="Polka Care" onPress={onCare} icon="heart-circle-outline"/>
           <Button title="Cykl i samopoczucie" secondary onPress={onCycle} icon="calendar-outline" style={s.secondary}/>
         </>}
+        <Button title="Więcej w Polce" secondary onPress={onMore} style={s.secondary} icon="grid-outline"/>
         <Button title="Ustawienia" secondary onPress={onSettings} style={s.secondary} icon="settings-outline"/>
         <Button title="Dla firm i organizacji" secondary onPress={onPartner} style={s.secondary} icon="storefront-outline"/>
         <Button title="Bezpieczeństwo i moje dane" secondary icon="shield-checkmark-outline" style={s.secondary} onPress={onSafety}/>
