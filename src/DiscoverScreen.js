@@ -8,7 +8,18 @@ import {Button,Chip,Typography} from './ui';
 const starterPlans=[
   {id:'p1',title:'Matcha + spacer po centrum',city:'Warszawa',when:'Dzisiaj · 18:00',spots:'3/5',category:'Kawa',photo:'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=900&q=80',host:'Maja'},
   {id:'p2',title:'Girls night + karaoke',city:'Warszawa',when:'Piątek · 20:00',spots:'4/6',category:'Wyjścia',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80',host:'Natalia'},
-  {id:'p3',title:'Pilates i kawa po zajęciach',city:'Kraków',when:'Sobota · 11:00',spots:'2/4',category:'Sport',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=900&q=80',host:'Ola'},
+  {id:'p3',title:'Pilates + brunch na Mokotowie',city:'Warszawa',when:'Sobota · 11:00',spots:'2/5',category:'Sport',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=900&q=80',host:'Klara'},
+  {id:'p4',title:'Second hand tour + kawa',city:'Warszawa',when:'Niedziela · 13:00',spots:'3/6',category:'Spacer',photo:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=900&q=80',host:'Daria'},
+  {id:'p5',title:'Koncert + drink po',city:'Warszawa',when:'Sobota · 19:30',spots:'4/7',category:'Koncert',photo:'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=900&q=80',host:'Mia'},
+  {id:'p6',title:'Kawa na Kazimierzu',city:'Kraków',when:'Dzisiaj · 17:30',spots:'2/4',category:'Kawa',photo:'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=900&q=80',host:'Ola'},
+  {id:'p7',title:'Spacer + zdjęcia nad Wisłą',city:'Kraków',when:'Sobota · 16:00',spots:'3/5',category:'Spacer',photo:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&q=80',host:'Sonia'},
+  {id:'p8',title:'Pilates + kawa po zajęciach',city:'Wrocław',when:'Sobota · 10:30',spots:'2/4',category:'Sport',photo:'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&q=80',host:'Julia'},
+  {id:'p9',title:'Wine bar + rozmowy',city:'Wrocław',when:'Piątek · 20:00',spots:'4/6',category:'Wyjścia',photo:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=900&q=80',host:'Nela'},
+  {id:'p10',title:'Brunch + vintage shopping',city:'Poznań',when:'Niedziela · 12:00',spots:'3/5',category:'Wyjścia',photo:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=900&q=80',host:'Kasia'},
+  {id:'p11',title:'Plaża + kawa na wynos',city:'Gdańsk',when:'Sobota · 14:00',spots:'4/8',category:'Spacer',photo:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&q=80',host:'Natalia'},
+  {id:'p12',title:'Book club + matcha',city:'Gdańsk',when:'Niedziela · 16:00',spots:'5/8',category:'Kawa',photo:'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=900&q=80',host:'Sara'},
+  {id:'p13',title:'Koncert w OFF + after',city:'Łódź',when:'Piątek · 19:00',spots:'3/6',category:'Koncert',photo:'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=900&q=80',host:'Wiktoria'},
+  {id:'p14',title:'Kawa + spacer po Nikiszowcu',city:'Katowice',when:'Sobota · 15:00',spots:'2/5',category:'Kawa',photo:'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=900&q=80',host:'Dominika'},
 ];
 const categories=['Wszystkie','Kawa','Wyjścia','Sport','Koncert','Spacer','Podróże'];
 
