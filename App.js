@@ -70,7 +70,9 @@ function PolkaApp(){
       setAuthSession(session||null);
       if(session?.user?.id){
         try{
+          console.log('[syncSession] loading profile for', session.user.id);
           const remote=await loadRemoteProfile(session.user.id);
+          console.log('[syncSession] loaded', remote);
           if(!alive)return;
           if(remote?.onboardingComplete){
             setAccount(remote);
@@ -86,6 +88,7 @@ function PolkaApp(){
             setEntryStarted(true);
           }
         }catch(error){
+          console.error('[syncSession] error', error);
           if(alive)Alert.alert('Nie udało się wczytać konta',error.message||'Spróbuj ponownie.');
         }
       }else{
