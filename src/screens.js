@@ -38,7 +38,6 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport})
   const stack=[0,1,2].map(offset=>filtered.length?filtered[(index+offset)%filtered.length]:null).filter(Boolean);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page,{paddingBottom:110}]}>
     <View style={s.discoverControls}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography><Ionicons name="options-outline" size={22} color={c.ink}/></View>
-    <Typography style={s.cityContext}>{city}</Typography>
     {person?<>
       <View style={s.stackWrap}>
         {stack.slice().reverse().map((p,revIndex)=>{
@@ -266,7 +265,6 @@ export function ProfileScreen({account,onSafety}){
 }
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
-  cityContext:{fontFamily:f.bold,fontSize:14,color:c.pink,marginBottom:8},
   feedPage:{paddingBottom:110,backgroundColor:'#F7F3F5'},
   feedHeader:{paddingHorizontal:sp.lg,paddingTop:6,paddingBottom:12,backgroundColor:c.canvas},
   composerTrigger:{minHeight:54,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:18,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:12},
