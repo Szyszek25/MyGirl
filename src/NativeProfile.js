@@ -8,7 +8,7 @@ import {PROFILE_PROMPTS} from './Onboarding';
 import {cities,interests as availableInterests} from './data';
 
 const copy=account=>({...account,interests:[...(account.interests||[])],answers:{...(account.answers||{})}});
-export default function NativeProfile({account,onSafety,onPartner,onSettings,onSave}){
+export default function NativeProfile({account,onSafety,onPartner,onSettings,onCycle,onSave}){
   const [editing,setEditing]=useState(false);
   const [draft,setDraft]=useState(()=>copy(account));
   const [busy,setBusy]=useState(false);
@@ -77,7 +77,8 @@ export default function NativeProfile({account,onSafety,onPartner,onSettings,onS
         <Surface><Typography variant="subtitle" style={s.title}>Po co tu jestem</Typography><Typography>{account.goal}</Typography></Surface>
         <Surface><Typography variant="subtitle" style={s.title}>Moje zainteresowania</Typography><View style={s.wrap}>{(account.interests||[]).map(interest=><Chip key={interest} label={interest}/>)}</View></Surface>
         {Object.entries(account.answers||{}).filter(([,answer])=>typeof answer==='string'&&answer.trim()).map(([key,answer])=><Surface key={key}><Typography variant="subtitle" style={s.title}>{PROFILE_PROMPTS[Number(key)]||'Moja odpowiedź'}</Typography><Typography>{answer}</Typography></Surface>)}
-        <Button title="Edytuj profil i zdjęcie" onPress={()=>{setDraft(copy(account));setEditing(true);}} icon="create-outline"/>
+        <Button title="Cykl i samopoczucie" onPress={onCycle} icon="calendar-outline"/>
+        <Button title="Edytuj profil i zdjęcie" onPress={()=>{setDraft(copy(account));setEditing(true);}} icon="create-outline" style={s.secondary}/>
         <Button title="Ustawienia" secondary onPress={onSettings} style={s.secondary} icon="settings-outline"/>
         <Button title="Dla firm i organizacji" secondary onPress={onPartner} style={s.secondary} icon="storefront-outline"/>
         <Button title="Bezpieczeństwo i moje dane" secondary icon="shield-checkmark-outline" style={s.secondary} onPress={onSafety}/>
