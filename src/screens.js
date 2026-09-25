@@ -10,10 +10,29 @@ const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
 function Section({title,children}){return <Surface><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{title}</Typography>{children}</Surface>}
 function TextAction({icon,title,onPress,danger=false}){return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger?c.pink:c.muted}/><Typography style={{color:danger?c.pink:c.muted,fontFamily:f.semibold,fontSize:13}}>{title}</Typography></Pressable>}
 
-export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport}){
+export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,zodiacEnabled=true,userZodiac='Lew'}){
   const [index,setIndex]=useState(0),[saved,setSaved]=useState([]);
   const [filtersOpen,setFiltersOpen]=useState(false);
   const [selectedTags,setSelectedTags]=useState([]);
+  const zodiacSigns=['Baran','Byk','Bliźnięta','Rak','Lew','Panna','Waga','Skorpion','Strzelec','Koziorożec','Wodnik','Ryby'];
+  const zodiacForPerson=p=>p?.zodiac||zodiacSigns[Math.abs(String(p?.id||p?.name||'Polka').split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0))%zodiacSigns.length];
+  const pairKey=(a,b)=>[a,b].sort().join('|');
+  const strongPairs=new Set([
+    pairKey('Wodnik','Ryby'),pairKey('Lew','Strzelec'),pairKey('Lew','Baran'),pairKey('Waga','Bliźnięta'),
+    pairKey('Byk','Panna'),pairKey('Rak','Ryby'),pairKey('Skorpion','Ryby'),pairKey('Koziorożec','Byk'),
+    pairKey('Wodnik','Bliźnięta'),pairKey('Waga','Wodnik')
+  ]);
+  const trickyPairs=new Set([
+    pairKey('Waga','Skorpion'),pairKey('Lew','Byk'),pairKey('Rak','Wodnik'),pairKey('Panna','Strzelec'),
+    pairKey('Baran','Rak'),pairKey('Bliźnięta','Koziorożec')
+  ]);
+  const astroMatchFor=p=>{
+    const theirs=zodiacForPerson(p);
+    const key=pairKey(userZodiac||'Lew',theirs);
+    if(strongPairs.has(key))return {theirs,label:'dobry vibe',icon:'sparkles',copy:'Według astro zabawy łatwo możecie złapać wspólny rytm.'};
+    if(trickyPairs.has(key))return {theirs,label:'może iskrzyć',icon:'flash',copy:'Różne tempo i podejście — może być ciekawie, ale nie zawsze bez tarcia.'};
+    return {theirs,label:'neutralnie',icon:'moon',copy:'Ani wielki „match”, ani red flag — reszta zależy od Was, nie od znaków.'};
+  };
   const availableTags=useMemo(()=>Array.from(new Set(people.filter(p=>p.city===city).flatMap(p=>p.tags||[]))).sort(),[city]);
   const filtered=people.filter(p=>!blockedIds.includes(p.id)&&p.city===city&&(selectedTags.length===0||selectedTags.some(tag=>(p.tags||[]).includes(tag))));
   const person=filtered.length?filtered[index%filtered.length]:null;
@@ -67,6 +86,15 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport})
         <Pressable accessibilityRole="button" accessibilityLabel="Pomiń profil" onPress={()=>decide(-1)} style={s.round}><Ionicons name="close" size={28} color={c.ink}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Polub profil" onPress={()=>decide(1)} style={[s.round,s.heartRound]}><Ionicons name="heart" size={25} color={c.white}/></Pressable>
       </View>
+      {zodiacEnabled&&(()=>{const astro=astroMatchFor(person);return <View style={s.astroMatch}>
+        <View style={s.astroIcon}><Ionicons name={astro.icon} size={19} color={c.pink}/></View>
+        <View style={{flex:1}}>
+          <Typography style={s.astroOverline}>ASTRO MATCH · DLA ZABAWY</Typography>
+          <Typography style={s.astroTitle}>Ty: {userZodiac||'Lew'} · {person.name}: {astro.theirs}</Typography>
+          <Typography style={s.astroLabel}>{astro.label}</Typography>
+          <Typography style={s.astroCopy}>{astro.copy}</Typography>
+        </View>
+      </View>})()}
       <Section title="O mnie"><Typography>{person.bio}</Typography></Section>
       <Section title="Lubię"><View style={s.wrap}>{person.tags.map(v=><Chip key={v} label={v}/>)}</View></Section>
       <Section title={person.prompt}><Typography style={{fontSize:19,fontFamily:f.semibold}}>{person.answer}</Typography></Section>
@@ -340,6 +368,12 @@ const s=StyleSheet.create({
   postAudienceText:{fontFamily:f.bold,fontSize:12,color:c.pink},
   postInput:{minHeight:150,fontFamily:f.regular,fontSize:20,lineHeight:28,color:c.ink,textAlignVertical:'top'},
   discoverControls:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8},
+  astroMatch:{marginTop:2,marginBottom:14,paddingVertical:14,borderTopWidth:1,borderBottomWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'flex-start',gap:11},
+  astroIcon:{width:36,height:36,borderRadius:12,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  astroOverline:{fontFamily:f.bold,fontSize:9,letterSpacing:1.1,color:c.muted},
+  astroTitle:{fontFamily:f.bold,fontSize:15,color:c.ink,marginTop:2},
+  astroLabel:{fontFamily:f.bold,fontSize:13,color:c.pink,marginTop:3},
+  astroCopy:{fontFamily:f.regular,fontSize:12,lineHeight:17,color:c.muted,marginTop:3},
   discoverHint:{fontFamily:f.semibold,fontSize:14,color:c.muted},
   activeFilterHint:{fontFamily:f.semibold,fontSize:11,color:c.pink,marginTop:2},
   filterButton:{width:42,height:42,borderRadius:21,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
