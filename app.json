@@ -20,14 +20,19 @@
     "android": {
       "package": "pl.polka.app",
       "versionCode": 1,
-      "adaptiveIcon": { "backgroundColor": "#FFF9FA" }
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF9FA"
+      }
     },
     "plugins": [
-      ["expo-image-picker", {
-        "photosPermission": "Polka używa wybranego zdjęcia do Twojego profilu. Zdjęcie zostaje na urządzeniu do czasu uruchomienia kont online.",
-        "cameraPermission": false,
-        "microphonePermission": false
-      }]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Polka używa wybranych zdjęć i filmów do profilu, Stories oraz postów.",
+          "cameraPermission": "Polka używa aparatu, gdy tworzysz Story lub zdjęcie do posta.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }
