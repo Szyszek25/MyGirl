@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,space as sp} from './theme';
 import {Button,Chip,Typography} from './ui';
+import {loadCycleCloud,saveCycleEntryCloud,saveCycleSettingsCloud} from './services/cycleApi';
 
 const STORAGE_KEY='polka_cycle_tracker_v1';
 const symptomOptions=['Skurcze','Ból głowy','Wzdęcia','Tkliwość piersi','Apetyt','Niska energia','Wysoka energia','Gorszy nastrój','Dobry nastrój','Problemy ze snem'];
@@ -42,7 +43,7 @@ const phaseFor=(day,cycleLength)=>{
   return {name:'Faza lutealna',copy:'To dobry moment, żeby zwrócić uwagę na powtarzające się objawy.',icon:'moon-outline'};
 };
 
-export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
+export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null,cloudSync=false}){
   const today=atNoon(new Date());
   const [cycleLength,setCycleLength]=useState(28);
   const [periodLength,setPeriodLength]=useState(5);
@@ -57,16 +58,43 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
   const [saved,setSaved]=useState(false);
   const [historyExpanded,setHistoryExpanded]=useState(false);
 
-  useEffect(()=>{AsyncStorage.getItem(STORAGE_KEY).then(raw=>{
-    if(!raw)return;
-    try{
-      const data=JSON.parse(raw);
-      if(data.cycleLength)setCycleLength(data.cycleLength);
-      if(data.periodLength)setPeriodLength(data.periodLength);
-      if(data.lastPeriod)setLastPeriod(data.lastPeriod);
-      if(Array.isArray(data.history))setHistory(data.history);
-    }catch{}
-  }).catch(()=>{});},[]);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      let local=null;
+      try{
+        const raw=await AsyncStorage.getItem(STORAGE_KEY);
+        if(raw)local=JSON.parse(raw);
+      }catch{}
+      if(local&&alive){
+        if(local.cycleLength)setCycleLength(local.cycleLength);
+        if(local.periodLength)setPeriodLength(local.periodLength);
+        if(local.lastPeriod)setLastPeriod(local.lastPeriod);
+        if(Array.isArray(local.history))setHistory(local.history);
+      }
+      if(!cloudSync||!userId||!alive)return;
+      try{
+        const remote=await loadCycleCloud(userId);
+        if(remote){
+          if(remote.cycleLength)setCycleLength(remote.cycleLength);
+          if(remote.periodLength)setPeriodLength(remote.periodLength);
+          if(remote.lastPeriod)setLastPeriod(remote.lastPeriod);
+          if(Array.isArray(remote.history)&&remote.history.length)setHistory(remote.history);
+          await AsyncStorage.setItem(STORAGE_KEY,JSON.stringify(remote));
+        }else if(local){
+          await saveCycleSettingsCloud(userId,{
+            cycleLength:local.cycleLength||28,
+            periodLength:local.periodLength||5,
+            lastPeriod:local.lastPeriod||null
+          });
+          for(const entry of (local.history||[]).slice(0,180))await saveCycleEntryCloud(userId,entry);
+        }
+      }catch(error){
+        if(alive)Alert.alert('Polka Care','Nie udało się zsynchronizować prywatnego kalendarza. Dane lokalne zostały zachowane.');
+      }
+    })();
+    return ()=>{alive=false};
+  },[cloudSync,userId]);
 
   useEffect(()=>{
     const entry=history.find(item=>item.date===isoDay(selectedDate));
@@ -113,8 +141,12 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
     return diff>=0&&diff<periodLength;
   });
 
-  const persist=async(nextHistory,nextLastPeriod=lastPeriod)=>{
+  const persist=async(nextHistory,nextLastPeriod=lastPeriod,nextEntry=null)=>{
     await AsyncStorage.setItem(STORAGE_KEY,JSON.stringify({cycleLength,periodLength,lastPeriod:nextLastPeriod,history:nextHistory}));
+    if(cloudSync&&userId){
+      await saveCycleSettingsCloud(userId,{cycleLength,periodLength,lastPeriod:nextLastPeriod});
+      if(nextEntry)await saveCycleEntryCloud(userId,nextEntry);
+    }
   };
 
   const saveSelected=async()=>{
@@ -126,7 +158,7 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
     setHistory(next);
     setLastPeriod(nextLast);
     setSaved(true);
-    try{await persist(next,nextLast);}catch{Alert.alert('Nie udało się zapisać','Spróbuj ponownie.');}
+    try{await persist(next,nextLast,entry);}catch{Alert.alert('Nie udało się zapisać','Dane lokalne mogły zostać zapisane, ale synchronizacja chmury nie powiodła się.');}
   };
 
   const logPeriodStart=async()=>{
@@ -137,7 +169,7 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
     setHistory(next);
     setLastPeriod(date);
     setSaved(true);
-    try{await persist(next,date);}catch{}
+    try{await persist(next,date,entry);}catch{Alert.alert('Polka Care','Zapis lokalny jest dostępny, ale synchronizacja chmury nie powiodła się.');}
   };
 
   return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':undefined}>
@@ -149,7 +181,7 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
 
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
       <View style={s.summary}>
-        <Typography style={s.summaryOverline}>POLKA CARE</Typography>
+        <View style={s.summaryBadgeRow}><Typography style={s.summaryOverline}>POLKA CARE</Typography>{cloudSync&&userId&&<View style={s.cloudBadge}><Ionicons name="cloud-done-outline" size={13} color={c.pink}/><Typography style={s.cloudBadgeText}>prywatnie w chmurze</Typography></View>}</View>
         <View style={s.summaryMain}>
           <View><Typography style={s.summaryNumber}>{daysToPeriod}</Typography><Typography style={s.summaryLabel}>{daysToPeriod===1?'dzień do okresu':'dni do okresu'}</Typography></View>
           <View style={s.summarySide}><Ionicons name={phase.icon} size={22} color={c.pink}/><Typography style={s.summaryPhase}>{phase.name}</Typography><Typography style={s.summaryDay}>Dzień {cycleDay}</Typography></View>
@@ -258,7 +290,10 @@ const s=StyleSheet.create({
   content:{paddingBottom:80},
 
   summary:{paddingHorizontal:sp.lg,paddingTop:22,paddingBottom:20},
+  summaryBadgeRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},
   summaryOverline:{fontFamily:f.bold,fontSize:10,letterSpacing:1.4,color:c.pink},
+  cloudBadge:{flexDirection:'row',alignItems:'center',gap:4,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:8,paddingVertical:5},
+  cloudBadgeText:{fontFamily:f.bold,fontSize:9,color:c.pink},
   summaryMain:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',marginTop:8},
   summaryNumber:{fontFamily:f.bold,fontSize:58,lineHeight:62,letterSpacing:-2.2,color:c.ink},
   summaryLabel:{fontFamily:f.semibold,fontSize:13,color:c.muted},
