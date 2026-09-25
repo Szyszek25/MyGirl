@@ -16,15 +16,15 @@ import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localP
 import {initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
-const tabs=[{key:'Odkrywaj',icon:'heart-outline',active:'heart'},{key:'Social',icon:'newspaper-outline',active:'newspaper'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Czaty',icon:'chatbubble-outline',active:'chatbubble'},{key:'Profil',icon:'person-outline',active:'person'}];
+const tabs=[{key:'Start',icon:'home-outline',active:'home'},{key:'Plany',icon:'calendar-outline',active:'calendar'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Czaty',icon:'chatbubble-outline',active:'chatbubble'},{key:'Profil',icon:'person-outline',active:'person'}];
 
-export default function App(){return <SafeAreaProvider><MyGirlApp/></SafeAreaProvider>}
-function MyGirlApp(){
+export default function App(){return <SafeAreaProvider><PolkaApp/></SafeAreaProvider>}
+function PolkaApp(){
   const insets=useSafeAreaInsets();
   const [loaded]=useFonts({DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold,PlayfairDisplay_700Bold});
   const [account,setAccount]=useState(null);
   const [booting,setBooting]=useState(true);
-  const [tab,setTab]=useState('Odkrywaj');
+  const [tab,setTab]=useState('Start');
   const [blockedIds,setBlockedIds]=useState([]);
   const [reports,setReports]=useState([]);
   const [reportTarget,setReportTarget]=useState(null);
@@ -48,7 +48,7 @@ function MyGirlApp(){
   const reset=async()=>{
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
-    setAccount(null);setTab('Odkrywaj');setBlockedIds([]);setReports([]);
+    setAccount(null);setTab('Start');setBlockedIds([]);setReports([]);
     setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);
     setPosts(initialPosts);setSession(v=>v+1);
   };
@@ -60,7 +60,7 @@ function MyGirlApp(){
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
     safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
     partnerOpen?<PartnerPanel onClose={()=>setPartnerOpen(false)}/>:
-    ({'Odkrywaj':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Social':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<NativeProfile account={account} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)}/>})[tab];
+    ({'Start':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Plany':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<NativeProfile account={account} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)}/>})[tab];
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
