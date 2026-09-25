@@ -23,6 +23,7 @@ import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localP
 import {deleteAccount,getSession,handleAuthCallback,onAuthStateChange,signOut} from './src/services/authApi';
 import {loadRemoteProfile,saveRemoteProfile} from './src/services/profileApi';
 import {supabase} from './src/lib/supabase';
+import {blockProfile as blockRemote,loadMyBlocks,loadMyReports,reportTarget,unblockProfile as unblockRemote} from './src/services/safetyApi';
 import {cities,initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
@@ -75,6 +76,11 @@ function PolkaApp(){
             setAccount(remote);
             setEntryStarted(false);
             if(remote.city)setActiveCity(remote.city);
+            Promise.all([loadMyBlocks(),loadMyReports()]).then(([blocks,onlineReports])=>{
+              if(!alive)return;
+              setBlockedIds(blocks);
+              setReports(onlineReports);
+            }).catch(()=>{});
           }else{
             setAccount(null);
             setEntryStarted(true);
@@ -130,7 +136,26 @@ function PolkaApp(){
       Alert.alert('Nie udało się otworzyć rozmowy',error.message||'Spróbuj ponownie.');
     }
   };
-  const block=id=>setBlockedIds(prev=>prev.includes(id)?prev:[...prev,id]);
+  const block=async id=>{
+    setBlockedIds(prev=>prev.includes(id)?prev:[...prev,id]);
+    if(authSession?.user?.id&&/^[0-9a-f-]{36}$/i.test(id)){
+      try{await blockRemote(id)}
+      catch(error){
+        setBlockedIds(prev=>prev.filter(v=>v!==id));
+        Alert.alert('Nie zablokowano profilu',error.message||'Spróbuj ponownie.');
+      }
+    }
+  };
+  const unblock=async id=>{
+    setBlockedIds(prev=>prev.filter(v=>v!==id));
+    if(authSession?.user?.id&&/^[0-9a-f-]{36}$/i.test(id)){
+      try{await unblockRemote(id)}
+      catch(error){
+        setBlockedIds(prev=>prev.includes(id)?prev:[...prev,id]);
+        Alert.alert('Nie odblokowano profilu',error.message||'Spróbuj ponownie.');
+      }
+    }
+  };
   const reset=async()=>{
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
@@ -147,8 +172,20 @@ function PolkaApp(){
   const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!messagesOpen&&!cycleOpen&&!careOpen&&!moreOpen;
   const clubsVisible=tab==='Grupy'&&showTabs;
   const content=reportTarget?
-    <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
-    safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
+    <ReportForm target={reportTarget} online={!!authSession?.user} onCancel={()=>setReportTarget(null)} onSave={async report=>{
+      if(authSession?.user&&/^[0-9a-f-]{36}$/i.test(report?.target?.id)){
+        try{
+          await reportTarget(report.target,report.reason,report.details);
+          const onlineReports=await loadMyReports().catch(()=>[]);
+          setReports(onlineReports);
+          setReportTarget(null);
+        }catch(error){Alert.alert('Nie wysłano zgłoszenia',error.message||'Spróbuj ponownie.');}
+      }else{
+        setReports(prev=>[...prev,report]);
+        setReportTarget(null);
+      }
+    }}/> :
+    safetyOpen?<SafetyCenter online={!!authSession?.user} blockedIds={blockedIds} onUnblock={unblock} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
     partnerOpen?<PartnerPanel userId={authSession?.user?.id||null} onClose={()=>setPartnerOpen(false)}/>:
     cycleOpen?<CycleScreen userId={authSession?.user?.id||null} cloudSync={!!featurePreferences.cycleCloudSync} onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
