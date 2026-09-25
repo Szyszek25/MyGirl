@@ -27,12 +27,18 @@ export function extensionForContentType(type = 'image/jpeg') {
 }
 
 /**
- * Reads local URI as ArrayBuffer to bypass React Native Blob's text/plain default
- * and slow base64 encoding overhead.
+ * Reads local URI as Blob to preserve correct MIME type for Supabase Storage upload.
+ * React Native's fetch + arrayBuffer() can send text/plain for file:// URIs.
  */
 export async function uriToUploadPayload(uri, fallbackType = 'image/jpeg') {
   const response = await fetch(uri);
-  const buffer = await response.arrayBuffer();
   const contentType = resolveContentType(uri, fallbackType);
-  return { buffer, contentType };
+  
+  // Use blob() instead of arrayBuffer() to preserve MIME type
+  const blob = await response.blob();
+  
+  // Ensure the blob has the correct type (fix for RN file:// URIs)
+  const typedBlob = new Blob([blob], { type: contentType });
+  
+  return { buffer: typedBlob, contentType };
 }
