@@ -74,7 +74,7 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport})
 }
 
 export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport}){
-  const [draft,setDraft]=useState(''),[likes,setLikes]=useState([]),[composerOpen,setComposerOpen]=useState(false);
+  const [draft,setDraft]=useState(''),[likes,setLikes]=useState([]),[composerOpen,setComposerOpen]=useState(false),[commentPost,setCommentPost]=useState(null),[commentDraft,setCommentDraft]=useState(''),[comments,setComments]=useState({});
   const visiblePosts=posts.filter(post=>!blockedIds.includes(authorId(post))&&post.city===city);
   const deleteOwnPost=item=>Alert.alert('Usunąć wpis?','Wpis zniknie z tej sesji.',[
     {text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:()=>setPosts(prev=>prev.filter(p=>p.id!==item.id))}
@@ -85,6 +85,16 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
     setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,likes:0},...prev]);
     setDraft('');
     setComposerOpen(false);
+  };
+  const seededComments=post=>comments[post.id]||[
+    {id:`${post.id}-c1`,author:'Maja',body:'Ja jestem chętna 🙋‍♀️',photo:people[0].photo},
+    {id:`${post.id}-c2`,author:'Ola',body:'Brzmi super, o której dokładnie?',photo:people[1].photo}
+  ];
+  const addComment=()=>{
+    if(!commentPost||!commentDraft.trim())return;
+    const next={id:`${commentPost.id}-${Date.now()}`,author:'Ty',body:commentDraft.trim(),photo:null};
+    setComments(prev=>({...prev,[commentPost.id]:[...seededComments(commentPost),next]}));
+    setCommentDraft('');
   };
 
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
@@ -106,12 +116,41 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
         <View style={s.postHeader}>{avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{item.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{item.city}</Typography></View></View>
         <Typography style={s.postBody}>{item.body}</Typography>
         <View style={s.postActions}>
-          <TextAction icon={likes.includes(item.id)?'heart':'heart-outline'} title={String(item.likes+(likes.includes(item.id)?1:0))} onPress={()=>setLikes(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id])}/>
+          <View style={s.postActionLeft}>
+            <TextAction icon={likes.includes(item.id)?'heart':'heart-outline'} title={String(item.likes+(likes.includes(item.id)?1:0))} onPress={()=>setLikes(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id])}/>
+            <TextAction icon="chatbubble-outline" title={String(seededComments(item).length)} onPress={()=>setCommentPost(item)}/>
+          </View>
           {item.author==='Ty'?<TextAction icon="trash-outline" title="Usuń" danger onPress={()=>deleteOwnPost(item)}/>:<TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'post',id:item.id,label:`Wpis: ${item.author}`})}/>}
         </View>
+        <Pressable onPress={()=>setCommentPost(item)} style={s.commentPreview}><Typography style={s.commentPreviewText}>Zobacz komentarze</Typography></Pressable>
       </View>}
       ListEmptyComponent={<View style={s.feedEmpty}><Typography style={s.emptyFeedTitle}>Jeszcze cicho w {city}</Typography><Typography style={s.emptyFeedText}>Napisz pierwszy post albo zmień miasto u góry.</Typography></View>}
     />
+
+    <Modal visible={!!commentPost} animationType="slide" onRequestClose={()=>setCommentPost(null)}>
+      {!!commentPost&&<KeyboardAvoidingView style={s.commentsRoot} behavior={Platform.OS==='ios'?'padding':'height'}>
+        <View style={s.commentsHeader}>
+          <Pressable onPress={()=>setCommentPost(null)} style={s.commentsBack}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
+          <Typography style={s.commentsTitle}>Komentarze</Typography>
+          <Pressable onPress={()=>onReport?.({kind:'post',id:commentPost.id,label:`Wpis: ${commentPost.author}`})} style={s.commentsBack}><Ionicons name="ellipsis-horizontal" size={22} color={c.ink}/></Pressable>
+        </View>
+        <ScrollView style={s.commentsScroll} contentContainerStyle={s.commentsContent} keyboardShouldPersistTaps="handled">
+          <View style={s.commentPostBox}>
+            <View style={s.postHeader}>{avatar(people.find(p=>p.name===commentPost.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{commentPost.city}</Typography></View></View>
+            <Typography style={s.postBody}>{commentPost.body}</Typography>
+          </View>
+          {seededComments(commentPost).map(comment=><View key={comment.id} style={s.commentRow}>
+            {comment.photo?avatar(comment.photo,38):<View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink}/></View>}
+            <View style={s.commentBubble}><Typography style={s.commentAuthor}>{comment.author}</Typography><Typography style={s.commentBody}>{comment.body}</Typography><View style={s.commentMetaRow}><Typography style={s.commentMeta}>teraz</Typography><Typography style={s.commentMeta}>Lubię</Typography><Typography style={s.commentMeta}>Odpowiedz</Typography></View></View>
+          </View>)}
+        </ScrollView>
+        <View style={s.commentComposer}>
+          <View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink}/></View>
+          <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Napisz komentarz…" placeholderTextColor={c.muted} multiline maxLength={800} style={s.commentInput}/>
+          <Pressable onPress={addComment} disabled={!commentDraft.trim()} style={[s.commentSend,!commentDraft.trim()&&{opacity:.35}]}><Ionicons name="arrow-up" size={19} color={c.white}/></Pressable>
+        </View>
+      </KeyboardAvoidingView>}
+    </Modal>
 
     <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={()=>setComposerOpen(false)}>
       <KeyboardAvoidingView style={s.postModalBackdrop} behavior={Platform.OS==='ios'?'padding':'height'}>
@@ -277,6 +316,26 @@ const s=StyleSheet.create({
   safetyRow:{flexDirection:'row',justifyContent:'space-between',marginTop:sp.sm},
   postHeader:{flexDirection:'row',alignItems:'center',gap:sp.md,marginBottom:sp.md},
   postActions:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingTop:2},
+  postActionLeft:{flexDirection:'row',alignItems:'center',gap:8},
+  commentPreview:{paddingTop:6,paddingBottom:2},
+  commentPreviewText:{fontFamily:f.semibold,fontSize:12,color:c.muted},
+  commentsRoot:{flex:1,backgroundColor:c.white},
+  commentsHeader:{height:60,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  commentsBack:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center'},
+  commentsTitle:{fontFamily:f.bold,fontSize:17,color:c.ink},
+  commentsScroll:{flex:1,backgroundColor:c.canvas},
+  commentsContent:{paddingBottom:24},
+  commentPostBox:{paddingHorizontal:sp.lg,paddingVertical:16,backgroundColor:c.white,borderBottomWidth:1,borderBottomColor:c.line},
+  commentRow:{flexDirection:'row',alignItems:'flex-start',gap:10,paddingHorizontal:sp.lg,paddingTop:14},
+  commentAvatar:{width:38,height:38,borderRadius:19,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  commentBubble:{flex:1,backgroundColor:c.white,borderRadius:18,paddingHorizontal:12,paddingVertical:10,borderWidth:1,borderColor:c.line},
+  commentAuthor:{fontFamily:f.bold,fontSize:13,color:c.ink},
+  commentBody:{fontFamily:f.regular,fontSize:14,lineHeight:20,color:c.ink,marginTop:2},
+  commentMetaRow:{flexDirection:'row',gap:14,marginTop:8},
+  commentMeta:{fontFamily:f.semibold,fontSize:11,color:c.muted},
+  commentComposer:{paddingHorizontal:12,paddingTop:8,paddingBottom:12,flexDirection:'row',alignItems:'flex-end',gap:8,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,backgroundColor:c.white},
+  commentInput:{flex:1,maxHeight:110,minHeight:42,borderRadius:21,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,paddingHorizontal:14,paddingTop:10,paddingBottom:10,fontFamily:f.regular,fontSize:14,color:c.ink,textAlignVertical:'center'},
+  commentSend:{width:40,height:40,borderRadius:20,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
   groupRow:{flexDirection:'row',gap:sp.base,alignItems:'center'},
   chatRow:{flexDirection:'row',alignItems:'center',gap:sp.md},
   chatBack:{flexDirection:'row',alignItems:'center',gap:12,marginBottom:sp.base},
