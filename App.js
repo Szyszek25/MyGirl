@@ -19,7 +19,7 @@ import ClubsMeetupsScreen from './src/ClubsMeetupsScreen';
 import MeetingsScreen from './src/MeetingsScreen';
 import {ReportForm,SafetyCenter} from './src/Safety';
 import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localProfile';
-import {getSession,handleAuthCallback,onAuthStateChange,signOut} from './src/services/authApi';
+import {deleteAccount,getSession,handleAuthCallback,onAuthStateChange,signOut} from './src/services/authApi';
 import {loadRemoteProfile,saveRemoteProfile} from './src/services/profileApi';
 import {supabase} from './src/lib/supabase';
 import {cities,initialPosts} from './src/data';
@@ -180,6 +180,14 @@ function PolkaApp(){
           onSignOut={async()=>{
             try{await signOut();setAccount(null);setEntryStarted(false);setSettingsOpen(false);}
             catch(error){Alert.alert('Nie udało się wylogować',error.message||'Spróbuj ponownie.');}
+          }}
+          onDeleteAccount={async()=>{
+            try{
+              await deleteAccount();
+              await deleteLocalProfile().catch(()=>{});
+              setAccount(null);setAuthSession(null);setEntryStarted(false);setSettingsOpen(false);
+              Alert.alert('Konto usunięte','Twoje konto Polki zostało usunięte.');
+            }catch(error){Alert.alert('Nie udało się usunąć konta',error.message||'Spróbuj ponownie.');}
           }}
           onFeaturePreferencesChange={setFeaturePreferences}
           onReset={reset}
