@@ -307,10 +307,14 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     return () => { alive = false };
   }, [sessionUserId]);
 
-  const getCacheKeys = () => ({
-    feed: `feed:${city}:${sessionUserId || 'anon'}`,
-    stories: `stories:${city}:${sessionUserId || 'anon'}`
-  });
+  const getCacheKeys = () => {
+    const uid = (sessionUserId || 'anon').replace(/[^a-z0-9]/gi, '');
+    const safeCity = city.replace(/[^a-z0-9]/gi, '');
+    return {
+      feed: `feed_${safeCity}_${uid}`,
+      stories: `stories_${safeCity}_${uid}`
+    };
+  };
 
   const loadCached = async () => {
     if (!sessionUserId) return;
@@ -326,11 +330,13 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   };
 
   const refresh = async (force = false) => {
-    if (!sessionUserId) { setLoading(false); return; }
+    console.log('[refresh] start', { sessionUserId, city, force });
+    if (!sessionUserId) { console.log('[refresh] no sessionUserId'); setLoading(false); return; }
     if (!force) await loadCached();
     setLoading(true);
     try {
       const [feed, storyRows] = await Promise.all([loadFeed(city, sessionUserId), loadStories(sessionUserId, city)]);
+      console.log('[refresh] success', { feedCount: feed?.length, storiesCount: storyRows?.length });
       setRemotePosts(feed);
       setStories(storyRows);
       const keys = getCacheKeys();
@@ -339,7 +345,8 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         writeCached(keys.stories, storyRows, 2 * 60 * 1000)
       ]);
     } catch (error) {
-      Alert.alert('Nie udało się odświeżyć', 'Sprawdź połączenie i spróbuj ponownie.');
+      console.error('[refresh] error', error);
+      Alert.alert('Nie udało się odświeżyć', error?.message || 'Sprawdź połączenie i spróbuj ponownie.');
     } finally { setLoading(false); }
   };
 
