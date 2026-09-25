@@ -753,6 +753,90 @@ export const people=[
     "prompt": "Chciałabym znaleźć ekipę na…",
     "answer": "Koncerty, wypady i zwykłe codzienne plany.",
     "demo": true
+  },
+  {
+    "id":"demo-51","name":"Marta","age":22,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=78",
+    "bio":"Lubię spontaniczne wyjścia, dobre jedzenie i ludzi z energią.",
+    "tags":["Jedzenie","Wyjścia"],"prompt":"Idealny piątek?","answer":"Najpierw kolacja, potem zobaczymy gdzie nas poniesie.","demo":true
+  },
+  {
+    "id":"demo-52","name":"Klara","age":24,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&q=78",
+    "bio":"Pracuję nad swoim projektem, ale zawsze znajdę czas na kawę i dobry koncert.",
+    "tags":["Kawa","Koncerty"],"prompt":"Co mnie nakręca?","answer":"Nowe pomysły, dobre rozmowy i robienie rzeczy po swojemu.","demo":true
+  },
+  {
+    "id":"demo-53","name":"Mia","age":21,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1542206395-9feb3edaa68d?w=800&q=78",
+    "bio":"Wieczorem impreza, rano matcha. Balans.",
+    "tags":["Muzyka","Matcha"],"prompt":"Mój typ girls night?","answer":"Tańce, dużo śmiechu i spontaniczny after.","demo":true
+  },
+  {
+    "id":"demo-54","name":"Daria","age":23,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=78",
+    "bio":"Fotografia uliczna, galerie i spacery po mieście bez celu.",
+    "tags":["Fotografia","Sztuka"],"prompt":"Mój comfort spot?","answer":"Miejsce z dobrą kawą i dużymi oknami.","demo":true
+  },
+  {
+    "id":"demo-55","name":"Lila","age":20,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1548142813-c348350df52b?w=800&q=78",
+    "bio":"Sport, city breaks i rzeczy robione na spontanie.",
+    "tags":["Sport","Podróże"],"prompt":"Najlepszy spontaniczny plan?","answer":"Bilet kupiony wieczorem i wyjazd rano.","demo":true
+  },
+  {
+    "id":"demo-56","name":"Maja","age":25,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=78",
+    "bio":"Lubię konkretnych ludzi, dobre jedzenie i rozwijanie własnych pomysłów.",
+    "tags":["Jedzenie","Kawa"],"prompt":"Green flag?","answer":"Inicjatywa. Nie tylko gadanie, ale faktyczne robienie planów.","demo":true
+  },
+  {
+    "id":"demo-57","name":"Sonia","age":22,"city":"Kraków",
+    "photo":"https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=800&q=78",
+    "bio":"Second handy, kino i nocne rozmowy po spacerze.",
+    "tags":["Moda","Kino"],"prompt":"Co robię za często?","answer":"Wchodzę tylko na chwilę do second handu i wychodzę godzinę później.","demo":true
+  },
+  {
+    "id":"demo-58","name":"Nela","age":23,"city":"Wrocław",
+    "photo":"https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?w=800&q=78",
+    "bio":"Pilates, brunch i wyjazdy pociągiem gdziekolwiek.",
+    "tags":["Pilates","Podróże"],"prompt":"Mój weekend?","answer":"Rano pilates, potem brunch i plan wymyślony w trakcie.","demo":true
+  },
+  {
+    "id":"demo-59","name":"Kornelia","age":21,"city":"Poznań",
+    "photo":"https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=78",
+    "bio":"Koncerty, fotografia i poznawanie nowych miejsc w mieście.",
+    "tags":["Koncerty","Fotografia"],"prompt":"Co zawsze wybiorę?","answer":"Mały koncert zamiast wielkiej imprezy.","demo":true
+  },
+  {
+    "id":"demo-60","name":"Olga","age":24,"city":"Gdańsk",
+    "photo":"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=78",
+    "bio":"Morze, bieganie i kawa po wszystkim.",
+    "tags":["Sport","Kawa"],"prompt":"Idealny poranek?","answer":"Spacer nad wodą, kawa i zero pośpiechu.","demo":true
+  },
+  {
+    "id":"demo-61","name":"Malwina","age":22,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=78",
+    "bio":"Przedsiębiorcza, trochę chaotyczna, zawsze z jakimś nowym pomysłem.",
+    "tags":["Kawa","Podróże"],"prompt":"O czym mogę gadać godzinami?","answer":"O pomysłach, które kiedyś zrobię albo właśnie zaczęłam.","demo":true
+  },
+  {
+    "id":"demo-62","name":"Bianka","age":20,"city":"Łódź",
+    "photo":"https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=800&q=78",
+    "bio":"Muzyka, moda i spontaniczne wypady na miasto.",
+    "tags":["Muzyka","Moda"],"prompt":"Mój guilty pleasure?","answer":"Plan na jedno miejsce, który kończy się w czterech.","demo":true
+  },
+  {
+    "id":"demo-63","name":"Rita","age":23,"city":"Katowice",
+    "photo":"https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800&q=78",
+    "bio":"Lubię spokojne rozmowy, książki i miejsca bez tłumu.",
+    "tags":["Książki","Kawa"],"prompt":"Najlepszy reset?","answer":"Telefon na cichy i kilka godzin poza zasięgiem.","demo":true
+  },
+  {
+    "id":"demo-64","name":"Aga","age":26,"city":"Warszawa",
+    "photo":"https://images.unsplash.com/photo-1496440737103-cd596325d314?w=800&q=78",
+    "bio":"Ambitna, towarzyska i zawsze gotowa na coś nowego.",
+    "tags":["Podróże","Jedzenie"],"prompt":"Najlepsze znajomości zaczynają się od…","answer":"Zwykłego hej, bez przekombinowania.","demo":true
   }
 ];
 
