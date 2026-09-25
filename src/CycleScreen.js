@@ -2,31 +2,58 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {Alert,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Ionicons} from '@expo/vector-icons';
-import {colors as c,fonts as f,radii as r,space as sp} from './theme';
+import {colors as c,fonts as f,space as sp} from './theme';
 import {Button,Chip,Typography} from './ui';
 
 const STORAGE_KEY='polka_cycle_tracker_v1';
-const symptomOptions=['Skurcze','Ból głowy','Wzdęcia','Tkliwość piersi','Trądzik','Apetyt','Niska energia','Wysoka energia','Gorszy nastrój','Dobry nastrój','Problemy ze snem'];
+const symptomOptions=['Skurcze','Ból głowy','Wzdęcia','Tkliwość piersi','Apetyt','Niska energia','Wysoka energia','Gorszy nastrój','Dobry nastrój','Problemy ze snem'];
 const moods=['😣','😕','😐','🙂','✨'];
-const dayMs=24*60*60*1000;
-const dateOnly=value=>new Date(value.getFullYear(),value.getMonth(),value.getDate());
-const isoDay=value=>dateOnly(value).toISOString().slice(0,10);
-const diffDays=(a,b)=>Math.max(0,Math.floor((dateOnly(a)-dateOnly(b))/dayMs));
+const WEEK=['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
+const MONTHS=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+const DAY_MS=24*60*60*1000;
+const atNoon=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);
+const isoDay=d=>atNoon(d).toISOString().slice(0,10);
+const fromIso=v=>new Date(v+'T12:00:00');
+const addDays=(d,n)=>new Date(atNoon(d).getTime()+n*DAY_MS);
+const daysBetween=(a,b)=>Math.round((atNoon(a)-atNoon(b))/DAY_MS);
+const sameDay=(a,b)=>isoDay(a)===isoDay(b);
+
+const monthCells=date=>{
+  const first=new Date(date.getFullYear(),date.getMonth(),1,12);
+  const mondayIndex=(first.getDay()+6)%7;
+  const start=addDays(first,-mondayIndex);
+  return Array.from({length:42},(_,i)=>addDays(start,i));
+};
+
+const predictedStarts=(lastPeriod,cycleLength,centerDate)=>{
+  const start=fromIso(lastPeriod);
+  const dates=[];
+  for(let i=-6;i<=18;i++){
+    const d=addDays(start,i*cycleLength);
+    if(Math.abs(daysBetween(d,centerDate))<550)dates.push(d);
+  }
+  return dates;
+};
+
 const phaseFor=(day,cycleLength)=>{
-  if(day<=5)return {name:'Miesiączka',copy:'Możesz mieć mniej energii. Wybieraj plany zgodnie z samopoczuciem.',icon:'water-outline'};
-  if(day<=Math.max(10,Math.floor(cycleLength*.45)))return {name:'Faza folikularna',copy:'U części osób energia stopniowo rośnie — obserwuj własny wzorzec.',icon:'leaf-outline'};
-  if(day<=Math.max(15,Math.floor(cycleLength*.58)))return {name:'Okolice owulacji',copy:'To tylko orientacyjne wyliczenie, nie metoda antykoncepcji.',icon:'sparkles-outline'};
-  return {name:'Faza lutealna',copy:'Zapisuj objawy i energię — łatwiej zauważysz własne powtarzalne wzorce.',icon:'moon-outline'};
+  if(day<=5)return {name:'Miesiączka',copy:'Dziś możesz chcieć zwolnić. Zapisuj to, co faktycznie czujesz.',icon:'water-outline'};
+  if(day<=Math.max(10,Math.floor(cycleLength*.45)))return {name:'Faza folikularna',copy:'Obserwuj własny poziom energii zamiast trzymać się sztywnej teorii.',icon:'leaf-outline'};
+  if(day<=Math.max(15,Math.floor(cycleLength*.58)))return {name:'Okolice owulacji',copy:'Prognoza jest orientacyjna i nie jest metodą antykoncepcji.',icon:'sparkles-outline'};
+  return {name:'Faza lutealna',copy:'To dobry moment, żeby zwrócić uwagę na powtarzające się objawy.',icon:'moon-outline'};
 };
 
 export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
-  const today=new Date();
+  const today=atNoon(new Date());
   const [cycleLength,setCycleLength]=useState(28);
-  const [lastPeriod,setLastPeriod]=useState(()=>isoDay(new Date(Date.now()-17*dayMs)));
+  const [periodLength,setPeriodLength]=useState(5);
+  const [lastPeriod,setLastPeriod]=useState(()=>isoDay(addDays(today,-17)));
+  const [history,setHistory]=useState([]);
+  const [month,setMonth]=useState(()=>new Date(today.getFullYear(),today.getMonth(),1,12));
+  const [selectedDate,setSelectedDate]=useState(today);
   const [symptoms,setSymptoms]=useState([]);
   const [mood,setMood]=useState('🙂');
   const [note,setNote]=useState('');
-  const [history,setHistory]=useState([]);
+  const [bleeding,setBleeding]=useState('none');
   const [saved,setSaved]=useState(false);
 
   useEffect(()=>{AsyncStorage.getItem(STORAGE_KEY).then(raw=>{
@@ -34,88 +61,230 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
     try{
       const data=JSON.parse(raw);
       if(data.cycleLength)setCycleLength(data.cycleLength);
+      if(data.periodLength)setPeriodLength(data.periodLength);
       if(data.lastPeriod)setLastPeriod(data.lastPeriod);
       if(Array.isArray(data.history))setHistory(data.history);
     }catch{}
   }).catch(()=>{});},[]);
 
+  useEffect(()=>{
+    const entry=history.find(item=>item.date===isoDay(selectedDate));
+    setSymptoms(entry?.symptoms||[]);
+    setMood(entry?.mood||'🙂');
+    setNote(entry?.note||'');
+    setBleeding(entry?.bleeding||'none');
+    setSaved(false);
+  },[selectedDate,history]);
+
   const cycleDay=useMemo(()=>{
-    const start=new Date(lastPeriod+'T12:00:00');
-    return Math.min(cycleLength,Math.max(1,diffDays(today,start)+1));
-  },[lastPeriod,cycleLength]);
-  const daysToPeriod=Math.max(0,cycleLength-cycleDay+1);
+    const start=fromIso(lastPeriod);
+    const raw=daysBetween(selectedDate,start);
+    return ((raw%cycleLength)+cycleLength)%cycleLength+1;
+  },[selectedDate,lastPeriod,cycleLength]);
+
   const phase=phaseFor(cycleDay,cycleLength);
+  const predictions=useMemo(()=>predictedStarts(lastPeriod,cycleLength,month),[lastPeriod,cycleLength,month]);
+  const nextPeriod=useMemo(()=>{
+    const start=fromIso(lastPeriod);
+    let next=start;
+    while(next<today)next=addDays(next,cycleLength);
+    return next;
+  },[lastPeriod,cycleLength]);
+  const daysToPeriod=Math.max(0,daysBetween(nextPeriod,today));
+  const cells=useMemo(()=>monthCells(month),[month]);
 
-  const persist=async next=>{
-    const payload={cycleLength,lastPeriod,history:next};
-    await AsyncStorage.setItem(STORAGE_KEY,JSON.stringify(payload));
+  const entryFor=date=>history.find(item=>item.date===isoDay(date));
+  const predictedPeriodFor=date=>predictions.some(start=>{
+    const diff=daysBetween(date,start);
+    return diff>=0&&diff<periodLength;
+  });
+
+  const persist=async(nextHistory,nextLastPeriod=lastPeriod)=>{
+    await AsyncStorage.setItem(STORAGE_KEY,JSON.stringify({cycleLength,periodLength,lastPeriod:nextLastPeriod,history:nextHistory}));
   };
 
-  const saveToday=async()=>{
-    const entry={date:isoDay(today),cycleDay,symptoms,mood,note:note.trim().slice(0,600)};
-    const next=[entry,...history.filter(item=>item.date!==entry.date)].slice(0,90);
+  const saveSelected=async()=>{
+    const date=isoDay(selectedDate);
+    const entry={date,cycleDay,symptoms,mood,note:note.trim().slice(0,600),bleeding,isPeriodStart:bleeding!=='none'&&(!entryFor(addDays(selectedDate,-1))||entryFor(addDays(selectedDate,-1))?.bleeding==='none')};
+    const next=[entry,...history.filter(item=>item.date!==date)].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,180);
+    let nextLast=lastPeriod;
+    if(entry.isPeriodStart&&selectedDate<=today)nextLast=date;
     setHistory(next);
+    setLastPeriod(nextLast);
     setSaved(true);
-    try{await persist(next);}catch{Alert.alert('Nie udało się zapisać','Spróbuj ponownie.');}
+    try{await persist(next,nextLast);}catch{Alert.alert('Nie udało się zapisać','Spróbuj ponownie.');}
   };
 
-  const markPeriodToday=async()=>{
-    const value=isoDay(today);
-    setLastPeriod(value);
-    const next=history;
-    try{await AsyncStorage.setItem(STORAGE_KEY,JSON.stringify({cycleLength,lastPeriod:value,history:next}));}catch{}
-    Alert.alert('Zapisano','Dzisiejszy dzień ustawiono jako początek miesiączki.');
+  const logPeriodStart=async()=>{
+    const date=isoDay(selectedDate);
+    const entry={date,cycleDay:1,symptoms,mood,note:note.trim().slice(0,600),bleeding:'medium',isPeriodStart:true};
+    const next=[entry,...history.filter(item=>item.date!==date)].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,180);
+    setBleeding('medium');
+    setHistory(next);
+    setLastPeriod(date);
+    setSaved(true);
+    try{await persist(next,date);}catch{}
   };
 
   return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':undefined}>
-    <View style={s.header}><Pressable onPress={onClose} style={s.iconBtn}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable><Typography style={s.headerTitle}>Cykl i samopoczucie</Typography><View style={s.iconBtn}/></View>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      <View style={s.hero}>
-        <View style={s.phaseIcon}><Ionicons name={phase.icon} size={26} color={c.pink}/></View>
-        <Typography style={s.eyebrow}>DZIEŃ {cycleDay} Z ~{cycleLength}</Typography>
-        <Typography style={s.title}>{phase.name}</Typography>
-        <Typography style={s.copy}>{phase.copy}</Typography>
-        <View style={s.statRow}><View><Typography style={s.statValue}>{daysToPeriod}</Typography><Typography style={s.statLabel}>dni do przewidywanego okresu</Typography></View><Pressable onPress={markPeriodToday} style={s.periodBtn}><Typography style={s.periodBtnText}>Okres zaczął się dziś</Typography></Pressable></View>
+    <View style={s.header}>
+      <Pressable onPress={onClose} style={s.iconBtn}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
+      <Typography style={s.headerTitle}>Cykl i samopoczucie</Typography>
+      <Pressable onPress={onOpenCare} style={s.iconBtn}><Ionicons name="book-outline" size={22} color={c.ink}/></Pressable>
+    </View>
+
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <View style={s.summary}>
+        <Typography style={s.summaryOverline}>POLKA CARE</Typography>
+        <View style={s.summaryMain}>
+          <View><Typography style={s.summaryNumber}>{daysToPeriod}</Typography><Typography style={s.summaryLabel}>{daysToPeriod===1?'dzień do okresu':'dni do okresu'}</Typography></View>
+          <View style={s.summarySide}><Ionicons name={phase.icon} size={22} color={c.pink}/><Typography style={s.summaryPhase}>{phase.name}</Typography><Typography style={s.summaryDay}>Dzień {cycleDay}</Typography></View>
+        </View>
+        <Typography style={s.summaryCopy}>{phase.copy}</Typography>
       </View>
 
-      <View style={s.section}>
-        <Typography style={s.sectionTitle}>Dzisiaj</Typography>
-        <Typography style={s.label}>Jak się czujesz?</Typography>
-        <View style={s.moods}>{moods.map(item=><Pressable key={item} onPress={()=>setMood(item)} style={[s.mood,mood===item&&s.moodActive]}><Typography style={s.moodText}>{item}</Typography></Pressable>)}</View>
-        <Typography style={s.label}>Objawy i energia</Typography>
-        <View style={s.chips}>{symptomOptions.map(item=><Chip key={item} label={item} selected={symptoms.includes(item)} onPress={()=>setSymptoms(prev=>prev.includes(item)?prev.filter(v=>v!==item):[...prev,item])}/>)}</View>
-        <Typography style={s.label}>Notatka</Typography>
-        <TextInput value={note} onChangeText={setNote} multiline maxLength={600} placeholder="Np. opóźnia mi się okres, słabiej spałam, mam większy apetyt…" placeholderTextColor={c.muted} style={s.note}/>
-        <Button title={saved?'Zapisano dzisiejszy wpis':'Zapisz dzisiejszy wpis'} icon={saved?'checkmark':'add'} onPress={saveToday}/>
+      <View style={s.calendarHead}>
+        <Pressable onPress={()=>setMonth(m=>new Date(m.getFullYear(),m.getMonth()-1,1,12))} style={s.monthButton}><Ionicons name="chevron-back" size={21} color={c.ink}/></Pressable>
+        <Pressable onPress={()=>{setMonth(new Date(today.getFullYear(),today.getMonth(),1,12));setSelectedDate(today)}}><Typography style={s.monthTitle}>{MONTHS[month.getMonth()]} {month.getFullYear()}</Typography></Pressable>
+        <Pressable onPress={()=>setMonth(m=>new Date(m.getFullYear(),m.getMonth()+1,1,12))} style={s.monthButton}><Ionicons name="chevron-forward" size={21} color={c.ink}/></Pressable>
       </View>
 
-      <View style={s.editorialBlock}>
-        <Typography style={s.editorialEyebrow}>DZISIAJ DLA CIEBIE</Typography>
-        <Typography style={s.editorialTitle}>Dopasuj plan do energii, nie do aplikacji.</Typography>
-        <Typography style={s.editorialCopy}>Spokojniejszy dzień? Kawa, spacer albo kino. Masz więcej energii? Koncert, pilates albo girls night.</Typography>
+      <View style={s.calendar}>
+        <View style={s.weekRow}>{WEEK.map(day=><Typography key={day} style={s.weekDay}>{day}</Typography>)}</View>
+        <View style={s.daysGrid}>
+          {cells.map(date=>{
+            const entry=entryFor(date);
+            const predicted=predictedPeriodFor(date);
+            const loggedPeriod=entry?.bleeding&&entry.bleeding!=='none';
+            const selected=sameDay(date,selectedDate);
+            const currentMonth=date.getMonth()===month.getMonth();
+            return <Pressable key={isoDay(date)} onPress={()=>setSelectedDate(date)} style={s.dayCell}>
+              <View style={[s.dayCircle,predicted&&s.predictedDay,loggedPeriod&&s.loggedPeriod,selected&&s.selectedDay]}>
+                <Typography style={[s.dayText,!currentMonth&&s.dayMuted,(predicted||loggedPeriod||selected)&&s.dayStrong]}>{date.getDate()}</Typography>
+              </View>
+              {!!entry&&<View style={s.entryDot}/>}
+            </Pressable>;
+          })}
+        </View>
+        <View style={s.legend}>
+          <View style={s.legendItem}><View style={[s.legendDot,{backgroundColor:c.pink}]}/><Typography style={s.legendText}>zapisany okres</Typography></View>
+          <View style={s.legendItem}><View style={[s.legendDot,s.legendPredicted]}/><Typography style={s.legendText}>przewidywany</Typography></View>
+          <View style={s.legendItem}><View style={[s.legendDot,{backgroundColor:c.ink}]}/><Typography style={s.legendText}>wpis</Typography></View>
+        </View>
       </View>
 
-      <Pressable onPress={onOpenCare} style={s.careCard}>
-        <View style={{flex:1}}><Typography style={s.careOverline}>POLKA CARE</Typography><Typography style={s.careTitle}>Baza wiedzy</Typography><Typography style={s.careText}>Cykl, objawy, opóźnienie okresu i kiedy warto szukać pomocy.</Typography></View>
-        <Ionicons name="arrow-forward" size={22} color={c.white}/>
-      </Pressable>
+      <View style={s.selectedHeader}>
+        <View><Typography style={s.selectedEyebrow}>{sameDay(selectedDate,today)?'DZISIAJ':'WYBRANY DZIEŃ'}</Typography><Typography style={s.selectedTitle}>{selectedDate.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'})}</Typography></View>
+        <Typography style={s.selectedCycleDay}>Dzień {cycleDay}</Typography>
+      </View>
 
-      <Pressable onPress={onOpenGroups} style={s.communityRow}>
-        <Ionicons name="chatbubbles-outline" size={22} color={c.pink}/>
-        <View style={{flex:1}}><Typography style={s.communityTitle}>Porozmawiaj z dziewczynami</Typography><Typography style={s.communityText}>Grupa „Cykl i samopoczucie”</Typography></View>
-        <Ionicons name="chevron-forward" size={20} color={c.muted}/>
-      </Pressable>
+      <View style={s.quickPeriod}>
+        <Typography style={s.logLabel}>Krwawienie</Typography>
+        <View style={s.flowRow}>
+          {[['none','Brak'],['light','Lekkie'],['medium','Średnie'],['heavy','Obfite']].map(([key,label])=><Pressable key={key} onPress={()=>setBleeding(key)} style={[s.flowOption,bleeding===key&&s.flowOptionActive]}><Typography style={[s.flowText,bleeding===key&&s.flowTextActive]}>{label}</Typography></Pressable>)}
+        </View>
+        <Pressable onPress={logPeriodStart} style={s.periodStartRow}><Ionicons name="water-outline" size={18} color={c.pink}/><Typography style={s.periodStartText}>Ustaw ten dzień jako początek okresu</Typography></Pressable>
+      </View>
+
+      <Typography style={s.logLabel}>Jak się czujesz?</Typography>
+      <View style={s.moods}>{moods.map(item=><Pressable key={item} onPress={()=>setMood(item)} style={[s.mood,mood===item&&s.moodActive]}><Typography style={s.moodText}>{item}</Typography></Pressable>)}</View>
+
+      <Typography style={s.logLabel}>Objawy i energia</Typography>
+      <View style={s.chips}>{symptomOptions.map(item=><Chip key={item} label={item} selected={symptoms.includes(item)} onPress={()=>setSymptoms(prev=>prev.includes(item)?prev.filter(v=>v!==item):[...prev,item])}/>)}</View>
+
+      <Typography style={s.logLabel}>Notatka</Typography>
+      <TextInput value={note} onChangeText={setNote} multiline maxLength={600} placeholder="Co chcesz zapamiętać z tego dnia?" placeholderTextColor={c.muted} style={s.note}/>
+      <Button title={saved?'Zapisano':'Zapisz dzień'} icon={saved?'checkmark':'add'} onPress={saveSelected}/>
+
+      <View style={s.divider}/>
+
+      <Pressable onPress={onOpenCare} style={s.rowLink}><View><Typography style={s.rowOverline}>POLKA CARE</Typography><Typography style={s.rowTitle}>Baza wiedzy</Typography><Typography style={s.rowText}>Cykl, objawy, opóźnienie okresu i proste wyjaśnienia.</Typography></View><Ionicons name="chevron-forward" size={20} color={c.muted}/></Pressable>
+      <Pressable onPress={onOpenGroups} style={s.rowLink}><View><Typography style={s.rowOverline}>SPOŁECZNOŚĆ</Typography><Typography style={s.rowTitle}>Cykl i samopoczucie</Typography><Typography style={s.rowText}>Porozmawiaj z dziewczynami bez mieszania prywatnych danych trackera z grupą.</Typography></View><Ionicons name="chevron-forward" size={20} color={c.muted}/></Pressable>
 
       <View style={s.settings}>
-        <Typography style={s.sectionTitle}>Ustawienia cyklu</Typography>
-        <Typography style={s.label}>Średnia długość cyklu</Typography>
-        <View style={s.lengthRow}><Pressable onPress={()=>setCycleLength(v=>Math.max(21,v-1))} style={s.lengthBtn}><Ionicons name="remove" size={20} color={c.ink}/></Pressable><Typography style={s.lengthValue}>{cycleLength} dni</Typography><Pressable onPress={()=>setCycleLength(v=>Math.min(40,v+1))} style={s.lengthBtn}><Ionicons name="add" size={20} color={c.ink}/></Pressable></View>
-        <Typography style={s.disclaimer}>Przewidywania są orientacyjne. Ta funkcja nie służy do diagnozowania chorób ani jako metoda antykoncepcji. Przy niepokojących, silnych lub utrzymujących się objawach skonsultuj się z lekarzem.</Typography>
+        <Typography style={s.settingsTitle}>Ustawienia cyklu</Typography>
+        <View style={s.settingRow}><Typography style={s.settingLabel}>Średni cykl</Typography><View style={s.stepper}><Pressable onPress={()=>setCycleLength(v=>Math.max(21,v-1))} style={s.stepBtn}><Ionicons name="remove" size={18} color={c.ink}/></Pressable><Typography style={s.stepValue}>{cycleLength} dni</Typography><Pressable onPress={()=>setCycleLength(v=>Math.min(40,v+1))} style={s.stepBtn}><Ionicons name="add" size={18} color={c.ink}/></Pressable></View></View>
+        <View style={s.settingRow}><Typography style={s.settingLabel}>Długość okresu</Typography><View style={s.stepper}><Pressable onPress={()=>setPeriodLength(v=>Math.max(2,v-1))} style={s.stepBtn}><Ionicons name="remove" size={18} color={c.ink}/></Pressable><Typography style={s.stepValue}>{periodLength} dni</Typography><Pressable onPress={()=>setPeriodLength(v=>Math.min(10,v+1))} style={s.stepBtn}><Ionicons name="add" size={18} color={c.ink}/></Pressable></View></View>
       </View>
+
+      <Typography style={s.disclaimer}>Prognozy są orientacyjne. Polka Care nie diagnozuje chorób i nie jest metodą antykoncepcji.</Typography>
     </ScrollView>
   </KeyboardAvoidingView>;
 }
 
 const s=StyleSheet.create({
-  root:{flex:1,backgroundColor:c.canvas},header:{height:60,paddingHorizontal:12,backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},iconBtn:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center'},headerTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},content:{padding:sp.lg,paddingBottom:80,gap:14},hero:{backgroundColor:c.white,borderRadius:26,borderWidth:1,borderColor:c.line,padding:20},phaseIcon:{width:50,height:50,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},eyebrow:{fontFamily:f.bold,fontSize:11,letterSpacing:1.2,color:c.pink,marginTop:18},title:{fontFamily:f.bold,fontSize:30,letterSpacing:-1,color:c.ink,marginTop:3},copy:{fontFamily:f.regular,fontSize:14,lineHeight:21,color:c.muted,marginTop:8},statRow:{marginTop:20,paddingTop:16,borderTopWidth:1,borderTopColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},statValue:{fontFamily:f.bold,fontSize:28,color:c.ink},statLabel:{fontFamily:f.regular,fontSize:11,color:c.muted,maxWidth:130},periodBtn:{backgroundColor:c.blush,borderRadius:14,paddingHorizontal:12,paddingVertical:10},periodBtnText:{fontFamily:f.bold,fontSize:11,color:c.pink},section:{backgroundColor:c.white,borderRadius:22,borderWidth:1,borderColor:c.line,padding:16},sectionHead:{marginBottom:4},sectionTitle:{fontFamily:f.bold,fontSize:18,color:c.ink},sectionSub:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,marginTop:3},editorialBlock:{paddingVertical:10,paddingHorizontal:2},editorialEyebrow:{fontFamily:f.bold,fontSize:10,letterSpacing:1.1,color:c.pink},editorialTitle:{fontFamily:f.bold,fontSize:24,lineHeight:29,letterSpacing:-.7,color:c.ink,marginTop:6},editorialCopy:{fontFamily:f.regular,fontSize:14,lineHeight:21,color:c.muted,marginTop:8},label:{fontFamily:f.semibold,fontSize:13,color:c.ink,marginTop:16,marginBottom:9},moods:{flexDirection:'row',gap:8},mood:{width:48,height:48,borderRadius:16,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},moodActive:{borderColor:c.pink,backgroundColor:c.blush},moodText:{fontSize:23},chips:{flexDirection:'row',flexWrap:'wrap'},note:{minHeight:88,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.canvas,padding:13,fontFamily:f.regular,fontSize:14,color:c.ink,textAlignVertical:'top',marginBottom:14},planRow:{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},planIcon:{width:42,height:42,borderRadius:14,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},planTitle:{fontFamily:f.bold,fontSize:14,color:c.ink},planCopy:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},careCard:{backgroundColor:c.pink,borderRadius:22,padding:18,flexDirection:'row',alignItems:'center',gap:12},careOverline:{fontFamily:f.bold,fontSize:10,letterSpacing:1.1,color:'#FFFFFFC9'},careTitle:{fontFamily:f.bold,fontSize:22,color:c.white,marginTop:3},careText:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:'#FFFFFFDD',marginTop:4},communityRow:{paddingVertical:15,paddingHorizontal:2,flexDirection:'row',alignItems:'center',gap:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},communityTitle:{fontFamily:f.bold,fontSize:15,color:c.ink},communityText:{fontFamily:f.regular,fontSize:11,lineHeight:16,color:c.muted,marginTop:2},settings:{backgroundColor:c.white,borderRadius:22,borderWidth:1,borderColor:c.line,padding:16},lengthRow:{flexDirection:'row',alignItems:'center',gap:18},lengthBtn:{width:42,height:42,borderRadius:14,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},lengthValue:{fontFamily:f.bold,fontSize:18,color:c.ink},disclaimer:{fontFamily:f.regular,fontSize:11,lineHeight:17,color:c.muted,marginTop:18}
+  root:{flex:1,backgroundColor:c.canvas},
+  header:{height:60,paddingHorizontal:12,backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  iconBtn:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center'},
+  headerTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
+  content:{paddingBottom:80},
+
+  summary:{paddingHorizontal:sp.lg,paddingTop:22,paddingBottom:20},
+  summaryOverline:{fontFamily:f.bold,fontSize:10,letterSpacing:1.4,color:c.pink},
+  summaryMain:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',marginTop:8},
+  summaryNumber:{fontFamily:f.bold,fontSize:58,lineHeight:62,letterSpacing:-2.2,color:c.ink},
+  summaryLabel:{fontFamily:f.semibold,fontSize:13,color:c.muted},
+  summarySide:{alignItems:'flex-end',paddingBottom:4},
+  summaryPhase:{fontFamily:f.bold,fontSize:15,color:c.ink,marginTop:5},
+  summaryDay:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},
+  summaryCopy:{fontFamily:f.regular,fontSize:13,lineHeight:19,color:c.muted,marginTop:13,maxWidth:340},
+
+  calendarHead:{paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:4},
+  monthButton:{width:40,height:40,alignItems:'center',justifyContent:'center'},
+  monthTitle:{fontFamily:f.bold,fontSize:18,color:c.ink,textTransform:'capitalize'},
+  calendar:{paddingHorizontal:sp.lg,paddingBottom:16},
+  weekRow:{flexDirection:'row',marginTop:8},
+  weekDay:{width:'14.2857%',textAlign:'center',fontFamily:f.semibold,fontSize:10,color:c.muted,paddingVertical:7},
+  daysGrid:{flexDirection:'row',flexWrap:'wrap'},
+  dayCell:{width:'14.2857%',height:48,alignItems:'center',justifyContent:'center'},
+  dayCircle:{width:36,height:36,borderRadius:18,alignItems:'center',justifyContent:'center'},
+  predictedDay:{borderWidth:1.5,borderColor:c.pink,borderStyle:'dashed'},
+  loggedPeriod:{backgroundColor:c.pink,borderColor:c.pink},
+  selectedDay:{borderWidth:2,borderColor:c.ink},
+  dayText:{fontFamily:f.semibold,fontSize:13,color:c.ink},
+  dayMuted:{color:'#B9ADB3'},
+  dayStrong:{fontFamily:f.bold},
+  entryDot:{position:'absolute',bottom:2,width:4,height:4,borderRadius:2,backgroundColor:c.ink},
+  legend:{flexDirection:'row',flexWrap:'wrap',gap:12,marginTop:10},
+  legendItem:{flexDirection:'row',alignItems:'center',gap:5},
+  legendDot:{width:8,height:8,borderRadius:4},
+  legendPredicted:{borderWidth:1,borderColor:c.pink,backgroundColor:c.white},
+  legendText:{fontFamily:f.regular,fontSize:10,color:c.muted},
+
+  selectedHeader:{paddingHorizontal:sp.lg,paddingTop:22,paddingBottom:14,borderTopWidth:1,borderTopColor:c.line,flexDirection:'row',justifyContent:'space-between',alignItems:'flex-end',gap:12},
+  selectedEyebrow:{fontFamily:f.bold,fontSize:10,letterSpacing:1.2,color:c.pink},
+  selectedTitle:{fontFamily:f.bold,fontSize:21,lineHeight:25,color:c.ink,marginTop:3,textTransform:'capitalize'},
+  selectedCycleDay:{fontFamily:f.bold,fontSize:12,color:c.muted},
+
+  quickPeriod:{paddingHorizontal:sp.lg},
+  logLabel:{fontFamily:f.bold,fontSize:13,color:c.ink,marginHorizontal:sp.lg,marginTop:18,marginBottom:9},
+  flowRow:{flexDirection:'row',gap:7},
+  flowOption:{flex:1,height:38,borderRadius:12,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',backgroundColor:c.white},
+  flowOptionActive:{borderColor:c.pink,backgroundColor:c.blush},
+  flowText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
+  flowTextActive:{fontFamily:f.bold,color:c.pink},
+  periodStartRow:{marginTop:10,flexDirection:'row',alignItems:'center',gap:7,paddingVertical:8},
+  periodStartText:{fontFamily:f.bold,fontSize:12,color:c.pink},
+
+  moods:{flexDirection:'row',gap:8,paddingHorizontal:sp.lg},
+  mood:{width:48,height:48,borderRadius:16,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
+  moodActive:{borderColor:c.pink,backgroundColor:c.blush},
+  moodText:{fontSize:23},
+  chips:{flexDirection:'row',flexWrap:'wrap',paddingHorizontal:sp.lg},
+  note:{minHeight:90,marginHorizontal:sp.lg,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.white,padding:13,fontFamily:f.regular,fontSize:14,color:c.ink,textAlignVertical:'top',marginBottom:14},
+
+  divider:{height:1,backgroundColor:c.line,marginHorizontal:sp.lg,marginTop:28,marginBottom:6},
+  rowLink:{marginHorizontal:sp.lg,paddingVertical:16,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:16},
+  rowOverline:{fontFamily:f.bold,fontSize:9,letterSpacing:1.2,color:c.pink},
+  rowTitle:{fontFamily:f.bold,fontSize:16,color:c.ink,marginTop:3},
+  rowText:{fontFamily:f.regular,fontSize:11,lineHeight:16,color:c.muted,marginTop:3,maxWidth:300},
+
+  settings:{marginHorizontal:sp.lg,marginTop:26,paddingTop:4},
+  settingsTitle:{fontFamily:f.bold,fontSize:18,color:c.ink,marginBottom:8},
+  settingRow:{minHeight:56,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  settingLabel:{fontFamily:f.semibold,fontSize:13,color:c.ink},
+  stepper:{flexDirection:'row',alignItems:'center',gap:10},
+  stepBtn:{width:34,height:34,borderRadius:11,borderWidth:1,borderColor:c.line,backgroundColor:c.white,alignItems:'center',justifyContent:'center'},
+  stepValue:{fontFamily:f.bold,fontSize:13,color:c.ink,minWidth:48,textAlign:'center'},
+  disclaimer:{fontFamily:f.regular,fontSize:10,lineHeight:16,color:c.muted,marginHorizontal:sp.lg,marginTop:18}
 });
