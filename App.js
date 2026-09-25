@@ -5,6 +5,7 @@ import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@exp
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
 import {Ionicons} from '@expo/vector-icons';
 import Onboarding from './src/Onboarding';
+import WelcomeScreen from './src/WelcomeScreen';
 import NativeProfile from './src/NativeProfile';
 import SettingsScreen from './src/SettingsScreen';
 import PartnerPanel from './src/PartnerPanel';
@@ -24,6 +25,8 @@ function PolkaApp(){
   const insets=useSafeAreaInsets();
   const [loaded]=useFonts({DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold,PlayfairDisplay_700Bold});
   const [account,setAccount]=useState(null);
+  const [entryStarted,setEntryStarted]=useState(false);
+  const [preBusiness,setPreBusiness]=useState(false);
   const [booting,setBooting]=useState(true);
   const [tab,setTab]=useState('Start');
   const [blockedIds,setBlockedIds]=useState([]);
@@ -51,12 +54,16 @@ function PolkaApp(){
   const reset=async()=>{
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
-    setAccount(null);setTab('Start');setBlockedIds([]);setReports([]);
+    setAccount(null);setEntryStarted(false);setPreBusiness(false);setTab('Start');setBlockedIds([]);setReports([]);
     setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);setSettingsOpen(false);setMessagesOpen(false);
     setPosts(initialPosts);setSession(v=>v+1);
   };
   if(!loaded||booting)return <View style={s.safe}/>;
-  if(!account)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={saveProfile}/></SafeAreaView>;
+  if(!account){
+    if(preBusiness)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><PartnerPanel onClose={()=>setPreBusiness(false)}/></SafeAreaView>;
+    if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={()=>setEntryStarted(true)} onBusiness={()=>setPreBusiness(true)}/></View>;
+    return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={saveProfile}/></SafeAreaView>;
+  }
   const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!settingsOpen&&!messagesOpen;
   const clubsVisible=tab==='Grupy'&&showTabs;
   const content=reportTarget?
