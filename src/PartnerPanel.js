@@ -4,30 +4,46 @@ import {Ionicons} from '@expo/vector-icons';
 import {readCached,writeCached,clearCached} from './cache';
 import {colors as c,fonts as f,space as sp} from './theme';
 import {Button,Chip,Field,PageHeading,Surface,Typography} from './ui';
+import {loadBusinessAccount,saveBusinessAccount,saveBusinessDiscount} from './services/businessApi';
 
 const KEY='partner-draft';
 const WEEK=7*24*60*60*1000;
 const TYPES=['Kawiarnia / lokal','Organizacja','Koło / społeczność','Wydarzenia','Inny biznes'];
-const empty=()=>({name:'',city:'Warszawa',type:TYPES[0],about:'',offerTitle:'',offerText:''});
+const empty=()=>({name:'',city:'Warszawa',type:TYPES[0],about:'',offerTitle:'',offerText:'',offerCode:'',offerUrl:''});
 
 // This screen only creates a local draft. Organization ownership, role grants,
 // publishing and moderation MUST be verified server-side before release.
-export default function PartnerPanel({onClose}){
+export default function PartnerPanel({onClose,userId=null}){
   const [draft,setDraft]=useState(empty);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState('');
-  useEffect(()=>{let alive=true;readCached(KEY).then(value=>{
-    if(alive&&value&&typeof value.name==='string')setDraft({...empty(),...value});
-  }).catch(()=>{if(alive)setNotice('Nie udało się odczytać szkicu.');}).finally(()=>{if(alive)setLoading(false);});
-    return ()=>{alive=false;};
-  },[]);
+  useEffect(()=>{let alive=true;(async()=>{
+    try{
+      if(userId){
+        const remote=await loadBusinessAccount(userId);
+        if(remote&&alive)setDraft(prev=>({...prev,name:remote.name||'',city:remote.city||'Warszawa',about:remote.description||''}));
+      }else{
+        const value=await readCached(KEY);
+        if(alive&&value&&typeof value.name==='string')setDraft({...empty(),...value});
+      }
+    }catch{if(alive)setNotice('Nie udało się odczytać danych organizacji.');}
+    finally{if(alive)setLoading(false);}
+  })();return ()=>{alive=false;};},[userId]);
   const change=(field,value,max=300)=>setDraft(prev=>({...prev,[field]:value.slice(0,max)}));
   const save=async()=>{
     if(draft.name.trim().length<2){setNotice('Podaj nazwę organizacji (minimum 2 znaki).');return;}
     setSaving(true);setNotice('');
-    try{await writeCached(KEY,{...draft,name:draft.name.trim()},WEEK);setNotice('Szkic zapisany na urządzeniu na maksymalnie 7 dni. Nic nie zostało opublikowane.');}
-    catch{setNotice('Nie udało się zapisać szkicu. Sprawdź pamięć telefonu.');}
+    try{
+      if(userId){
+        const business=await saveBusinessAccount(userId,draft);
+        if(draft.offerTitle.trim())await saveBusinessDiscount(userId,business.id,{title:draft.offerTitle,description:draft.offerText,code:draft.offerCode,destinationUrl:draft.offerUrl});
+        setNotice('Konto organizacji zapisane w Polce. Oferta pojawi się po publikacji zgodnej z zasadami.');
+      }else{
+        await writeCached(KEY,{...draft,name:draft.name.trim()},WEEK);
+        setNotice('Szkic zapisany na urządzeniu. Zaloguj się, żeby utworzyć konto organizacji online.');
+      }
+    }catch(error){setNotice(error.message||'Nie udało się zapisać danych.');}
     finally{setSaving(false);}
   };
   const erase=()=>Alert.alert('Usunąć szkic?','Znikną zapisane lokalnie dane panelu. Nie dotyczy to żadnej organizacji online.',[
@@ -49,6 +65,8 @@ export default function PartnerPanel({onClose}){
       <Surface><Typography variant="subtitle" style={s.title}>2. Propozycja dla społeczności</Typography>
         <Field label="Tytuł" value={draft.offerTitle} onChangeText={v=>change('offerTitle',v,100)} placeholder="Np. Czwartkowa kawa i nowe znajomości"/>
         <Field label="Opis" value={draft.offerText} onChangeText={v=>change('offerText',v,500)} multiline placeholder="Co, gdzie, dla kogo?"/>
+        <Field label="Kod rabatowy (opcjonalnie)" value={draft.offerCode} onChangeText={v=>change('offerCode',v,60)} placeholder="POLKA10"/>
+        <Field label="Link do oferty (opcjonalnie)" value={draft.offerUrl} onChangeText={v=>change('offerUrl',v,500)} placeholder="https://..."/>
       </Surface>
       <Surface><Typography variant="subtitle" style={s.title}>Podgląd wizytówki</Typography>
         <View style={s.previewIcon}><Ionicons name="storefront-outline" color={c.pink} size={27}/></View>
@@ -57,10 +75,10 @@ export default function PartnerPanel({onClose}){
         <Typography>{draft.about.trim()||'Tutaj pojawi się krótki opis organizacji.'}</Typography>
         {!!draft.offerTitle.trim()&&<View style={s.offer}><Typography variant="subtitle">{draft.offerTitle}</Typography><Typography>{draft.offerText||'Opis propozycji'}</Typography></View>}
       </Surface>
-      <Button title={saving?'Zapisywanie…':'Zapisz szkic na telefonie'} disabled={saving||loading} onPress={save} icon="save-outline"/>
+      <Button title={saving?'Zapisywanie…':userId?'Zapisz konto organizacji':'Zapisz szkic'} disabled={saving||loading} onPress={save} icon="save-outline"/>
       <Button title="Usuń szkic" onPress={erase} secondary style={{marginTop:sp.sm}} icon="trash-outline"/>
       {!!notice&&<Typography accessibilityRole="alert" style={s.notice}>{notice}</Typography>}
-      <Typography variant="caption" style={s.muted}>To lokalny szkic panelu, nie aktywne konto firmowe. Przed uruchomieniem online wymagane są weryfikacja właściciela, role pracowników, moderacja ofert, limity publikacji i osobne polityki RLS. Nie wpisuj tu prywatnych danych ani haseł.</Typography>
+      <Typography variant="caption" style={s.muted}>{userId?'Konto organizacji jest przypisane do Twojego konta Polki. Status weryfikacji pozostaje oddzielny od utworzenia profilu firmy.':'Tryb lokalny. Zaloguj się, aby rejestrować konto organizacji online.'}</Typography>
     </ScrollView>
   </KeyboardAvoidingView>;
 }
