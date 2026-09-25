@@ -59,7 +59,7 @@ export default function DiscoverScreen({city='Warszawa'}){
           </View>
           <View style={s.bottomContent}>
             <Typography style={s.planTitle}>{plan.title}</Typography>
-            <Typography style={s.planMeta}>{plan.city} · {plan.when}</Typography>
+            <Typography style={s.planMeta}>{plan.when} · luźny plan</Typography>
             <View style={s.hostRow}>
               {host?<Image source={{uri:host.photo}} style={s.avatar}/>:<View style={[s.avatar,s.avatarFallback]}><Ionicons name="person" size={15} color={c.pink}/></View>}
               <Typography style={s.hostText}>Organizuje {plan.host}</Typography>
