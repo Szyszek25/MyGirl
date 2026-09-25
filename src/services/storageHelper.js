@@ -1,4 +1,4 @@
-import { File } from 'expo-file-system/next';
+import * as FileSystem from 'expo-file-system';
 
 export function resolveContentType(uri, fallback = 'image/jpeg') {
   if (!uri || typeof uri !== 'string') return fallback;
@@ -34,8 +34,9 @@ export function extensionForContentType(type = 'image/jpeg') {
  */
 export async function uriToUploadPayload(uri, fallbackType = 'image/jpeg') {
   const contentType = resolveContentType(uri, fallbackType);
-  const file = new File(uri);
-  const base64 = await file.readAsStringAsync({ encoding: 'base64' });
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
   const buffer = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
   return { buffer, contentType };
 }

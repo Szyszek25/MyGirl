@@ -249,6 +249,17 @@ export default function StoryViewerModal({
     });
   };
 
+  const vibeFor = (sender) => {
+    const tags = sender?.tags || [];
+    if (tags.includes('Podróże')) return 'podróżnicza';
+    if (tags.includes('Sport')) return 'sportowa';
+    if (tags.includes('Muzyka')) return 'imprezowa';
+    if (tags.includes('Sztuka')) return 'kreatywna';
+    if (tags.includes('Jedzenie')) return 'towarzyska';
+    if (tags.includes('Książki')) return 'spokojna';
+    return ['przedsiębiorcza', 'spontaniczna', 'ambitna', 'miejska'][Math.abs(String(sender?.id || '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0)) % 4];
+  };
+
   // 3D Cube Interpolations
   const isFwd = transitionDirection === 'forward';
 
@@ -313,7 +324,12 @@ export default function StoryViewerModal({
           </View>
         ) : null}
 
-        <View style={s.topVignette} />
+        <View style={s.topVignette}>
+          {/* Vibe Badge - top left */}
+          <View style={s.vibePill}>
+            <Typography style={s.vibeText}>{vibeFor(sender)}</Typography>
+          </View>
+        </View>
         <View style={s.bottomVignette} />
 
         {/* Top Header Overlay with progress segments */}
@@ -439,14 +455,7 @@ export default function StoryViewerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={s.container} {...panResponder.panHandlers}>
-        {/* Fixed top bar (close button) - NOT in 3D cube */}
-        <View style={s.fixedTopBar} pointerEvents="box-none">
-          <Pressable onPress={onClose} style={s.closeBtn} hitSlop={14} accessibilityLabel="Zamknij">
-            <Ionicons name="close" size={28} color={c.white} />
-          </Pressable>
-        </View>
-
+      <View style={s.container}>
         {/* Animated 3D Cube Viewport - entire screen rotates */}
         <Animated.View
           style={[
@@ -497,6 +506,13 @@ export default function StoryViewerModal({
           </Animated.View>
         )}
 
+        {/* Fixed top bar (close button) - NOT in 3D cube, on top */}
+        <View style={s.fixedTopBar} pointerEvents="box-none">
+          <Pressable onPress={onClose} style={s.closeBtn} hitSlop={14} accessibilityLabel="Zamknij">
+            <Ionicons name="close" size={28} color={c.white} />
+          </Pressable>
+        </View>
+
         {/* Big Heart Pop */}
         {showHeartPop && (
           <View style={s.heartPopCenter} pointerEvents="none">
@@ -504,7 +520,14 @@ export default function StoryViewerModal({
           </View>
         )}
 
-        {/* Tap detector for slide navigation (left/right thirds) */}
+        {/* Swipe detector for 3D cube transition - full screen horizontal swipe */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          {...panResponder.panHandlers}
+          pointerEvents="box-none"
+        />
+
+        {/* Tap detector for slide navigation (left/right thirds) - separate from pan */}
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={handleTap}
@@ -571,6 +594,21 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 20
+  },
+  vibePill: {
+    position: 'absolute',
+    top: 52,
+    left: 16,
+    backgroundColor: 'rgba(255,255,255,.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    zIndex: 10
+  },
+  vibeText: {
+    fontFamily: f.bold,
+    fontSize: 12,
+    color: c.ink
   },
 
   /* Top Overlay */
