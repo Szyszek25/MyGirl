@@ -15,7 +15,7 @@ const seedMeetups=[
 const text=(value,max)=>value.trim().slice(0,max);
 const localId=()=>`demo-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 
-export default function ClubsMeetupsScreen({onReport}){
+export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
   const [view,setView]=useState('Kluby');
   const [clubs,setClubs]=useState(seedGroups.map((g,i)=>({...g,demo:true,members:18+i*7})));
   const [meetups,setMeetups]=useState(seedMeetups);
@@ -26,13 +26,13 @@ export default function ClubsMeetupsScreen({onReport}){
   const [activeMeetup,setActiveMeetup]=useState(null);
   const [name,setName]=useState('');
   const [description,setDescription]=useState('');
-  const [city,setCity]=useState('Warszawa');
+  const activeCity=city;
   const [category,setCategory]=useState('Kawa');
   const [date,setDate]=useState('');
   const [time,setTime]=useState('');
   const [clubId,setClubId]=useState('');
 
-  const reset=()=>{setForm(null);setName('');setDescription('');setCity('Warszawa');setCategory('Kawa');setDate('');setTime('');setClubId('')};
+  const reset=()=>{setForm(null);setName('');setDescription('');setCategory('Kawa');setDate('');setTime('');setClubId('')};
   const availableClubs=useMemo(()=>clubs.filter(g=>joined.includes(g.id)),[clubs,joined]);
 
   const toggleJoin=club=>{
@@ -47,7 +47,7 @@ export default function ClubsMeetupsScreen({onReport}){
   const addClub=()=>{
     if(text(name,80).length<2)return Alert.alert('Podaj nazwę klubu','Wpisz przynajmniej dwa znaki.');
     const id=localId();
-    const club={id,name:text(name,80),city,description:text(description,500)||'Nowy klub',icon:'people-outline',category,owned:true,demo:true,members:1};
+    const club={id,name:text(name,80),city:activeCity,description:text(description,500)||'Nowy klub',icon:'people-outline',category,owned:true,demo:true,members:1};
     setClubs(old=>[club,...old]);setJoined(old=>[...old,id]);reset();setActiveClub(club);
   };
 
@@ -57,7 +57,7 @@ export default function ClubsMeetupsScreen({onReport}){
     const starts=new Date(`${date}T${time}:00`);
     if(Number.isNaN(starts.getTime())||starts.getTime()<=Date.now())return Alert.alert('Wybierz przyszły, poprawny termin');
     const selected=clubId?clubs.find(g=>g.id===clubId):null;
-    const meetup={id:localId(),title:text(name,100),description:text(description,500)||'Nowe spotkanie',city,startsAt:starts.toISOString(),clubName:selected?.name||null,clubId:clubId||null,owned:true,spots:6,joined:1};
+    const meetup={id:localId(),title:text(name,100),description:text(description,500)||'Nowe spotkanie',activeCity,startsAt:starts.toISOString(),clubName:selected?.name||null,clubId:clubId||null,owned:true,spots:6,joined:1};
     setMeetups(old=>[meetup,...old]);setInterested(old=>[...old,meetup.id]);reset();setActiveMeetup(meetup);
   };
 
@@ -107,7 +107,7 @@ export default function ClubsMeetupsScreen({onReport}){
       <View style={s.formHeader}><Typography style={s.screenTitle}>{form==='club'?'Nowa grupa':'Nowe wydarzenie'}</Typography><Typography style={s.screenSubtitle}>{form==='club'?'Stwórz własną społeczność':'Zaproś dziewczyny na konkretny plan'}</Typography></View>
       <Field label={form==='club'?'Nazwa klubu':'Tytuł wydarzenia'} value={name} onChangeText={v=>setName(v.slice(0,form==='club'?80:100))} placeholder={form==='club'?'Np. Matcha Girls Warszawa':'Np. Girls night w piątek'}/>
       <Field label="Opis" value={description} onChangeText={v=>setDescription(v.slice(0,500))} placeholder="Co planujesz?" multiline/>
-      <Typography style={s.label}>Miasto</Typography><ScrollView horizontal showsHorizontalScrollIndicator={false}>{cities.map(item=><Chip key={item} label={item} selected={city===item} onPress={()=>setCity(item)}/>)}</ScrollView>
+      <View style={s.fixedCity}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.fixedCityText}>{activeCity}</Typography></View>
       {form==='club'?<><Typography style={s.label}>Temat</Typography><View style={s.chips}>{categories.map(item=><Chip key={item} label={item} selected={category===item} onPress={()=>setCategory(item)}/>)}</View></>:<>
         <Typography style={s.label}>Klub (opcjonalnie)</Typography><View style={s.chips}><Chip label="Bez klubu" selected={!clubId} onPress={()=>setClubId('')}/>{availableClubs.map(item=><Chip key={item.id} label={item.name} selected={clubId===item.id} onPress={()=>setClubId(item.id)}/>)}</View>
         <Field label="Data · RRRR-MM-DD" value={date} onChangeText={v=>setDate(v.slice(0,10))} keyboardType="numbers-and-punctuation" placeholder="2026-10-10"/>
@@ -117,7 +117,7 @@ export default function ClubsMeetupsScreen({onReport}){
     </ScrollView>
   </KeyboardAvoidingView>;
 
-  const data=view==='Kluby'?clubs:meetups;
+  const data=(view==='Kluby'?clubs:meetups).filter(item=>item.city===activeCity);
   return <View style={s.root}>
     <View style={s.topArea}>
       <View style={s.titleRow}><View><Typography style={s.screenTitle}>Razem</Typography><Typography style={s.screenSubtitle}>Grupy i wydarzenia w Twoim mieście</Typography></View><Pressable style={s.plus} onPress={()=>{reset();setForm(view==='Kluby'?'club':'meetup')}}><Ionicons name="add" size={25} color={c.white}/></Pressable></View>
@@ -173,6 +173,6 @@ const s=StyleSheet.create({
   sectionTitle:{marginTop:sp.xl,marginBottom:sp.md},
   attendance:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',padding:sp.lg},
   clubLink:{color:c.pink,fontFamily:f.bold,marginTop:sp.sm},
-  label:{fontFamily:f.semibold,color:c.ink,marginBottom:sp.sm,marginTop:sp.sm},
+  label:{fontFamily:f.semibold,color:c.ink,marginBottom:sp.sm,marginTop:sp.sm},fixedCity:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:11,paddingVertical:8,marginBottom:sp.md},fixedCityText:{fontFamily:f.bold,fontSize:12,color:c.pink},
   chips:{flexDirection:'row',flexWrap:'wrap',marginBottom:sp.md}
 });
