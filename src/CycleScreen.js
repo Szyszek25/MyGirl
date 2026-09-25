@@ -55,6 +55,7 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
   const [note,setNote]=useState('');
   const [bleeding,setBleeding]=useState('none');
   const [saved,setSaved]=useState(false);
+  const [historyExpanded,setHistoryExpanded]=useState(false);
 
   useEffect(()=>{AsyncStorage.getItem(STORAGE_KEY).then(raw=>{
     if(!raw)return;
@@ -92,6 +93,19 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
   },[lastPeriod,cycleLength]);
   const daysToPeriod=Math.max(0,daysBetween(nextPeriod,today));
   const cells=useMemo(()=>monthCells(month),[month]);
+  const recentEntries=useMemo(()=>history.slice(0,historyExpanded?12:4),[history,historyExpanded]);
+  const periodStarts=useMemo(()=>history.filter(item=>item.isPeriodStart).sort((a,b)=>b.date.localeCompare(a.date)),[history]);
+  const averageLoggedCycle=useMemo(()=>{
+    if(periodStarts.length<2)return null;
+    const diffs=[];
+    for(let i=0;i<periodStarts.length-1;i++){
+      const a=fromIso(periodStarts[i].date),b=fromIso(periodStarts[i+1].date);
+      const d=daysBetween(a,b);
+      if(d>=18&&d<=45)diffs.push(d);
+    }
+    if(!diffs.length)return null;
+    return Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
+  },[periodStarts]);
 
   const entryFor=date=>history.find(item=>item.date===isoDay(date));
   const predictedPeriodFor=date=>predictions.some(start=>{
@@ -194,12 +208,36 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare}){
 
       <Typography style={s.logLabel}>Notatka</Typography>
       <TextInput value={note} onChangeText={setNote} multiline maxLength={600} placeholder="Co chcesz zapamiętać z tego dnia?" placeholderTextColor={c.muted} style={s.note}/>
-      <Button title={saved?'Zapisano':'Zapisz dzień'} icon={saved?'checkmark':'add'} onPress={saveSelected}/>
+      <View style={s.saveRow}><Button title={saved?'Zapisano':'Zapisz dzień'} icon={saved?'checkmark':'add'} onPress={saveSelected} style={s.saveButton}/></View>
+
+      <View style={s.historySection}>
+        <View style={s.historyHead}>
+          <View><Typography style={s.historyOverline}>HISTORIA</Typography><Typography style={s.historyTitle}>Twoje ostatnie wpisy</Typography></View>
+          {!!history.length&&<Pressable onPress={()=>setHistoryExpanded(v=>!v)}><Typography style={s.historyAction}>{historyExpanded?'Pokaż mniej':'Zobacz więcej'}</Typography></Pressable>}
+        </View>
+
+        <View style={s.historyStats}>
+          <View style={s.historyStat}><Typography style={s.historyStatValue}>{history.length}</Typography><Typography style={s.historyStatLabel}>zapisanych dni</Typography></View>
+          <View style={s.historyStat}><Typography style={s.historyStatValue}>{periodStarts.length}</Typography><Typography style={s.historyStatLabel}>początków okresu</Typography></View>
+          <View style={s.historyStat}><Typography style={s.historyStatValue}>{averageLoggedCycle?averageLoggedCycle+' d':'—'}</Typography><Typography style={s.historyStatLabel}>średni cykl z wpisów</Typography></View>
+        </View>
+
+        {!recentEntries.length?<Typography style={s.historyEmpty}>Zapisz pierwszy dzień, a tutaj pojawi się historia objawów i cyklu.</Typography>:recentEntries.map(entry=><Pressable key={entry.date} onPress={()=>{const d=fromIso(entry.date);setSelectedDate(d);setMonth(new Date(d.getFullYear(),d.getMonth(),1,12));}} style={s.historyRow}>
+          <View style={s.historyDate}><Typography style={s.historyDay}>{fromIso(entry.date).getDate()}</Typography><Typography style={s.historyMonth}>{MONTHS[fromIso(entry.date).getMonth()].slice(0,3)}</Typography></View>
+          <View style={s.historyBody}>
+            <Typography style={s.historyRowTitle}>{entry.bleeding&&entry.bleeding!=='none'?'Okres · ':''}{entry.mood||'🙂'} {entry.symptoms?.slice(0,2).join(' · ')||'Wpis dnia'}</Typography>
+            <Typography numberOfLines={1} style={s.historyRowText}>{entry.note||('Dzień '+(entry.cycleDay||'—')+' cyklu')}</Typography>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={c.muted}/>
+        </Pressable>)}
+      </View>
 
       <View style={s.divider}/>
 
       <Pressable onPress={onOpenCare} style={s.rowLink}><View><Typography style={s.rowOverline}>POLKA CARE</Typography><Typography style={s.rowTitle}>Baza wiedzy</Typography><Typography style={s.rowText}>Cykl, objawy, opóźnienie okresu i proste wyjaśnienia.</Typography></View><Ionicons name="chevron-forward" size={20} color={c.muted}/></Pressable>
       <Pressable onPress={onOpenGroups} style={s.rowLink}><View><Typography style={s.rowOverline}>SPOŁECZNOŚĆ</Typography><Typography style={s.rowTitle}>Cykl i samopoczucie</Typography><Typography style={s.rowText}>Porozmawiaj z dziewczynami bez mieszania prywatnych danych trackera z grupą.</Typography></View><Ionicons name="chevron-forward" size={20} color={c.muted}/></Pressable>
+
+      <Pressable onPress={()=>{setSelectedDate(today);setMonth(new Date(today.getFullYear(),today.getMonth(),1,12));}} style={s.rowLink}><View><Typography style={s.rowOverline}>SZYBKI POWRÓT</Typography><Typography style={s.rowTitle}>Przejdź do dzisiaj</Typography><Typography style={s.rowText}>Wróć do bieżącego dnia i uzupełnij wpis.</Typography></View><Ionicons name="today-outline" size={20} color={c.muted}/></Pressable>
 
       <View style={s.settings}>
         <Typography style={s.settingsTitle}>Ustawienia cyklu</Typography>
@@ -272,7 +310,26 @@ const s=StyleSheet.create({
   moodText:{fontSize:23},
   chips:{flexDirection:'row',flexWrap:'wrap',paddingHorizontal:sp.lg},
   note:{minHeight:90,marginHorizontal:sp.lg,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.white,padding:13,fontFamily:f.regular,fontSize:14,color:c.ink,textAlignVertical:'top',marginBottom:14},
+  saveRow:{paddingHorizontal:sp.lg,alignItems:'flex-end'},
+  saveButton:{minHeight:46,paddingHorizontal:18,borderRadius:14},
 
+  historySection:{marginTop:30},
+  historyHead:{paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:12},
+  historyOverline:{fontFamily:f.bold,fontSize:9,letterSpacing:1.2,color:c.pink},
+  historyTitle:{fontFamily:f.bold,fontSize:21,color:c.ink,marginTop:3},
+  historyAction:{fontFamily:f.bold,fontSize:12,color:c.pink,paddingVertical:5},
+  historyStats:{flexDirection:'row',paddingHorizontal:sp.lg,marginTop:14,gap:10},
+  historyStat:{flex:1,paddingVertical:12,borderTopWidth:1,borderColor:c.line},
+  historyStatValue:{fontFamily:f.bold,fontSize:18,color:c.ink},
+  historyStatLabel:{fontFamily:f.regular,fontSize:9,lineHeight:13,color:c.muted,marginTop:2},
+  historyEmpty:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,marginHorizontal:sp.lg,marginTop:16},
+  historyRow:{marginHorizontal:sp.lg,minHeight:68,paddingVertical:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',gap:12},
+  historyDate:{width:42,alignItems:'center'},
+  historyDay:{fontFamily:f.bold,fontSize:20,color:c.ink},
+  historyMonth:{fontFamily:f.semibold,fontSize:9,color:c.muted,textTransform:'uppercase'},
+  historyBody:{flex:1,minWidth:0},
+  historyRowTitle:{fontFamily:f.bold,fontSize:13,color:c.ink},
+  historyRowText:{fontFamily:f.regular,fontSize:11,color:c.muted,marginTop:2},
   divider:{height:1,backgroundColor:c.line,marginHorizontal:sp.lg,marginTop:28,marginBottom:6},
   rowLink:{marginHorizontal:sp.lg,paddingVertical:16,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:16},
   rowOverline:{fontFamily:f.bold,fontSize:9,letterSpacing:1.2,color:c.pink},
