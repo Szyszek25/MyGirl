@@ -15,34 +15,61 @@ export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
   const filtered=people.filter(p=>!blockedIds.includes(p.id)&&(city==='Wszystkie'||p.city===city));
   const person=filtered.length?filtered[index%filtered.length]:null;
   const xy=useRef(new Animated.ValueXY()).current;
-  const decide=dir=>{if(!person)return;Animated.timing(xy,{toValue:{x:dir*W,y:0},duration:180,useNativeDriver:true}).start(()=>{if(dir>0)setSaved(prev=>prev.includes(person.id)?prev:[...prev,person.id]);setIndex(v=>v+1);xy.setValue({x:0,y:0})})};
+  const vibeFor=p=>{
+    const tags=p?.tags||[];
+    if(tags.includes('Podróże')) return 'podróżnicza';
+    if(tags.includes('Sport')) return 'sportowa';
+    if(tags.includes('Muzyka')) return 'imprezowa';
+    if(tags.includes('Sztuka')) return 'kreatywna';
+    if(tags.includes('Jedzenie')) return 'towarzyska';
+    if(tags.includes('Książki')) return 'spokojna';
+    return ['przedsiębiorcza','spontaniczna','ambitna','miejska'][Math.abs(String(p?.id||'').split('').reduce((a,ch)=>a+ch.charCodeAt(0),0))%4];
+  };
+  const decide=dir=>{if(!person)return;Animated.timing(xy,{toValue:{x:dir*W,y:0},duration:190,useNativeDriver:true}).start(()=>{if(dir>0)setSaved(prev=>prev.includes(person.id)?prev:[...prev,person.id]);setIndex(v=>v+1);xy.setValue({x:0,y:0})})};
   const pan=useMemo(()=>PanResponder.create({
-    onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dx)>18&&Math.abs(g.dx)>Math.abs(g.dy)*1.3,
+    onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dx)>16&&Math.abs(g.dx)>Math.abs(g.dy)*1.15,
     onPanResponderMove:Animated.event([null,{dx:xy.x,dy:xy.y}],{useNativeDriver:false}),
-    onPanResponderRelease:(_,g)=>Math.abs(g.dx)>95?decide(g.dx>0?1:-1):Animated.spring(xy,{toValue:{x:0,y:0},useNativeDriver:true}).start()
+    onPanResponderRelease:(_,g)=>Math.abs(g.dx)>88?decide(g.dx>0?1:-1):Animated.spring(xy,{toValue:{x:0,y:0},friction:7,useNativeDriver:true}).start()
   }),[person?.id]);
-  const confirmBlock=()=>person&&Alert.alert(`Zablokować ${person.name}?`,'Profil zniknie z odkrywania, wpisów i prywatnego czatu w tej sesji prototypu.',[
+  const confirmBlock=()=>person&&Alert.alert(`Zablokować ${person.name}?`,'Profil zniknie z odkrywania.',[
     {text:'Anuluj',style:'cancel'},{text:'Zablokuj',style:'destructive',onPress:()=>onBlock(person.id)}
   ]);
-  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
-    <PageHeading kicker="POLKA / ODKRYWAJ" title="Poznaj się."/>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom:sp.base}}>{['Wszystkie',...cities].map(v=><Chip key={v} label={v} selected={city===v} onPress={()=>{setCity(v);setIndex(0)}}/>)}</ScrollView>
+
+  const stack=[0,1,2].map(offset=>filtered.length?filtered[(index+offset)%filtered.length]:null).filter(Boolean);
+  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page,{paddingBottom:110}]}>
+    <View style={s.discoverTop}><View><Typography style={s.topTitle}>Poznaj</Typography><Typography style={s.topSub}>Dziewczyny, które mogą pasować do Ciebie</Typography></View><Ionicons name="options-outline" size={23} color={c.ink}/></View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingBottom:4}}>{['Wszystkie',...cities].map(v=><Chip key={v} label={v} selected={city===v} onPress={()=>{setCity(v);setIndex(0)}}/>)}</ScrollView>
     {person?<>
-      <Animated.View {...pan.panHandlers} style={[s.profileCard,{transform:[{translateX:xy.x},{translateY:xy.y},{rotate:xy.x.interpolate({inputRange:[-W,0,W],outputRange:['-9deg','0deg','9deg']})}]}]}>
-        <Image source={{uri:person.photo}} style={s.heroPhoto} resizeMode="cover"/>
-        <View style={s.heroName}><Typography variant="heading">{person.name}, {person.age}</Typography><Typography style={{color:c.muted}}>{person.city} · Profil demonstracyjny</Typography></View>
-      </Animated.View>
+      <View style={s.stackWrap}>
+        {stack.slice().reverse().map((p,revIndex)=>{
+          const realOffset=stack.length-1-revIndex;
+          const isTop=realOffset===0;
+          const cardStyle=isTop?[s.swipeCard,{transform:[{translateX:xy.x},{translateY:xy.y},{rotate:xy.x.interpolate({inputRange:[-W,0,W],outputRange:['-8deg','0deg','8deg']})}]}]:[
+            s.swipeCard,
+            s.stackCard,
+            {transform:[{translateY:realOffset*11},{scale:1-realOffset*0.035}],opacity:1-realOffset*0.12}
+          ];
+          const Wrapper=isTop?Animated.View:View;
+          return <Wrapper key={p.id+'-'+realOffset} {...(isTop?pan.panHandlers:{})} style={cardStyle}>
+            <Image source={{uri:p.photo}} style={s.swipePhoto} resizeMode="cover"/>
+            <View style={s.cardScrim}/>
+            <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
+            <View style={s.cardIdentity}>
+              <Typography style={s.cardName}>{p.name}, {p.age}</Typography>
+              <Typography style={s.cardMeta}>{p.city} · {(p.tags||[]).slice(0,2).join(' · ')}</Typography>
+            </View>
+          </Wrapper>
+        })}
+      </View>
       <View style={s.actions}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Pomiń profil" onPress={()=>decide(-1)} style={s.round}><Ionicons name="close" size={27} color={c.ink}/></Pressable>
-        <Typography variant="caption" style={{color:c.muted}}>PRZESUŃ W BOK</Typography>
-        <Pressable accessibilityRole="button" accessibilityLabel="Polub profil" onPress={()=>decide(1)} style={[s.round,{backgroundColor:c.pink}]}><Ionicons name="heart" size={24} color={c.white}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Pomiń profil" onPress={()=>decide(-1)} style={s.round}><Ionicons name="close" size={28} color={c.ink}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Polub profil" onPress={()=>decide(1)} style={[s.round,s.heartRound]}><Ionicons name="heart" size={25} color={c.white}/></Pressable>
       </View>
       <Section title="O mnie"><Typography>{person.bio}</Typography></Section>
       <Section title="Lubię"><View style={s.wrap}>{person.tags.map(v=><Chip key={v} label={v}/>)}</View></Section>
-      <Section title={person.prompt}><Typography style={{fontSize:20,fontFamily:f.semibold}}>{person.answer}</Typography></Section>
+      <Section title={person.prompt}><Typography style={{fontSize:19,fontFamily:f.semibold}}>{person.answer}</Typography></Section>
       <View style={s.safetyRow}><TextAction icon="ban-outline" title="Zablokuj" danger onPress={confirmBlock}/><TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'profile',id:person.id,label:`Profil: ${person.name}`})}/></View>
-      <Typography variant="caption" style={s.disclaimer}>Profile demonstracyjne. Polubienia i blokady nie trafiają na serwer.</Typography>
-    </>:<Surface><Typography variant="subtitle">Brak profili.</Typography><Typography style={{color:c.muted}}>Zmień miasto lub odblokuj osoby w ustawieniach bezpieczeństwa.</Typography></Surface>}
+    </>:<Surface><Typography variant="subtitle">Brak profili</Typography><Typography style={{color:c.muted}}>Zmień miasto lub sprawdź później.</Typography></Surface>}
   </ScrollView>;
 }
 
@@ -108,6 +135,20 @@ export function ProfileScreen({account,onSafety}){
 }
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
+  discoverTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:sp.base},
+  topTitle:{fontFamily:f.bold,fontSize:28,letterSpacing:-1.1,color:c.ink},
+  topSub:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},
+  stackWrap:{height:520,marginTop:8,marginBottom:12,position:'relative'},
+  swipeCard:{position:'absolute',left:0,right:0,top:0,height:490,borderRadius:28,overflow:'hidden',backgroundColor:c.white,borderWidth:1,borderColor:c.line,shadowColor:'#27151D',shadowOpacity:.12,shadowRadius:18,shadowOffset:{width:0,height:10},elevation:4},
+  stackCard:{pointerEvents:'none'},
+  swipePhoto:{width:'100%',height:'100%'},
+  cardScrim:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,0,0,.14)'},
+  vibePill:{position:'absolute',top:16,left:16,backgroundColor:'rgba(255,255,255,.9)',paddingHorizontal:12,paddingVertical:7,borderRadius:999},
+  vibeText:{fontFamily:f.bold,fontSize:12,color:c.ink},
+  cardIdentity:{position:'absolute',left:18,right:18,bottom:18},
+  cardName:{fontFamily:f.bold,fontSize:34,lineHeight:38,color:c.white,letterSpacing:-1.4},
+  cardMeta:{fontFamily:f.semibold,fontSize:14,color:'rgba(255,255,255,.92)',marginTop:4},
+  heartRound:{backgroundColor:c.pink,borderColor:c.pink},
   wrap:{flexDirection:'row',flexWrap:'wrap'},
   profileCard:{borderRadius:r.lg,backgroundColor:c.white,overflow:'hidden',borderWidth:1,borderColor:c.line},
   heroPhoto:{width:'100%',height:Math.min(W*1.2,470),backgroundColor:c.blush},
