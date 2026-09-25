@@ -4,6 +4,7 @@ import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
 import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './featurePreferences';
+import {defaultAccountSettings,loadAccountSettings,updateAccountSettings} from './services/accountSettingsApi';
 
 const SHARE_URL='https://polka.app';
 const ZODIAC_SIGNS=['Baran','Byk','Bliźnięta','Rak','Lew','Panna','Waga','Skorpion','Strzelec','Koziorożec','Wodnik','Ryby'];
@@ -17,17 +18,25 @@ function Row({icon,title,subtitle,onPress,right,danger=false}){
   </Pressable>;
 }
 
-export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange,onSignOut,isAuthenticated=false,accountEmail=''}){
-  const [push,setPush]=useState(true);
-  const [plans,setPlans]=useState(true);
-  const [messages,setMessages]=useState(true);
+export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange,onSignOut,isAuthenticated=false,accountEmail='',userId=null}){
+  const [accountSettings,setAccountSettings]=useState(defaultAccountSettings);
+  const push=accountSettings.push_enabled;
+  const plans=accountSettings.plans_notifications;
+  const messages=accountSettings.messages_notifications;
   const [features,setFeatures]=useState(defaultFeaturePreferences);
 
   useEffect(()=>{
     let alive=true;
-    loadFeaturePreferences().then(value=>{if(alive)setFeatures(value)});
+    Promise.all([
+      loadFeaturePreferences(),
+      isAuthenticated&&userId?loadAccountSettings(userId):Promise.resolve(defaultAccountSettings)
+    ]).then(([featureValue,accountValue])=>{
+      if(!alive)return;
+      setFeatures(featureValue);
+      setAccountSettings(accountValue);
+    }).catch(()=>{});
     return ()=>{alive=false};
-  },[]);
+  },[isAuthenticated,userId]);
 
   const setFeature=async(key,value)=>{
     const next={...features,[key]:value};
@@ -36,6 +45,19 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
       const saved=await saveFeaturePreferences(next);
       onFeaturePreferencesChange?.(saved);
     }catch{}
+  };
+
+  const setAccountSetting=async(key,value)=>{
+    const next={...accountSettings,[key]:value};
+    setAccountSettings(next);
+    if(!isAuthenticated||!userId)return;
+    try{
+      const saved=await updateAccountSettings(userId,{[key]:value});
+      setAccountSettings(saved);
+    }catch(error){
+      setAccountSettings(accountSettings);
+      Alert.alert('Nie zapisano ustawienia',error.message||'Spróbuj ponownie.');
+    }
   };
 
   const recommend=async()=>{
@@ -55,9 +77,9 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
 
     <Typography variant="eyebrow" style={s.sectionLabel}>POWIADOMIENIA</Typography>
     <View style={s.group}>
-      <Row icon="notifications-outline" title="Powiadomienia" subtitle="Główne powiadomienia aplikacji" right={<Switch value={push} onValueChange={setPush} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={push?c.pink:'#fff'}/>}/>
-      <Row icon="calendar-outline" title="Plany i wydarzenia" right={<Switch value={plans} onValueChange={setPlans} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={plans?c.pink:'#fff'}/>}/>
-      <Row icon="chatbubble-outline" title="Wiadomości" right={<Switch value={messages} onValueChange={setMessages} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={messages?c.pink:'#fff'}/>}/>
+      <Row icon="notifications-outline" title="Powiadomienia" subtitle="Główne powiadomienia aplikacji" right={<Switch value={push} onValueChange={value=>setAccountSetting('push_enabled',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={push?c.pink:'#fff'}/>}/>
+      <Row icon="calendar-outline" title="Plany i wydarzenia" right={<Switch value={plans} onValueChange={value=>setAccountSetting('plans_notifications',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={plans?c.pink:'#fff'}/>}/>
+      <Row icon="chatbubble-outline" title="Wiadomości" right={<Switch value={messages} onValueChange={value=>setAccountSetting('messages_notifications',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={messages?c.pink:'#fff'}/>}/>
     </View>
 
     <Typography variant="eyebrow" style={s.sectionLabel}>DOPASOWANIE POLKI</Typography>
