@@ -1,8 +1,9 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {Alert,Pressable,ScrollView,Share,StyleSheet,Switch,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
+import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './featurePreferences';
 
 const SHARE_URL='https://polka.app';
 
@@ -14,10 +15,26 @@ function Row({icon,title,subtitle,onPress,right,danger=false}){
   </Pressable>;
 }
 
-export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset}){
+export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange}){
   const [push,setPush]=useState(true);
   const [plans,setPlans]=useState(true);
   const [messages,setMessages]=useState(true);
+  const [features,setFeatures]=useState(defaultFeaturePreferences);
+
+  useEffect(()=>{
+    let alive=true;
+    loadFeaturePreferences().then(value=>{if(alive)setFeatures(value)});
+    return ()=>{alive=false};
+  },[]);
+
+  const setFeature=async(key,value)=>{
+    const next={...features,[key]:value};
+    setFeatures(next);
+    try{
+      const saved=await saveFeaturePreferences(next);
+      onFeaturePreferencesChange?.(saved);
+    }catch{}
+  };
 
   const recommend=async()=>{
     try{
@@ -39,6 +56,14 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
       <Row icon="notifications-outline" title="Powiadomienia" subtitle="Główne powiadomienia aplikacji" right={<Switch value={push} onValueChange={setPush} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={push?c.pink:'#fff'}/>}/>
       <Row icon="calendar-outline" title="Plany i wydarzenia" right={<Switch value={plans} onValueChange={setPlans} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={plans?c.pink:'#fff'}/>}/>
       <Row icon="chatbubble-outline" title="Wiadomości" right={<Switch value={messages} onValueChange={setMessages} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={messages?c.pink:'#fff'}/>}/>
+    </View>
+
+    <Typography variant="eyebrow" style={s.sectionLabel}>DOPASOWANIE POLKI</Typography>
+    <View style={s.group}>
+      <Row icon="heart-circle-outline" title="Polka Care i cykl" subtitle="Tracker, kalendarz i baza wiedzy" right={<Switch value={features.polkaCare} onValueChange={value=>setFeature('polkaCare',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.polkaCare?c.pink:'#fff'}/>}/>
+      <Row icon="calendar-number-outline" title="Cykl przy spotkaniach" subtitle="Dni do okresu i kontekst terminu" right={<Switch value={features.cycleMeetingContext} onValueChange={value=>setFeature('cycleMeetingContext',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.cycleMeetingContext?c.pink:'#fff'}/>}/>
+      <Row icon="sparkles-outline" title="Zodiak przy spotkaniach" subtitle="Luźny, rozrywkowy fallback" right={<Switch value={features.zodiacMeetingContext} onValueChange={value=>setFeature('zodiacMeetingContext',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.zodiacMeetingContext?c.pink:'#fff'}/>}/>
+      <Row icon="chatbubbles-outline" title="Grupa wsparcia w wiadomościach" subtitle="Seedowana rozmowa „Cykl i samopoczucie”" right={<Switch value={features.supportChat} onValueChange={value=>setFeature('supportChat',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.supportChat?c.pink:'#fff'}/>}/>
     </View>
 
     <Typography variant="eyebrow" style={s.sectionLabel}>PRYWATNOŚĆ I KONTO</Typography>
