@@ -1,5 +1,5 @@
 import React,{useMemo,useState} from 'react';
-import {Alert,Image,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {cities,people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
@@ -32,7 +32,7 @@ export default function DiscoverScreen(){
     setCreating(false);
   };
 
-  return <ScrollView contentContainerStyle={s.page}>
+  return <KeyboardAvoidingView style={{flex:1,backgroundColor:c.canvas}} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?8:0}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
     <PageHeading kicker="POLKA / PLANY" title="Co robimy?"/>
     <Typography style={s.lead}>Zaproponuj konkretny plan albo dołącz do dziewczyn, które już coś organizują.</Typography>
 
@@ -83,7 +83,7 @@ export default function DiscoverScreen(){
     {!visible.length&&<Surface><Typography variant="subtitle">Tu jest jeszcze pusto.</Typography><Typography style={s.muted}>Zmień filtr albo utwórz pierwszy plan w tym mieście.</Typography><Button title="+ Utwórz pierwszy plan" onPress={()=>setCreating(true)} style={{marginTop:sp.base}}/></Surface>}
 
     <Typography variant="caption" style={s.demo}>To nadal dane demonstracyjne. Lokalne utworzenie planu nie publikuje go w internecie, dopóki backend Polki nie zostanie podłączony i przetestowany.</Typography>
-  </ScrollView>;
+  </ScrollView></KeyboardAvoidingView>;
 }
 
 const s=StyleSheet.create({
