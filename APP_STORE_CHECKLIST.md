@@ -1,4 +1,4 @@
-# MyGirl — App Store launch gate (21 September 2026)
+# Polka — App Store launch gate (25 September 2026)
 
 **STATUS: NOT READY TO SUBMIT.** This is a local Expo demo, not a deployed social network. Demo reports are not sent to a moderator; demo account reset is NOT deletion of an online account. Do not imply otherwise in the UI, screenshots or store listing.
 
@@ -20,12 +20,12 @@
 
 ## HARD RELEASE BLOCKERS — complete before inviting real members
 
-- [ ] Create and connect a **separate** MyGirl Supabase project; apply all migrations in order, inspect errors and test RLS as two different authenticated members. NEVER run on MyCampus.
+- [ ] Create and connect a **separate** Polka Supabase project; apply all migrations in order, inspect errors and test RLS as two different authenticated members. NEVER run on MyCampus.
 - [ ] Implement actual auth/session handling and connect report/block/delete-post UI to the authenticated API adapter. Persist and refetch blocking, remove blocked content on both sides, test direct access by ID and messaging restrictions.
 - [ ] Build moderation operations: review queue accessible only to authorized staff, documented response procedure, abuse rate limiting, filtering of text/images BEFORE public display. New DB posts start `pending` and are not publicly visible until approved. Demo group/chat reports need their own protected database schema before those features go live.
 - [ ] Implement real account deletion UI for signed-in users that confirms the action and invokes the deployed `delete-account` server function. Confirm auth row, related records, authored posts, media and sessions are removed, including failed/partial deletion recovery. Audit new tables and image paths before enabling uploads.
 - [ ] If adding Apple login, implement Apple token revocation first; the current server function deliberately refuses to delete Apple-linked accounts rather than claim revocation occurred.
-- [ ] Publish actual MyGirl support contact, privacy policy, terms and community standards. Put links inside the app and in App Store Connect. Provide age eligibility, report turnaround and escalation procedures.
+- [ ] Publish actual Polka support contact, privacy policy, terms and community standards. Put links inside the app and in App Store Connect. Provide age eligibility, report turnaround and escalation procedures.
 - [ ] Replace stock demo portraits and fictional accounts with licensed media or consenting people; never market demo personas as real women.
 - [ ] Security review: storage policies and user-owned file paths, RLS, auth, admin permissions, data retention/deletion, audit logging and testing of blocked-user access.
 
@@ -33,8 +33,8 @@
 
 - [ ] Run `npm install`, `npx expo install --check`, `npx expo-doctor` and `npx expo export --platform ios`; resolve dependency issues. These have **not** been run here.
 - [ ] Test on a physical iPhone with a compatible development build, and on Android. Validate keyboard, long text, accessibility, back navigation, swiping, offline/network failures and image loading.
-- [ ] Replace handwritten tab bar with tested navigation and proper safe-area handling; check supported Expo SDK / Expo Go versions rather than assuming compatibility.
-- [ ] Add app icon, splash assets, real screenshots, store description, age rating, reviewer account, real support URL and Apple Developer/App Store Connect setup. Verify ownership of bundle IDs and configure signing.
+- [ ] Replace handwritten tab bar with tested navigation and proper safe-area handling; the information architecture is now Start / Plany / Grupy / Czaty / Profil, but the navigation implementation still needs production hardening.
+- [ ] Add app icon, splash assets and real screenshots. Store metadata draft is in `APP_STORE_METADATA_PL.md`; release steps are in `IOS_RELEASE_RUNBOOK.md`. Verify ownership/availability of `pl.polka.app`, create the App Store Connect record, add support/privacy URLs, reviewer account and signing.
 - [ ] Run TestFlight, App Privacy questionnaire, privacy manifests where required, and human review before submission.
 
 ### When the project is connected
