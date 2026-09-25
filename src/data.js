@@ -841,62 +841,36 @@ export const people=[
 ];
 
 export const initialPosts=[
-  {
-    "id": "post-01",
-    "author": "Maja",
-    "city": "Warszawa",
-    "body": "Kto ma ochotę dziś po 18 na matchę w centrum?",
-    "likes": 18
-  },
-  {
-    "id": "post-02",
-    "author": "Ola",
-    "city": "Kraków",
-    "body": "Szukam 2–3 dziewczyn na kino w piątek 🎬",
-    "likes": 14
-  },
-  {
-    "id": "post-03",
-    "author": "Natalia",
-    "city": "Gdańsk",
-    "body": "Spacer nad morzem + kawa w sobotę?",
-    "likes": 22
-  },
-  {
-    "id": "post-04",
-    "author": "Julia",
-    "city": "Wrocław",
-    "body": "Ktoś chętny na pilates i brunch w niedzielę?",
-    "likes": 17
-  },
-  {
-    "id": "post-05",
-    "author": "Kasia",
-    "city": "Poznań",
-    "body": "Polecicie fajny second hand w centrum?",
-    "likes": 31
-  },
-  {
-    "id": "post-06",
-    "author": "Wiktoria",
-    "city": "Łódź",
-    "body": "Girls night w sobotę — mamy jeszcze 2 miejsca 🪩",
-    "likes": 26
-  },
-  {
-    "id": "post-07",
-    "author": "Martyna",
-    "city": "Katowice",
-    "body": "Ktoś wybiera się na koncert w przyszłym tygodniu?",
-    "likes": 11
-  },
-  {
-    "id": "post-08",
-    "author": "Laura",
-    "city": "Warszawa",
-    "body": "Chcę zrobić mały book club, ktoś dołączy?",
-    "likes": 19
-  }
+  {id:'post-01',author:'Maja',city:'Warszawa',body:'Kto ma ochotę dziś po 18 na matchę w centrum?',likes:18,image:'https://images.unsplash.com/photo-1515823662972-da6a2e4d3002?w=1100&q=82'},
+  {id:'post-02',author:'Laura',city:'Warszawa',body:'Czy ktoś zna naprawdę dobry second hand na Mokotowie? Chcę zrobić rundkę w sobotę 👀',likes:34,image:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=1100&q=82'},
+  {id:'post-03',author:'Zuzia',city:'Warszawa',body:'Mam ochotę na pilates + brunch w weekend. Ktoś też?',likes:27,image:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1100&q=82'},
+  {id:'post-04',author:'Mia',city:'Warszawa',body:'Girls night w piątek? Myślę karaoke albo coś z muzyką na żywo 🪩',likes:41,image:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1100&q=82'},
+  {id:'post-05',author:'Daria',city:'Warszawa',body:'Szukam kogoś na foto-spacer po Pradze w złotej godzinie 📸',likes:24,image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&q=82'},
+  {id:'post-06',author:'Klara',city:'Warszawa',body:'Gdzie chodzicie pracować z laptopem, kiedy nie chce się siedzieć w domu?',likes:29},
+  {id:'post-07',author:'Malwina',city:'Warszawa',body:'Czy tylko ja mam milion pomysłów na projekty i zero ludzi do odbijania ich na żywo? 😅',likes:38},
+  {id:'post-08',author:'Nadia',city:'Warszawa',body:'Ktoś na spontaniczną kawę dzisiaj po 19?',likes:16},
+
+  {id:'post-09',author:'Ola',city:'Kraków',body:'Szukam 2–3 dziewczyn na kino w piątek 🎬',likes:14,image:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1100&q=82'},
+  {id:'post-10',author:'Sonia',city:'Kraków',body:'Kazimierz + kawa + spacer bez planu w sobotę?',likes:21,image:'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1100&q=82'},
+  {id:'post-11',author:'Hania',city:'Kraków',body:'Macie sprawdzone miejsca na brunch, gdzie da się długo siedzieć?',likes:25},
+
+  {id:'post-12',author:'Natalia',city:'Gdańsk',body:'Spacer nad morzem + kawa w sobotę?',likes:22,image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&q=82'},
+  {id:'post-13',author:'Sara',city:'Gdańsk',body:'Robimy mały book club. Bez spiny, jedna książka miesięcznie. Kto chce?',likes:33,image:'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=1100&q=82'},
+  {id:'post-14',author:'Ania',city:'Gdańsk',body:'Któraś chce wyskoczyć dziś na kawę we Wrzeszczu?',likes:17},
+
+  {id:'post-15',author:'Julia',city:'Wrocław',body:'Ktoś chętny na pilates i brunch w niedzielę?',likes:17,image:'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1100&q=82'},
+  {id:'post-16',author:'Nela',city:'Wrocław',body:'Szukam dziewczyn na luźny wine bar wieczorem 🍷',likes:28,image:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1100&q=82'},
+  {id:'post-17',author:'Iga',city:'Wrocław',body:'Polecicie fajne galerie albo wystawy na ten weekend?',likes:20},
+
+  {id:'post-18',author:'Kasia',city:'Poznań',body:'Polecicie fajny second hand na Jeżycach?',likes:31,image:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1100&q=82'},
+  {id:'post-19',author:'Kornelia',city:'Poznań',body:'Ktoś na mały koncert albo live set w piątek?',likes:23},
+
+  {id:'post-20',author:'Wiktoria',city:'Łódź',body:'Girls night w sobotę — mamy jeszcze 2 miejsca 🪩',likes:26,image:'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1100&q=82'},
+  {id:'post-21',author:'Bianka',city:'Łódź',body:'OFF Piotrkowska dziś wieczorem? Mogę zebrać małą ekipę.',likes:19},
+
+  {id:'post-22',author:'Martyna',city:'Katowice',body:'Ktoś wybiera się na koncert w przyszłym tygodniu?',likes:11,image:'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1100&q=82'},
+  {id:'post-23',author:'Dominika',city:'Katowice',body:'Nikiszowiec + kawa + spacer w sobotę po południu?',likes:18,image:'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=1100&q=82'},
+  {id:'post-24',author:'Rita',city:'Katowice',body:'Szukam spokojnej ekipy na książki, kawę i czasem kino.',likes:24}
 ];
 
 export const groups=[
