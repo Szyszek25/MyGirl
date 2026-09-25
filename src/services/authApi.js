@@ -77,6 +77,12 @@ export async function resetPassword(email){
   if(error)throw error;
 }
 
+export async function deleteAccount(){
+  const {data,error}=await supabase.functions.invoke('delete-account',{body:{confirm:'DELETE_MY_ACCOUNT'}});
+  if(error)throw error;
+  return data;
+}
+
 export async function changePassword(password){
   const {data,error}=await supabase.auth.updateUser({password});
   if(error)throw error;
