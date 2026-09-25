@@ -1,13 +1,13 @@
-# MyGirl — osobny Supabase (Free)
+# Polka — Supabase (Free)
 
-Status: repo przygotowane, ale NOWY projekt Supabase nie został jeszcze podłączony. Nie stosowano migracji, nie uruchamiano testów RLS ani prawdziwego logowania. Nie używać bazy MyCampus.
+Status: dedykowany projekt `Polka` (`jnygupsfbkpqvoewrxpf`, `eu-central-1`) jest utworzony i migracje 001–007 są wdrożone. Expo używa Supabase Auth, Storage i Realtime. Nie używać bazy MyCampus.
 
 ## Pierwsze kroki
-1. Utwórz NOWY projekt `MyGirl` w oddzielnej organizacji/konto Supabase Free. Region dobierz świadomie do odbiorców w Polsce (np. dostępny region UE). Nie przesyłaj nikomu hasła do konta ani database password w czacie.
-2. Połącz nowe konto/projekt przez integrację Supabase w ChatGPT, tak aby projekt był jednoznacznie widoczny. Nie modyfikuj żadnego innego projektu.
-3. Najpierw przejrzyj SQL w `supabase/migrations/`, wykonaj obie migracje po kolei tylko na nowym projekcie. Zweryfikuj polityki RLS przy pomocy dwóch kont testowych, w tym blokad w obie strony. Dla profili pozostałych osób nie eksponuj e-maila ani dokładnej lokalizacji.
-4. Skopiuj `.env.example` do `.env.local`; ustaw wyłącznie URL i publishable key z panelu nowego projektu. Nie commituj `.env.local` ani kluczy secret/service_role/DB password. Klucz publishable jest publiczny, więc każda tabela i bucket wymagają prawidłowego RLS.
-5. Dopiero po sprawdzeniu migracji dodaj kompatybilne zależności przez `npx expo install @supabase/supabase-js react-native-url-polyfill expo-sqlite`, skonfiguruj klienta, sesję i przepływ auth. Nie udawaj działającego logowania przed testami urządzenia.
+1. Projekt Supabase: `Polka`, region `eu-central-1`, ref `jnygupsfbkpqvoewrxpf`.
+2. Klient Expo używa publishable key z `.env.example`; nigdy nie umieszczaj `service_role`, secret key ani hasła DB w aplikacji.
+3. Migracje w `supabase/migrations/` są źródłem prawdy dla schematu. Każdą kolejną zmianę zapisuj jako nową migrację i stosuj przez Supabase.
+4. OAuth Google wymaga włączenia providera w Supabase Auth oraz Google Client ID/Secret. Redirect aplikacji: `polka://auth/callback`; reset hasła: `polka://auth/reset-password`; callback Google do Supabase: `https://jnygupsfbkpqvoewrxpf.supabase.co/auth/v1/callback`.
+5. Po zmianach Auth/Storage/Realtime zawsze sprawdzaj RLS na dwóch realnych kontach testowych.
 
 ## Zakres przygotowanego SQL
 - `profiles`: podstawowe, publicznie odkrywalne dopiero po onboardingu, bez e-maili i geolokalizacji.
