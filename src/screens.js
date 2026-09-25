@@ -24,6 +24,7 @@ import {Button,Chip,Field,PageHeading,Surface,Typography} from './ui';
 import {supabase} from './lib/supabase';
 import {createChatRealtime,newClientMessageId} from './services/chatRealtime';
 import {addComment,createPost,createStory,deletePost,editPost,loadComments,loadFeed,loadStories,markStoryViewed,togglePostLike} from './services/socialApi';
+import {searchPeople,sendFriendRequest} from './services/friendsApi';
 const W=Dimensions.get('window').width;
 const avatar=(photo,size=48)=><Image source={{uri:photo}} style={{width:size,height:size,borderRadius:size/2,backgroundColor:c.blush}}/>;
 const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
@@ -35,6 +36,12 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
   const [remotePeople,setRemotePeople]=useState([]);
   const [filtersOpen,setFiltersOpen]=useState(false);
   const [selectedTags,setSelectedTags]=useState([]);
+  const [searchOpen,setSearchOpen]=useState(false);
+  const [searchText,setSearchText]=useState('');
+  const [searchResults,setSearchResults]=useState([]);
+  const [searching,setSearching]=useState(false);
+  const [profileOpen,setProfileOpen]=useState(null);
+  const [sentRequests,setSentRequests]=useState([]);
   useEffect(()=>{
     if(!sessionUserId){setRemotePeople([]);return;}
     let alive=true;
@@ -138,13 +145,29 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
     onPanResponderMove:Animated.event([null,{dx:xy.x,dy:xy.y}],{useNativeDriver:false}),
     onPanResponderRelease:(_,g)=>Math.abs(g.dx)>88?decide(g.dx>0?1:-1):Animated.spring(xy,{toValue:{x:0,y:0},friction:7,useNativeDriver:true}).start()
   }),[person?.id]);
+  const runSearch=async value=>{
+    setSearchText(value);
+    if(!sessionUserId||value.trim().length<2){setSearchResults([]);return;}
+    setSearching(true);
+    try{setSearchResults(await searchPeople(value,sessionUserId,city))}
+    catch{setSearchResults([])}
+    finally{setSearching(false)}
+  };
+  const addFriend=async target=>{
+    if(!sessionUserId)return Alert.alert('Zaloguj się','Znajomi online wymagają konta.');
+    try{
+      await sendFriendRequest(sessionUserId,target.id);
+      setSentRequests(prev=>prev.includes(target.id)?prev:[...prev,target.id]);
+    }catch(error){Alert.alert('Nie wysłano zaproszenia',error.message||'Spróbuj ponownie.');}
+  };
+
   const confirmBlock=()=>person&&Alert.alert(`Zablokować ${person.name}?`,'Profil zniknie z odkrywania.',[
     {text:'Anuluj',style:'cancel'},{text:'Zablokuj',style:'destructive',onPress:()=>onBlock(person.id)}
   ]);
 
   const stack=[0,1,2].map(offset=>filtered.length?filtered[(index+offset)%filtered.length]:null).filter(Boolean);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page,{paddingBottom:110}]}>
-    <View style={s.discoverControls}><View style={{flex:1}}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography>{selectedTags.length>0&&<Typography style={s.activeFilterHint}>{selectedTags.length} aktywne filtry</Typography>}</View><Pressable onPress={()=>setFiltersOpen(true)} style={s.filterButton} accessibilityLabel="Filtry"><Ionicons name="options-outline" size={22} color={selectedTags.length?c.pink:c.ink}/></Pressable></View>
+    <View style={s.discoverControls}><View style={{flex:1}}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography>{selectedTags.length>0&&<Typography style={s.activeFilterHint}>{selectedTags.length} aktywne filtry</Typography>}</View><Pressable onPress={()=>setSearchOpen(true)} style={s.filterButton} accessibilityLabel="Szukaj koleżanki"><Ionicons name="search-outline" size={22} color={c.ink}/></Pressable><Pressable onPress={()=>setFiltersOpen(true)} style={s.filterButton} accessibilityLabel="Filtry"><Ionicons name="options-outline" size={22} color={selectedTags.length?c.pink:c.ink}/></Pressable></View>
     {person?<>
       <View style={s.stackWrap}>
         {stack.slice().reverse().map((p,revIndex)=>{
@@ -160,7 +183,8 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
             <Image source={{uri:p.photo}} style={s.swipePhoto} resizeMode="cover"/>
             <View style={s.cardScrim}/>
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
-            <View style={s.cardIdentity}>
+            <Pressable onPress={()=>isTop&&setProfileOpen(p)} style={StyleSheet.absoluteFillObject}/>
+            <View pointerEvents="none" style={s.cardIdentity}>
               <Typography style={s.cardName}>{p.name}{p.age?`, ${p.age}`:''}</Typography>
               <Typography style={s.cardMeta}>{p.city} · {(p.tags||[]).slice(0,2).join(' · ')}</Typography>
             </View>
@@ -198,6 +222,36 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
       <Section title={person.prompt}><Typography style={{fontSize:19,fontFamily:f.semibold}}>{person.answer}</Typography></Section>
       <View style={s.safetyRow}><TextAction icon="ban-outline" title="Zablokuj" danger onPress={confirmBlock}/><TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'profile',id:person.id,label:`Profil: ${person.name}`})}/></View>
     </>:<Surface><Typography variant="subtitle">Brak profili</Typography><Typography style={{color:c.muted}}>Zmień miasto lub sprawdź później.</Typography></Surface>}
+    <Modal visible={searchOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setSearchOpen(false)}>
+      <View style={s.searchRoot}>
+        <View style={s.searchHeader}><Pressable onPress={()=>setSearchOpen(false)} style={s.fullChatIcon}><Ionicons name="close" size={24} color={c.ink}/></Pressable><Typography style={s.searchTitle}>Znajdź koleżankę</Typography><View style={s.fullChatIcon}/></View>
+        <View style={s.searchBox}><Ionicons name="search-outline" size={20} color={c.muted}/><TextInput autoFocus value={searchText} onChangeText={runSearch} placeholder="Wpisz imię…" placeholderTextColor={c.muted} style={s.searchInput}/>{searching&&<ActivityIndicator size="small" color={c.pink}/>}</View>
+        <FlatList data={searchResults} keyExtractor={item=>item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={{paddingBottom:40}} ListEmptyComponent={searchText.trim().length>=2&&!searching?<Typography style={s.searchEmpty}>Nie znalazłam nikogo o tym imieniu w {city}.</Typography>:null} renderItem={({item})=><Pressable onPress={()=>setProfileOpen(item)} style={s.searchResult}>
+          {item.photo?avatar(item.photo,48):<View style={[s.commentAvatar,{width:48,height:48,borderRadius:24}]}><Ionicons name="person" size={20} color={c.pink}/></View>}
+          <View style={{flex:1}}><Typography style={s.searchName}>{item.name}</Typography><Typography style={s.searchMeta}>{item.city}{item.headline?' · '+item.headline:''}</Typography></View>
+          <Ionicons name="chevron-forward" size={19} color={c.muted}/>
+        </Pressable>}/>
+      </View>
+    </Modal>
+
+    <Modal visible={!!profileOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setProfileOpen(null)}>
+      {!!profileOpen&&<View style={s.personProfileRoot}>
+        <View style={s.searchHeader}><Pressable onPress={()=>setProfileOpen(null)} style={s.fullChatIcon}><Ionicons name="close" size={24} color={c.ink}/></Pressable><Typography style={s.searchTitle}>Profil</Typography><Pressable onPress={()=>onReport?.({kind:'profile',id:profileOpen.id,label:`Profil: ${profileOpen.name}`})} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={22} color={c.ink}/></Pressable></View>
+        <ScrollView contentContainerStyle={s.personProfileContent}>
+          <Image source={{uri:profileOpen.photo||people[0]?.photo}} style={s.personProfilePhoto}/>
+          <Typography style={s.personProfileName}>{profileOpen.name}</Typography>
+          <Typography style={s.personProfileCity}>{profileOpen.city}</Typography>
+          {!!profileOpen.headline&&<Typography style={s.personProfileHeadline}>{profileOpen.headline}</Typography>}
+          {!!profileOpen.subtitle&&<Typography style={s.personProfileSubtitle}>{profileOpen.subtitle}</Typography>}
+          {!!profileOpen.bio&&<Typography style={s.personProfileBio}>{profileOpen.bio}</Typography>}
+          <View style={s.personProfileActions}>
+            <Button title={sentRequests.includes(profileOpen.id)?'Zaproszenie wysłane':'Dodaj do znajomych'} disabled={sentRequests.includes(profileOpen.id)} onPress={()=>addFriend(profileOpen)} icon="person-add-outline" style={{flex:1}}/>
+            {onMessage&&profileOpen.remote&&<Pressable onPress={()=>{setProfileOpen(null);setSearchOpen(false);onMessage(profileOpen.id)}} style={s.personMessage}><Ionicons name="chatbubble-ellipses" size={22} color={c.pink}/></Pressable>}
+          </View>
+        </ScrollView>
+      </View>}
+    </Modal>
+
     <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={()=>setFiltersOpen(false)}>
       <View style={s.filterBackdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={()=>setFiltersOpen(false)}/>
@@ -749,6 +803,25 @@ const s=StyleSheet.create({
   discoverHint:{fontFamily:f.semibold,fontSize:14,color:c.muted},
   activeFilterHint:{fontFamily:f.semibold,fontSize:11,color:c.pink,marginTop:2},
   filterButton:{width:42,height:42,borderRadius:21,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
+  searchRoot:{flex:1,backgroundColor:c.canvas},
+  searchHeader:{height:60,paddingHorizontal:12,backgroundColor:c.white,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
+  searchTitle:{fontFamily:f.bold,fontSize:17,color:c.ink},
+  searchBox:{margin:sp.lg,height:50,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.white,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:12},
+  searchInput:{flex:1,fontFamily:f.regular,fontSize:15,color:c.ink},
+  searchResult:{minHeight:70,paddingHorizontal:sp.lg,backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,flexDirection:'row',alignItems:'center',gap:12},
+  searchName:{fontFamily:f.bold,fontSize:15,color:c.ink},
+  searchMeta:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:3},
+  searchEmpty:{fontFamily:f.regular,fontSize:13,color:c.muted,textAlign:'center',padding:30},
+  personProfileRoot:{flex:1,backgroundColor:c.canvas},
+  personProfileContent:{padding:sp.lg,paddingBottom:60,alignItems:'center'},
+  personProfilePhoto:{width:'100%',height:420,borderRadius:28,backgroundColor:c.blush},
+  personProfileName:{fontFamily:f.bold,fontSize:34,letterSpacing:-1.2,color:c.ink,marginTop:18},
+  personProfileCity:{fontFamily:f.semibold,fontSize:13,color:c.muted,marginTop:4},
+  personProfileHeadline:{fontFamily:f.bold,fontSize:18,color:c.pink,textAlign:'center',marginTop:12},
+  personProfileSubtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,textAlign:'center',marginTop:4},
+  personProfileBio:{fontFamily:f.regular,fontSize:15,lineHeight:22,color:c.ink,textAlign:'center',marginTop:14},
+  personProfileActions:{width:'100%',flexDirection:'row',gap:10,alignItems:'center',marginTop:22},
+  personMessage:{width:52,height:52,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.white,alignItems:'center',justifyContent:'center'},
   filterBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.3)'},
   filterSheet:{backgroundColor:c.white,borderTopLeftRadius:28,borderTopRightRadius:28,padding:sp.lg,paddingBottom:28,maxHeight:'76%'},
   filterHandle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:16},
