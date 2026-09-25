@@ -12,7 +12,10 @@ function TextAction({icon,title,onPress,danger=false}){return <Pressable accessi
 
 export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport}){
   const [index,setIndex]=useState(0),[saved,setSaved]=useState([]);
-  const filtered=people.filter(p=>!blockedIds.includes(p.id)&&p.city===city);
+  const [filtersOpen,setFiltersOpen]=useState(false);
+  const [selectedTags,setSelectedTags]=useState([]);
+  const availableTags=useMemo(()=>Array.from(new Set(people.filter(p=>p.city===city).flatMap(p=>p.tags||[]))).sort(),[city]);
+  const filtered=people.filter(p=>!blockedIds.includes(p.id)&&p.city===city&&(selectedTags.length===0||selectedTags.some(tag=>(p.tags||[]).includes(tag))));
   const person=filtered.length?filtered[index%filtered.length]:null;
   const xy=useRef(new Animated.ValueXY()).current;
   const vibeFor=p=>{
@@ -37,7 +40,7 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport})
 
   const stack=[0,1,2].map(offset=>filtered.length?filtered[(index+offset)%filtered.length]:null).filter(Boolean);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page,{paddingBottom:110}]}>
-    <View style={s.discoverControls}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography><Ionicons name="options-outline" size={22} color={c.ink}/></View>
+    <View style={s.discoverControls}><View style={{flex:1}}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography>{selectedTags.length>0&&<Typography style={s.activeFilterHint}>{selectedTags.length} aktywne filtry</Typography>}</View><Pressable onPress={()=>setFiltersOpen(true)} style={s.filterButton} accessibilityLabel="Filtry"><Ionicons name="options-outline" size={22} color={selectedTags.length?c.pink:c.ink}/></Pressable></View>
     {person?<>
       <View style={s.stackWrap}>
         {stack.slice().reverse().map((p,revIndex)=>{
@@ -69,6 +72,21 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport})
       <Section title={person.prompt}><Typography style={{fontSize:19,fontFamily:f.semibold}}>{person.answer}</Typography></Section>
       <View style={s.safetyRow}><TextAction icon="ban-outline" title="Zablokuj" danger onPress={confirmBlock}/><TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'profile',id:person.id,label:`Profil: ${person.name}`})}/></View>
     </>:<Surface><Typography variant="subtitle">Brak profili</Typography><Typography style={{color:c.muted}}>Zmień miasto lub sprawdź później.</Typography></Surface>}
+    <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={()=>setFiltersOpen(false)}>
+      <View style={s.filterBackdrop}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setFiltersOpen(false)}/>
+        <View style={s.filterSheet}>
+          <View style={s.filterHandle}/>
+          <View style={s.filterHeader}><Typography style={s.filterTitle}>Filtry</Typography><Pressable onPress={()=>setFiltersOpen(false)} style={s.filterClose}><Ionicons name="close" size={23} color={c.ink}/></Pressable></View>
+          <Typography style={s.filterSectionTitle}>Zainteresowania</Typography>
+          <View style={s.filterChips}>{availableTags.map(tag=><Chip key={tag} label={tag} selected={selectedTags.includes(tag)} onPress={()=>{setSelectedTags(prev=>prev.includes(tag)?prev.filter(v=>v!==tag):[...prev,tag]);setIndex(0)}}/>)}</View>
+          <View style={s.filterFooter}>
+            <Pressable onPress={()=>{setSelectedTags([]);setIndex(0)}} style={s.filterReset}><Typography style={s.filterResetText}>Wyczyść</Typography></Pressable>
+            <Pressable onPress={()=>setFiltersOpen(false)} style={s.filterApply}><Typography style={s.filterApplyText}>Pokaż {filtered.length}</Typography></Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
   </ScrollView>;
 }
 
@@ -301,6 +319,21 @@ const s=StyleSheet.create({
   postInput:{minHeight:150,fontFamily:f.regular,fontSize:20,lineHeight:28,color:c.ink,textAlignVertical:'top'},
   discoverControls:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8},
   discoverHint:{fontFamily:f.semibold,fontSize:14,color:c.muted},
+  activeFilterHint:{fontFamily:f.semibold,fontSize:11,color:c.pink,marginTop:2},
+  filterButton:{width:42,height:42,borderRadius:21,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
+  filterBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.3)'},
+  filterSheet:{backgroundColor:c.white,borderTopLeftRadius:28,borderTopRightRadius:28,padding:sp.lg,paddingBottom:28,maxHeight:'76%'},
+  filterHandle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:16},
+  filterHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:18},
+  filterTitle:{fontFamily:f.bold,fontSize:24,color:c.ink},
+  filterClose:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center'},
+  filterSectionTitle:{fontFamily:f.bold,fontSize:14,color:c.ink,marginBottom:10},
+  filterChips:{flexDirection:'row',flexWrap:'wrap'},
+  filterFooter:{flexDirection:'row',gap:10,marginTop:12},
+  filterReset:{height:50,paddingHorizontal:18,borderRadius:16,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
+  filterResetText:{fontFamily:f.bold,fontSize:14,color:c.ink},
+  filterApply:{height:50,flex:1,borderRadius:16,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
+  filterApplyText:{fontFamily:f.bold,fontSize:14,color:c.white},
   stackWrap:{height:520,marginTop:8,marginBottom:12,position:'relative'},
   swipeCard:{position:'absolute',left:0,right:0,top:0,height:490,borderRadius:28,overflow:'hidden',backgroundColor:c.white,borderWidth:1,borderColor:c.line,shadowColor:'#27151D',shadowOpacity:.12,shadowRadius:18,shadowOffset:{width:0,height:10},elevation:4},
   stackCard:{pointerEvents:'none'},
