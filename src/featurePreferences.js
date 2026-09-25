@@ -6,6 +6,7 @@ export const defaultFeaturePreferences={
   polkaCare:true,
   cycleMeetingContext:true,
   zodiacMeetingContext:true,
+  zodiacSign:'Lew',
   supportChat:true
 };
 
