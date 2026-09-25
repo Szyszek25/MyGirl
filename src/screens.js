@@ -19,6 +19,7 @@ import {ActivityIndicator,Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoid
 import {Ionicons} from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import {useVideoPlayer,VideoView} from 'expo-video';
+import {AudioModule,RecordingPresets,setAudioModeAsync,useAudioPlayer,useAudioRecorder,useAudioRecorderState} from 'expo-audio';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {people,groups,cities} from './data';
 import {Button,Chip,Field,PageHeading,Surface,Typography} from './ui';
@@ -557,6 +558,20 @@ export function GroupsScreen({onReport}){
     ListFooterComponent={<Typography variant="caption" style={s.disclaimer}>Grupy i zgłoszenia demonstracyjne. Brak serwera i moderacji grup.</Typography>}/>;
 }
 
+function VoiceMessageBubble({message,outgoing=false}){
+  const player=useAudioPlayer(message.mediaUrl||null);
+  const seconds=Math.max(1,Math.round((message.durationMs||message.duration_ms||0)/1000));
+  const play=()=>{
+    if(!message.mediaUrl)return;
+    try{player.seekTo(0);player.play();}catch{}
+  };
+  return <Pressable onPress={play} disabled={!message.mediaUrl} style={[s.voiceBubble,outgoing&&s.voiceBubbleOutgoing]}>
+    <View style={[s.voicePlay,outgoing&&s.voicePlayOutgoing]}><Ionicons name="play" size={17} color={outgoing?c.pink:c.white}/></View>
+    <View style={s.voiceWave}>{[10,18,13,23,16,27,12,20,15,24,11].map((h,i)=><View key={i} style={[s.voiceBar,{height:h},outgoing&&s.voiceBarOutgoing]}/>)}</View>
+    <Typography style={[s.voiceDuration,outgoing&&s.voiceDurationOutgoing]}>{seconds}s</Typography>
+  </Pressable>;
+}
+
 export function ChatsScreen({sessionUserId=null,initialConversationId=null,blockedIds=[],supportChat=true,onReport,onClose}){
   const [active,setActive]=useState(null);
   const initialOpened=useRef(false);
@@ -565,6 +580,8 @@ export function ChatsScreen({sessionUserId=null,initialConversationId=null,block
   const [remoteRooms,setRemoteRooms]=useState([]);
   const [remoteMessages,setRemoteMessages]=useState([]);
   const [sending,setSending]=useState(false);
+  const audioRecorder=useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState=useAudioRecorderState(audioRecorder,200);
   const chatApi=useMemo(()=>sessionUserId?createChatRealtime(supabase):null,[sessionUserId]);
 
   const demoChats=[
@@ -657,6 +674,41 @@ export function ChatsScreen({sessionUserId=null,initialConversationId=null,block
     return ()=>{alive=false;unsubscribe?.();};
   },[active?.id,active?.remote,chatApi]);
 
+  const startVoice=async()=>{
+    if(!active?.remote||!chatApi||!sessionUserId||sending)return;
+    try{
+      const permission=await AudioModule.requestRecordingPermissionsAsync();
+      if(!permission.granted){
+        Alert.alert('Mikrofon','Włącz dostęp do mikrofonu, aby nagrywać głosówki.');
+        return;
+      }
+      await setAudioModeAsync({playsInSilentMode:true,allowsRecording:true});
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    }catch(error){Alert.alert('Nie udało się rozpocząć nagrania',error.message||'Spróbuj ponownie.');}
+  };
+
+  const stopVoice=async()=>{
+    if(!recorderState.isRecording||sending)return;
+    const duration=Math.max(250,recorderState.durationMillis||0);
+    setSending(true);
+    try{
+      await audioRecorder.stop();
+      const uri=audioRecorder.uri;
+      await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});
+      if(!uri)throw new Error('Nie udało się odczytać nagrania.');
+      const sent=await chatApi.sendVoice({
+        roomId:active.id,
+        senderId:sessionUserId,
+        uri,
+        durationMs:duration,
+        clientMessageId:newClientMessageId()
+      });
+      setRemoteMessages(prev=>prev.some(item=>item.id===sent.id)?prev:[...prev,sent]);
+    }catch(error){Alert.alert('Nie wysłano głosówki',error.message||'Spróbuj ponownie.');}
+    finally{setSending(false);}
+  };
+
   const send=async()=>{
     if(!active||!draft.trim()||sending)return;
     const body=draft.trim();
@@ -680,7 +732,10 @@ export function ChatsScreen({sessionUserId=null,initialConversationId=null,block
         id:message.id,
         side:message.sender_id===sessionUserId?'out':'in',
         author:message.sender_id===sessionUserId?'Ty':active.name,
-        body:message.body
+        body:message.body,
+        messageType:message.message_type||'text',
+        mediaUrl:message.media_url||null,
+        durationMs:message.duration_ms||null
       }))
     : (seededChatMessages[active?.id]||[
         {id:'demo-1',side:'in',author:active?.name||'Polka',body:'Hej! Miło Cię poznać 🌸'},
@@ -699,23 +754,24 @@ export function ChatsScreen({sessionUserId=null,initialConversationId=null,block
       <ScrollView style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
         <View style={s.dayPill}><Typography style={s.dayText}>{active.remote?'Realtime':'Dzisiaj'}</Typography></View>
         {visibleMessages.map(message=>message.side==='out'
-          ? <View key={message.id} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View></View>
+          ? <View key={message.id} style={s.outgoingWrap}>{message.messageType==='voice'?<VoiceMessageBubble message={message} outgoing/>:<View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}</View>
           : <View key={message.id} style={s.incomingMessageRow}>
               {active.group&&<Image source={{uri:supportAuthorPhoto(message.author)}} style={s.groupMessageAvatar}/>}
               <View style={s.incomingMessageBody}>
                 {active.group&&<Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
-                <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>
+                {message.messageType==='voice'?<VoiceMessageBubble message={message}/>:<View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>}
               </View>
             </View>)}
         {!active.remote&&(messages[active.id]||[]).map((message,i)=><View key={'local-'+i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
       </ScrollView>
 
       <View style={s.fullComposer}>
-        <Pressable style={s.attachButton}><Ionicons name="add" size={24} color={c.pink}/></Pressable>
-        <TextInput value={draft} onChangeText={setDraft} placeholder="Napisz wiadomość…" placeholderTextColor={c.muted} accessibilityLabel="Wiadomość" multiline maxLength={1200} style={s.fullMessageInput}/>
-        <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()||sending} onPress={send} style={[s.fullSend,(!draft.trim()||sending)&&{opacity:.35}]}>
-          <Ionicons name="arrow-up" color={c.white} size={21}/>
-        </Pressable>
+        {recorderState.isRecording
+          ? <View style={s.recordingState}><View style={s.recordingDot}/><Typography style={s.recordingText}>Nagrywanie {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Typography></View>
+          : <TextInput value={draft} onChangeText={setDraft} placeholder="Napisz wiadomość…" placeholderTextColor={c.muted} accessibilityLabel="Wiadomość" multiline maxLength={1200} style={s.fullMessageInput}/>}
+        {!draft.trim()&&active.remote
+          ? <Pressable accessibilityRole="button" accessibilityLabel={recorderState.isRecording?'Zatrzymaj i wyślij głosówkę':'Nagraj głosówkę'} disabled={sending} onPress={recorderState.isRecording?stopVoice:startVoice} style={[s.voiceRecordButton,recorderState.isRecording&&s.voiceRecordButtonActive,sending&&{opacity:.4}]}><Ionicons name={recorderState.isRecording?'stop':'mic'} color={c.white} size={20}/></Pressable>
+          : <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()||sending} onPress={send} style={[s.fullSend,(!draft.trim()||sending)&&{opacity:.35}]}><Ionicons name="arrow-up" color={c.white} size={21}/></Pressable>}
       </View>
     </KeyboardAvoidingView>;
   }
@@ -940,5 +996,19 @@ const s=StyleSheet.create({
   fullComposer:{paddingHorizontal:12,paddingTop:8,paddingBottom:10,flexDirection:'row',alignItems:'flex-end',gap:8,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,backgroundColor:c.white},
   attachButton:{width:40,height:40,borderRadius:20,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
   fullMessageInput:{flex:1,maxHeight:120,minHeight:42,borderRadius:21,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,paddingHorizontal:14,paddingTop:10,paddingBottom:10,fontFamily:f.regular,fontSize:15,color:c.ink,textAlignVertical:'center'},
-  fullSend:{width:40,height:40,borderRadius:20,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'}
+  fullSend:{width:40,height:40,borderRadius:20,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
+  voiceRecordButton:{width:42,height:42,borderRadius:21,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
+  voiceRecordButtonActive:{backgroundColor:'#9A1D45'},
+  recordingState:{flex:1,height:42,borderRadius:21,backgroundColor:c.blush,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:14},
+  recordingDot:{width:9,height:9,borderRadius:5,backgroundColor:c.pink},
+  recordingText:{fontFamily:f.bold,fontSize:13,color:c.pink},
+  voiceBubble:{minWidth:190,maxWidth:260,height:48,borderRadius:20,borderTopLeftRadius:6,backgroundColor:c.white,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:10},
+  voiceBubbleOutgoing:{backgroundColor:c.pink,borderColor:c.pink,borderTopLeftRadius:20,borderTopRightRadius:6},
+  voicePlay:{width:30,height:30,borderRadius:15,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
+  voicePlayOutgoing:{backgroundColor:c.white},
+  voiceWave:{flex:1,height:28,flexDirection:'row',alignItems:'center',gap:3},
+  voiceBar:{width:3,borderRadius:2,backgroundColor:c.pink,opacity:.8},
+  voiceBarOutgoing:{backgroundColor:c.white},
+  voiceDuration:{fontFamily:f.bold,fontSize:10,color:c.muted},
+  voiceDurationOutgoing:{color:c.white}
 });
