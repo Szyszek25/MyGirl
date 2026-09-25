@@ -193,7 +193,11 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
   const [active,setActive]=useState(null),[draft,setDraft]=useState(''),[messages,setMessages]=useState({});
   const chats=[
     {id:'maja',name:'Maja',photo:people[0].photo,last:'Hej! Widzimy się jutro? 💗',time:'18:42',unread:2},
-    {id:'group',name:'Coffee Girls',photo:people[1].photo,last:'Ola: mam stolik na 18:30',time:'17:10',unread:5}
+    {id:'meet-matcha',name:'Matcha + spacer',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&q=80',last:'Maja: widzimy się przy wejściu o 17:30 ☕',time:'18:15',unread:4},
+    {id:'meet-karaoke',name:'Girls night + karaoke',photo:'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=300&q=80',last:'Natalia: mamy jeszcze dwa miejsca 🎤',time:'17:48',unread:7},
+    {id:'group',name:'Coffee Girls',photo:people[1].photo,last:'Ola: mam stolik na 18:30',time:'17:10',unread:5},
+    {id:'meet-pilates',name:'Pilates + brunch',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&q=80',last:'Klara: pamiętajcie o matach 🧘‍♀️',time:'15:22',unread:1},
+    {id:'meet-books',name:'Book club + kawa',photo:'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80',last:'Sara: wrzucam lokalizację kawiarni',time:'wczoraj',unread:0}
   ].filter(chat=>!blockedIds.includes(chat.id));
 
   const send=()=>{
