@@ -89,7 +89,7 @@ function PolkaApp(){
     Promise.all([getSession(),loadFeaturePreferences(),Linking.getInitialURL()]).then(async([session,prefs,url])=>{
       if(!alive)return;
       setFeaturePreferences(prefs);
-      if(url)await handleAuthCallback(url).catch(()=>null);
+      if(url){await handleAuthCallback(url).catch(()=>null);if(url.includes('reset-password'))setResetPasswordOpen(true);}
       const latest=await getSession();
       await syncSession(latest||session);
     }).catch(()=>{
@@ -98,7 +98,7 @@ function PolkaApp(){
 
     const unsubAuth=onAuthStateChange((_event,session)=>{void syncSession(session)});
     const linkSub=Linking.addEventListener('url',({url})=>{
-      void handleAuthCallback(url).catch(error=>Alert.alert('Logowanie',error.message||'Nie udało się dokończyć logowania.'));
+      void handleAuthCallback(url).then(()=>{if(url.includes('reset-password'))setResetPasswordOpen(true)}).catch(error=>Alert.alert('Logowanie',error.message||'Nie udało się dokończyć logowania.'));
     });
     return ()=>{alive=false;unsubAuth?.();linkSub.remove();};
   },[]);
