@@ -6,17 +6,18 @@ import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
 import {Ionicons} from '@expo/vector-icons';
 import Onboarding from './src/Onboarding';
 import NativeProfile from './src/NativeProfile';
+import SettingsScreen from './src/SettingsScreen';
 import PartnerPanel from './src/PartnerPanel';
 import ShiftTransition from './src/ShiftTransition';
 import DiscoverScreen from './src/DiscoverScreen';
-import {CommunityScreen,ChatsScreen} from './src/screens';
+import {CommunityScreen,ChatsScreen,DiscoverScreen as PeopleDiscoverScreen} from './src/screens';
 import ClubsMeetupsScreen from './src/ClubsMeetupsScreen';
 import {ReportForm,SafetyCenter} from './src/Safety';
 import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localProfile';
 import {initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
-const tabs=[{key:'Start',icon:'home-outline',active:'home'},{key:'Plany',icon:'calendar-outline',active:'calendar'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Czaty',icon:'chatbubble-outline',active:'chatbubble'},{key:'Profil',icon:'person-outline',active:'person'}];
+const tabs=[{key:'Start',icon:'home-outline',active:'home'},{key:'Poznaj',icon:'heart-outline',active:'heart'},{key:'Plany',icon:'calendar-outline',active:'calendar'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Profil',icon:'person-outline',active:'person'}];
 
 export default function App(){return <SafeAreaProvider><PolkaApp/></SafeAreaProvider>}
 function PolkaApp(){
@@ -30,6 +31,8 @@ function PolkaApp(){
   const [reportTarget,setReportTarget]=useState(null);
   const [safetyOpen,setSafetyOpen]=useState(false);
   const [partnerOpen,setPartnerOpen]=useState(false);
+  const [settingsOpen,setSettingsOpen]=useState(false);
+  const [messagesOpen,setMessagesOpen]=useState(false);
   const [posts,setPosts]=useState(initialPosts);
   const [session,setSession]=useState(0);
   useEffect(()=>{
@@ -49,19 +52,21 @@ function PolkaApp(){
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
     setAccount(null);setTab('Start');setBlockedIds([]);setReports([]);
-    setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);
+    setReportTarget(null);setSafetyOpen(false);setPartnerOpen(false);setSettingsOpen(false);setMessagesOpen(false);
     setPosts(initialPosts);setSession(v=>v+1);
   };
   if(!loaded||booting)return <View style={s.safe}/>;
   if(!account)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={saveProfile}/></SafeAreaView>;
-  const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen;
+  const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!settingsOpen&&!messagesOpen;
   const clubsVisible=tab==='Grupy'&&showTabs;
   const content=reportTarget?
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
     safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
     partnerOpen?<PartnerPanel onClose={()=>setPartnerOpen(false)}/>:
-    ({'Start':<CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/>,'Plany':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Czaty':<ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/>,'Profil':<NativeProfile account={account} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)}/>})[tab];
-  const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':tab;
+    settingsOpen?<SettingsScreen onClose={()=>setSettingsOpen(false)} onSafety={()=>{setSettingsOpen(false);setSafetyOpen(true)}} onPartner={()=>{setSettingsOpen(false);setPartnerOpen(true)}} onReset={reset}/>:
+    messagesOpen?<View style={s.fill}><View style={s.inlineHeader}><Pressable onPress={()=>setMessagesOpen(false)} hitSlop={12}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable><Typography variant="subtitle">Wiadomości</Typography><View style={{width:24}}/></View><ChatsScreen blockedIds={blockedIds} onReport={setReportTarget}/></View>:
+    ({'Start':<View style={s.fill}><Pressable onPress={()=>setMessagesOpen(true)} style={s.messageShortcut} accessibilityRole="button" accessibilityLabel="Otwórz wiadomości"><Ionicons name="chatbubble-ellipses-outline" size={22} color={c.ink}/></Pressable><CommunityScreen posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Plany':<DiscoverScreen blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>,'Profil':<NativeProfile account={account} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)}/>})[tab];
+  const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':settingsOpen?'settings':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
       <View style={s.fill}>
@@ -72,4 +77,4 @@ function PolkaApp(){
     {showTabs&&<View style={[s.tabBar,{paddingBottom:Math.max(insets.bottom,sp.sm)}]}>{tabs.map(item=><Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={item.key} accessibilityState={{selected:tab===item.key}} onPress={()=>setTab(item.key)} style={s.tab}><Ionicons name={tab===item.key?item.active:item.icon} size={23} color={tab===item.key?c.pink:c.muted}/><Typography style={[s.tabText,tab===item.key&&{color:c.pink,fontFamily:f.bold}]}>{item.key}</Typography></Pressable>)}</View>}
   </SafeAreaView>;
 }
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:c.canvas},fill:{flex:1},tabBar:{backgroundColor:c.white,borderTopWidth:1,borderColor:c.line,flexDirection:'row',paddingTop:sp.md,paddingHorizontal:sp.xs},tab:{flex:1,alignItems:'center',justifyContent:'center',gap:4,minHeight:48},tabText:{fontSize:10,color:c.muted,fontFamily:f.semibold}});
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:c.canvas},fill:{flex:1},inlineHeader:{height:54,paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:c.canvas},messageShortcut:{position:'absolute',right:18,top:14,zIndex:10,width:42,height:42,borderRadius:21,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},tabBar:{backgroundColor:c.white,borderTopWidth:1,borderColor:c.line,flexDirection:'row',paddingTop:sp.md,paddingHorizontal:sp.xs},tab:{flex:1,alignItems:'center',justifyContent:'center',gap:4,minHeight:48},tabText:{fontSize:10,color:c.muted,fontFamily:f.semibold}});
