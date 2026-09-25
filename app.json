@@ -1,25 +1,33 @@
 {
   "expo": {
-    "name": "MyGirl",
-    "slug": "mygirl",
-    "scheme": "mygirl",
-    "version": "0.4.1",
+    "name": "Polka",
+    "slug": "polka",
+    "scheme": "polka",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FFF9FC",
-    "primaryColor": "#D72B78",
+    "backgroundColor": "#FFF9FB",
+    "primaryColor": "#F43F75",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "pl.mygirl.app"
+      "bundleIdentifier": "pl.polka.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Polka używa wybranego zdjęcia do Twojego profilu.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "package": "pl.mygirl.app",
-      "adaptiveIcon": { "backgroundColor": "#FFF9FC" }
+      "package": "pl.polka.app",
+      "versionCode": 1,
+      "adaptiveIcon": { "backgroundColor": "#FFF9FB" }
     },
-    "plugins": [["expo-image-picker", {
-      "photosPermission": "MyGirl używa wybranego zdjęcia do Twojego profilu. Zdjęcie zostaje na urządzeniu do czasu uruchomienia kont online.",
-      "cameraPermission": false,
-      "microphonePermission": false
-    }]]
+    "plugins": [
+      ["expo-image-picker", {
+        "photosPermission": "Polka używa wybranego zdjęcia do Twojego profilu. Zdjęcie zostaje na urządzeniu do czasu uruchomienia kont online.",
+        "cameraPermission": false,
+        "microphonePermission": false
+      }]
+    ]
   }
 }
