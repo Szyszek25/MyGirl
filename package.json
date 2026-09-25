@@ -27,7 +27,8 @@
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-web": "^0.21.2",
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.57.4",
+    "expo-audio": "~57.0.5"
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.0",
