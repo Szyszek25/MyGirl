@@ -26,6 +26,7 @@ import {supabase} from './lib/supabase';
 import {createChatRealtime,newClientMessageId} from './services/chatRealtime';
 import {addComment,createPost,createStory,deletePost,editPost,loadComments,loadFeed,loadStories,markStoryViewed,togglePostLike} from './services/socialApi';
 import {searchPeople,sendFriendRequest} from './services/friendsApi';
+import StoryCameraModal from './StoryCameraModal';
 const W=Dimensions.get('window').width;
 const avatar=(photo,size=48)=><Image source={{uri:photo}} style={{width:size,height:size,borderRadius:size/2,backgroundColor:c.blush}}/>;
 const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
@@ -330,17 +331,17 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
     }catch(error){Alert.alert('Aparat',error.message||'Nie udało się zrobić zdjęcia.');}
   };
 
-  const takeStory=async()=>{
+  const [storyCreatorOpen,setStoryCreatorOpen]=useState(false);
+
+  const openStoryCreator=()=>{
     if(!sessionUserId)return Alert.alert('Zaloguj się','Stories online wymagają konta.');
-    try{
-      const permission=await ImagePicker.requestCameraPermissionsAsync();
-      if(!permission.granted)return Alert.alert('Aparat','Włącz dostęp do aparatu w ustawieniach telefonu.');
-      const result=await ImagePicker.launchCameraAsync({mediaTypes:['images','videos'],videoMaxDuration:15,quality:.75});
-      if(result.canceled||!result.assets?.[0]?.uri)return;
-      setLoading(true);
-      await createStory({userId:sessionUserId,uri:result.assets[0].uri});
-      await refresh();
-    }catch(error){Alert.alert('Story',error.message||'Nie udało się dodać story.');setLoading(false);}
+    setStoryCreatorOpen(true);
+  };
+
+  const handlePublishStory=async({uri,caption})=>{
+    if(!sessionUserId)throw new Error('Zaloguj się, aby dodać relację.');
+    await createStory({userId:sessionUserId,uri,caption});
+    await refresh();
   };
 
   const openStory=async story=>{
@@ -452,7 +453,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
       ListHeaderComponent={
         <View style={{backgroundColor:c.canvas}}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.storiesScroll} contentContainerStyle={s.storiesRow}>
-            <Pressable onPress={takeStory} style={s.storyItem}>
+            <Pressable onPress={openStoryCreator} style={s.storyItem}>
               <View style={[s.storyRing,s.storyAddRing]}><View style={s.storyAdd}><Ionicons name="camera" size={22} color={c.pink}/></View></View>
               <Typography numberOfLines={1} style={s.storyName}>Dodaj</Typography>
             </Pressable>
@@ -506,6 +507,13 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
         </View>}
       </Pressable>
     </Modal>
+
+    <StoryCameraModal
+      visible={storyCreatorOpen}
+      city={city}
+      onClose={()=>setStoryCreatorOpen(false)}
+      onPublish={handlePublishStory}
+    />
 
     <Modal visible={!!commentPost} animationType="slide" onRequestClose={()=>setCommentPost(null)}>
       {!!commentPost&&<KeyboardAvoidingView style={s.commentsRoot} behavior={Platform.OS==='ios'?'padding':'height'}>
