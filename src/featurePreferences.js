@@ -10,7 +10,9 @@ export const defaultFeaturePreferences={
   stylePeopleMatching:true,
   zodiacSign:null,
   stylePreference:null,
-  supportChat:true
+  supportChat:true,
+  cycleCloudSync:false,
+  homeIntroVideo:true
 };
 
 export async function loadFeaturePreferences(){
