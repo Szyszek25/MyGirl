@@ -31,11 +31,7 @@ export default function DiscoverScreen(){
   };
 
   return <View style={s.root}>
-    <View style={s.topBar}>
-      <View><Typography style={s.title}>Plany</Typography><Typography style={s.subtitle}>Zobacz, co dziewczyny organizują blisko Ciebie</Typography></View>
-      <Pressable style={s.addBtn} onPress={()=>setCreating(true)} accessibilityLabel="Utwórz plan"><Ionicons name="add" size={24} color={c.white}/></Pressable>
-    </View>
-
+    <View style={s.planControls}><Typography style={s.contextText}>Plany blisko Ciebie</Typography><Pressable style={s.addBtn} onPress={()=>setCreating(true)} accessibilityLabel="Utwórz plan"><Ionicons name="add" size={22} color={c.white}/></Pressable></View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScroll} contentContainerStyle={s.filters}>
       {['Wszystkie',...cities].map(v=><Chip key={'city-'+v} label={v} selected={city===v} onPress={()=>setCity(v)}/>)}
     </ScrollView>
@@ -91,13 +87,12 @@ export default function DiscoverScreen(){
 
 const s=StyleSheet.create({
   root:{flex:1,backgroundColor:c.canvas},
-  topBar:{paddingHorizontal:sp.lg,paddingTop:sp.lg,paddingBottom:sp.sm,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},
-  title:{fontFamily:f.bold,fontSize:28,letterSpacing:-1.1,color:c.ink},
-  subtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},
+  planControls:{paddingHorizontal:sp.lg,paddingTop:4,paddingBottom:2,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  contextText:{fontFamily:f.semibold,fontSize:15,color:c.muted},
   addBtn:{width:44,height:44,borderRadius:22,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
-  filterScroll:{minHeight:56,maxHeight:62,overflow:'visible'},
-  filters:{paddingHorizontal:sp.lg,paddingTop:8,paddingBottom:10,alignItems:'center'},
-  filtersSecondary:{paddingHorizontal:sp.lg,paddingTop:4,paddingBottom:10,alignItems:'center'},
+  filterScroll:{flexGrow:0,flexShrink:0,overflow:'visible'},
+  filters:{paddingLeft:sp.lg,paddingRight:sp.md,paddingTop:8,paddingBottom:12,alignItems:'center'},
+  filtersSecondary:{paddingLeft:sp.lg,paddingRight:sp.md,paddingTop:2,paddingBottom:12,alignItems:'center'},
   list:{padding:sp.lg,paddingTop:10,paddingBottom:110,gap:14},
   planCard:{height:260,borderRadius:24,overflow:'hidden',backgroundColor:c.blush,position:'relative'},
   cover:{...StyleSheet.absoluteFillObject,width:'100%',height:'100%'},
@@ -125,6 +120,6 @@ const s=StyleSheet.create({
   handle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:18},
   sheetHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:sp.lg},
   sheetTitle:{fontFamily:f.bold,fontSize:24,letterSpacing:-.8,color:c.ink},
-  fieldLabel:{fontFamily:f.semibold,fontSize:14,color:c.ink,marginBottom:8,marginTop:8},sheetChipScroll:{minHeight:56,maxHeight:62,overflow:'visible'},sheetChipContent:{paddingVertical:8,alignItems:'center'},
+  fieldLabel:{fontFamily:f.semibold,fontSize:14,color:c.ink,marginBottom:8,marginTop:8},sheetChipScroll:{flexGrow:0,flexShrink:0,overflow:'visible'},sheetChipContent:{paddingTop:8,paddingBottom:12,alignItems:'center'},
   input:{height:52,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,paddingHorizontal:sp.base,fontFamily:f.regular,fontSize:15,color:c.ink}
 });
