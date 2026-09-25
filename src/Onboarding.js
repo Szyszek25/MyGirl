@@ -29,7 +29,7 @@ export default function Onboarding({onComplete}){
   const [selected,setSelected]=useState([]),[name,setName]=useState(''),[adult,setAdult]=useState(false);
   const [photo,setPhoto]=useState(null),[answers,setAnswers]=useState({}),[busy,setBusy]=useState(false);
   const validAnswers=Object.entries(answers).filter(([,answer])=>answer.trim().length>=3);
-  const ready=step===3?selected.length>0:step===4?name.trim().length>=2:step===5?validAnswers.length>0:step===7?adult:true;
+  const ready=step===4?name.trim().length>=2:step===7?adult:true;
   const pickPhoto=async()=>{
     try{
       const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:0.7});
@@ -48,7 +48,7 @@ export default function Onboarding({onComplete}){
     catch(error){Alert.alert('Nie zapisano profilu',error.message||'Spróbuj ponownie.');}
     finally{setBusy(false);}
   };
-  return <KeyboardAvoidingView style={{flex:1,backgroundColor:c.canvas}} behavior={Platform.OS==='ios'?'padding':undefined}>
+  return <KeyboardAvoidingView style={{flex:1,backgroundColor:c.canvas}} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?8:0}>
     <View style={s.top}><Pressable accessibilityRole="button" accessibilityLabel="Wstecz" onPress={()=>setStep(v=>Math.max(0,v-1))} style={{width:40,paddingVertical:8}}>{step>0?<Ionicons name="arrow-back" size={24} color={c.ink}/>:null}</Pressable><Typography variant="caption" style={{color:c.muted}}>{step+1} / {steps.length}</Typography></View>
     <View style={s.progress}><View style={[s.progressFill,{width:`${(step+1)/steps.length*100}%`}]}/></View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
@@ -63,7 +63,7 @@ export default function Onboarding({onComplete}){
       {step===6&&<View style={s.photo}><Pressable accessibilityRole="button" accessibilityLabel="Wybierz zdjęcie z galerii" onPress={pickPhoto} style={{alignItems:'center'}}>{photo?<Image source={{uri:photo}} style={s.preview}/>:<Ionicons name="camera-outline" size={44} color={c.pink}/>}<Typography style={{color:c.pink,fontFamily:f.bold,marginTop:sp.base}}>{photo?'Zmień zdjęcie':'Wybierz z galerii'}</Typography></Pressable>{photo&&<Button title="Usuń wybrane zdjęcie" secondary onPress={()=>setPhoto(null)} style={{marginTop:sp.base}}/>}<Typography variant="caption" style={{textAlign:'center',color:c.muted,marginTop:sp.base}}>Zdjęcie zapisze się lokalnie w aplikacji, nie zostanie wysłane do internetu.</Typography></View>}
       {step===7&&<><Typography style={{lineHeight:24}}>To wersja mobilna Polki w przygotowaniu. Profil i zdjęcie pozostają lokalnie na tym telefonie. Nie ma jeszcze rejestracji online ani prawdziwych rozmów z innymi osobami. Nie wpisuj danych wrażliwych.</Typography><Pressable accessibilityRole="checkbox" accessibilityState={{checked:adult}} onPress={()=>setAdult(v=>!v)} style={s.check}><Ionicons name={adult?'checkbox':'square-outline'} size={25} color={c.pink}/><Typography style={{flex:1}}>Mam ukończone 18 lat i rozumiem, że to profil lokalny, a nie konto internetowe.</Typography></Pressable></>}
     </ScrollView>
-    <View style={s.footer}><Button title={busy?'Zapisywanie…':step===steps.length-1?'Zapisz profil na telefonie':'Dalej'} onPress={next} disabled={!ready||busy} icon="arrow-forward"/></View>
+    <View style={s.footer}><Button title={busy?'Zapisywanie…':step===steps.length-1?'Zapisz profil na telefonie':((step===3&&!selected.length)||(step===5&&!validAnswers.length)||(step===6&&!photo))?'Pomiń':'Dalej'} onPress={next} disabled={!ready||busy} icon="arrow-forward"/></View>
   </KeyboardAvoidingView>;
 }
 const s=StyleSheet.create({top:{paddingHorizontal:sp.lg,paddingTop:sp.md,paddingBottom:sp.sm,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},progress:{height:3,backgroundColor:c.line},progressFill:{height:3,backgroundColor:c.pink},content:{flexGrow:1,padding:sp.lg,paddingTop:sp.xl},wrap:{flexDirection:'row',flexWrap:'wrap'},welcome:{flex:1,alignItems:'center',justifyContent:'center',paddingVertical:50},photo:{backgroundColor:c.blush,borderWidth:1,borderStyle:'dashed',borderColor:c.pink,borderRadius:r.lg,padding:sp.xl,alignItems:'center'},preview:{width:180,height:180,borderRadius:90,backgroundColor:c.blush},prompt:{backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:r.md,padding:sp.base,marginBottom:sp.md},answer:{fontFamily:f.regular,fontSize:16,color:c.ink,minHeight:65,textAlignVertical:'top'},check:{flexDirection:'row',gap:12,alignItems:'center',marginTop:32,padding:12},footer:{padding:sp.lg,borderTopWidth:1,borderColor:c.line,backgroundColor:c.white}});
