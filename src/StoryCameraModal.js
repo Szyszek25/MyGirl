@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -13,10 +14,13 @@ import {
   View
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { colors as c, fonts as f, radii as r, space as sp } from './theme';
 import { Typography } from './ui';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const QUICK_MOODS = [
   '☕ Kawa i spacer',
@@ -29,87 +33,162 @@ const QUICK_MOODS = [
 ];
 
 export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, onPublish }) {
-  const [media, setMedia] = useState(null); // { uri, type: 'image' | 'video' }
+  const cameraRef = useRef(null);
+  const [camPermission, requestCamPermission] = useCameraPermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+
+  const [facing, setFacing] = useState('back');
+  const [flash, setFlash] = useState('off');
+  const [mode, setMode] = useState('picture'); // 'picture' | 'video'
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+
+  const [capturedMedia, setCapturedMedia] = useState(null); // { uri, type: 'image' | 'video' }
   const [caption, setCaption] = useState('');
   const [mood, setMood] = useState('');
   const [publishing, setPublishing] = useState(false);
 
-  // Player for video preview if video is captured
-  const isVideo = media?.type === 'video' || (media?.uri && /\.(mp4|mov|webm)$/i.test(media.uri));
-  const player = useVideoPlayer(isVideo ? media.uri : '', p => {
-    p.loop = true;
-    p.muted = false;
-    p.play();
-  });
+  // Timer for video recording
+  useEffect(() => {
+    let interval = null;
+    if (isRecording) {
+      setRecordSeconds(0);
+      interval = setInterval(() => {
+        setRecordSeconds(sec => {
+          if (sec >= 15) {
+            handleStopRecording();
+            return 15;
+          }
+          return sec + 1;
+        });
+      }, 1000);
+    } else {
+      setRecordSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRecording]);
 
-  const resetState = () => {
-    setMedia(null);
+  const resetAll = () => {
+    setCapturedMedia(null);
     setCaption('');
     setMood('');
+    setIsRecording(false);
+    setRecordSeconds(0);
     setPublishing(false);
   };
 
   const handleClose = () => {
     if (publishing) return;
-    if (media) {
-      Alert.alert('Odrzucić relację?', 'Twoje nieopublikowane zdjęcie lub wideo przepadnie.', [
+    if (capturedMedia) {
+      Alert.alert('Odrzucić relację?', 'Twoje zdjęcie lub wideo przepadnie.', [
         { text: 'Zostań', style: 'cancel' },
         {
           text: 'Odrzuć',
           style: 'destructive',
           onPress: () => {
-            resetState();
+            resetAll();
             onClose();
           }
         }
       ]);
     } else {
-      resetState();
+      resetAll();
       onClose();
     }
   };
 
-  const takePhoto = async () => {
+  const toggleFacing = () => {
+    setFacing(prev => (prev === 'back' ? 'front' : 'back'));
+  };
+
+  const toggleFlash = () => {
+    setFlash(prev => {
+      if (prev === 'off') return 'on';
+      if (prev === 'on') return 'auto';
+      return 'off';
+    });
+  };
+
+  // Taking photo via native CameraView
+  const handleTakePhoto = async () => {
+    if (!cameraRef.current || isRecording) return;
     try {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Brak uprawnień', 'Zezwól Polce na dostęp do aparatu w ustawieniach.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: false,
-        quality: 0.85
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.88,
+        skipProcessing: false
       });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setMedia({ uri: result.assets[0].uri, type: 'image' });
+      if (photo?.uri) {
+        setCapturedMedia({ uri: photo.uri, type: 'image' });
       }
     } catch (err) {
-      Alert.alert('Aparat', err.message || 'Nie udało się zrobić zdjęcia.');
+      console.warn('Błąd robienia zdjęcia aparatem:', err);
+      // Fallback to ImagePicker camera if CameraView errored
+      try {
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.88
+        });
+        if (!result.canceled && result.assets?.[0]?.uri) {
+          setCapturedMedia({ uri: result.assets[0].uri, type: 'image' });
+        }
+      } catch (pickerErr) {
+        Alert.alert('Aparat', pickerErr.message || 'Nie udało się zrobić zdjęcia.');
+      }
     }
   };
 
-  const recordVideo = async () => {
+  // Starting video recording
+  const handleStartRecording = async () => {
+    if (!cameraRef.current || isRecording) return;
     try {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Brak uprawnień', 'Zezwól Polce na dostęp do aparatu w ustawieniach.');
-        return;
+      if (!micPermission?.granted) {
+        const res = await requestMicPermission();
+        if (!res.granted) {
+          Alert.alert('Mikrofon', 'Włącz dostęp do mikrofonu, aby nagrać wideo z dźwiękiem.');
+        }
       }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
-        videoMaxDuration: 15,
-        quality: 0.8
+      setIsRecording(true);
+      const videoPromise = cameraRef.current.recordAsync({
+        maxDuration: 15
       });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setMedia({ uri: result.assets[0].uri, type: 'video' });
+      const video = await videoPromise;
+      if (video?.uri) {
+        setCapturedMedia({ uri: video.uri, type: 'video' });
       }
     } catch (err) {
-      Alert.alert('Kamera', err.message || 'Nie udało się nagrać wideo.');
+      console.warn('Błąd nagrywania wideo:', err);
+      setIsRecording(false);
     }
   };
 
-  const pickGallery = async () => {
+  const handleStopRecording = () => {
+    if (!isRecording) return;
+    setIsRecording(false);
+    try {
+      cameraRef.current?.stopRecording();
+    } catch (err) {
+      console.warn('stopRecording error:', err);
+    }
+  };
+
+  // Shutter button press handler
+  const handleShutterPress = () => {
+    if (mode === 'picture') {
+      handleTakePhoto();
+    } else {
+      if (isRecording) {
+        handleStopRecording();
+      } else {
+        handleStartRecording();
+      }
+    }
+  };
+
+  // Pick from gallery
+  const pickFromGallery = async () => {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
@@ -119,25 +198,26 @@ export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         allowsEditing: false,
-        quality: 0.85
+        quality: 0.88
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
         const asset = result.assets[0];
         const isVid = asset.type === 'video' || /\.(mp4|mov|webm)$/i.test(asset.uri);
-        setMedia({ uri: asset.uri, type: isVid ? 'video' : 'image' });
+        setCapturedMedia({ uri: asset.uri, type: isVid ? 'video' : 'image' });
       }
     } catch (err) {
       Alert.alert('Galeria', err.message || 'Nie udało się wybrać pliku.');
     }
   };
 
+  // Share story
   const handleShare = async () => {
-    if (!media?.uri || publishing) return;
+    if (!capturedMedia?.uri || publishing) return;
     setPublishing(true);
     try {
       const fullCaption = [mood, caption.trim()].filter(Boolean).join(' · ');
-      await onPublish({ uri: media.uri, caption: fullCaption });
-      resetState();
+      await onPublish({ uri: capturedMedia.uri, caption: fullCaption });
+      resetAll();
       onClose();
     } catch (err) {
       Alert.alert('Błąd publikacji', err.message || 'Nie udało się dodać relacji.');
@@ -146,70 +226,170 @@ export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, 
     }
   };
 
+  // Video preview player
+  const isVideo = capturedMedia?.type === 'video' || (capturedMedia?.uri && /\.(mp4|mov|webm)$/i.test(capturedMedia.uri));
+  const player = useVideoPlayer(isVideo ? capturedMedia.uri : '', p => {
+    p.loop = true;
+    p.muted = false;
+    p.play();
+  });
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
       <View style={s.container}>
-        {/* If no media selected yet, show Camera / Source selector */}
-        {!media ? (
-          <View style={s.pickerRoot}>
-            <View style={s.pickerTop}>
-              <Pressable onPress={handleClose} style={s.iconBtn} hitSlop={12}>
-                <Ionicons name="close" size={28} color={c.white} />
-              </Pressable>
-              <Typography style={s.pickerTitle}>Nowa relacja</Typography>
-              <View style={{ width: 44 }} />
-            </View>
-
-            <View style={s.pickerBody}>
-              <View style={s.heroOrb}>
-                <Ionicons name="camera" size={54} color={c.pink} />
+        {!capturedMedia ? (
+          /* Live IG Camera View */
+          <View style={s.cameraWrapper}>
+            {camPermission?.granted ? (
+              <CameraView
+                ref={cameraRef}
+                style={StyleSheet.absoluteFill}
+                facing={facing}
+                mode={mode}
+                flash={flash}
+                mute={false}
+              />
+            ) : (
+              <View style={s.permissionContainer}>
+                <View style={s.permissionOrb}>
+                  <Ionicons name="camera-outline" size={48} color={c.pink} />
+                </View>
+                <Typography style={s.permissionTitle}>Aparat do relacji</Typography>
+                <Typography style={s.permissionSub}>
+                  Polka potrzebuje dostępu do aparatu, abyś mogła dodawać relacje na żywo jak na Instagramie.
+                </Typography>
+                <Pressable onPress={requestCamPermission} style={s.permissionBtn}>
+                  <Typography style={s.permissionBtnText}>Zezwól na dostęp do aparatu</Typography>
+                </Pressable>
+                <Pressable onPress={pickFromGallery} style={s.galleryFallbackBtn}>
+                  <Ionicons name="images-outline" size={20} color={c.white} />
+                  <Typography style={s.galleryFallbackText}>Wybierz zdjęcie z galerii</Typography>
+                </Pressable>
               </View>
-              <Typography style={s.pickerHeading}>Pokaż co u Ciebie</Typography>
-              <Typography style={s.pickerSub}>
-                Twoja relacja będzie widoczna dla dziewczyn w <Typography style={{ color: c.pink, fontFamily: f.bold }}>{city}</Typography> przez 24 godziny.
-              </Typography>
+            )}
+
+            {/* Top Toolbar overlay */}
+            <View style={s.cameraTopBar}>
+              <Pressable onPress={handleClose} style={s.glassCircleBtn} hitSlop={12}>
+                <Ionicons name="close" size={26} color={c.white} />
+              </Pressable>
+
+              {/* Recording indicator */}
+              {isRecording ? (
+                <View style={s.recordingBadge}>
+                  <View style={s.recordingDot} />
+                  <Typography style={s.recordingTimer}>
+                    00:{recordSeconds < 10 ? `0${recordSeconds}` : recordSeconds} / 00:15
+                  </Typography>
+                </View>
+              ) : (
+                <View style={s.locationTag}>
+                  <Ionicons name="location-sharp" size={13} color={c.pink} />
+                  <Typography style={s.locationTagText}>{city}</Typography>
+                </View>
+              )}
+
+              <View style={s.topRightActions}>
+                <Pressable onPress={toggleFlash} style={s.glassCircleBtn} hitSlop={12}>
+                  <Ionicons
+                    name={flash === 'on' ? 'flash' : flash === 'auto' ? 'flash-outline' : 'flash-off'}
+                    size={22}
+                    color={flash !== 'off' ? '#FFD700' : c.white}
+                  />
+                </Pressable>
+              </View>
             </View>
 
-            <View style={s.pickerActions}>
-              <Pressable onPress={takePhoto} style={s.actionBtnMain}>
-                <Ionicons name="camera" size={24} color={c.white} />
-                <Typography style={s.actionBtnMainText}>Zrób zdjęcie (aparat)</Typography>
-              </Pressable>
+            {/* Bottom Shutter & Controls overlay */}
+            <View style={s.cameraBottomBar}>
+              {/* Mode switch: ZDJĘCIE | WIDEO */}
+              {!isRecording && (
+                <View style={s.modeSelector}>
+                  <Pressable
+                    onPress={() => setMode('picture')}
+                    style={[s.modeOption, mode === 'picture' && s.modeOptionActive]}
+                  >
+                    <Typography style={[s.modeOptionText, mode === 'picture' && s.modeOptionTextActive]}>
+                      ZDJĘCIE
+                    </Typography>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setMode('video')}
+                    style={[s.modeOption, mode === 'video' && s.modeOptionActive]}
+                  >
+                    <Typography style={[s.modeOptionText, mode === 'video' && s.modeOptionTextActive]}>
+                      WIDEO
+                    </Typography>
+                  </Pressable>
+                </View>
+              )}
 
-              <Pressable onPress={recordVideo} style={s.actionBtnSecondary}>
-                <Ionicons name="videocam" size={22} color={c.pink} />
-                <Typography style={s.actionBtnSecText}>Nagraj wideo (max 15s)</Typography>
-              </Pressable>
+              {/* Shutter Row */}
+              <View style={s.shutterRow}>
+                {/* Left: Gallery Thumbnail */}
+                <Pressable onPress={pickFromGallery} style={s.galleryThumbBtn} hitSlop={10}>
+                  <Ionicons name="images" size={24} color={c.white} />
+                </Pressable>
 
-              <Pressable onPress={pickGallery} style={s.actionBtnSecondary}>
-                <Ionicons name="images" size={22} color={c.pink} />
-                <Typography style={s.actionBtnSecText}>Wybierz z galerii</Typography>
-              </Pressable>
+                {/* Center: IG Native Shutter Button */}
+                <Pressable
+                  onPress={handleShutterPress}
+                  onLongPress={() => {
+                    if (mode === 'picture') {
+                      setMode('video');
+                      handleStartRecording();
+                    }
+                  }}
+                  onPressOut={() => {
+                    if (isRecording) handleStopRecording();
+                  }}
+                  style={[s.shutterOuter, isRecording && s.shutterOuterRecording]}
+                >
+                  <View
+                    style={[
+                      s.shutterInner,
+                      mode === 'video' && s.shutterInnerVideo,
+                      isRecording && s.shutterInnerRecording
+                    ]}
+                  />
+                </Pressable>
+
+                {/* Right: Flip Camera */}
+                <Pressable onPress={toggleFacing} style={s.flipCameraBtn} hitSlop={10}>
+                  <Ionicons name="camera-reverse-outline" size={28} color={c.white} />
+                </Pressable>
+              </View>
             </View>
           </View>
         ) : (
-          /* Editor & Preview Screen */
+          /* Editor & Story Preview Screen (Full screen like IG) */
           <KeyboardAvoidingView style={s.editorRoot} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            {/* Background Media Preview */}
+            {/* Background Media */}
             <View style={StyleSheet.absoluteFill}>
               {isVideo ? (
                 <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
               ) : (
-                <Image source={{ uri: media.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                <Image source={{ uri: capturedMedia.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
               )}
               <View style={s.editorGradientOverlay} />
             </View>
 
             {/* Top Toolbar */}
             <View style={s.editorTopBar}>
-              <Pressable onPress={() => setMedia(null)} style={s.glassIconBtn} hitSlop={12}>
+              <Pressable onPress={() => setCapturedMedia(null)} style={s.glassCircleBtn} hitSlop={12}>
                 <Ionicons name="arrow-back" size={24} color={c.white} />
               </Pressable>
               <View style={s.locationBadge}>
                 <Ionicons name="location" size={14} color={c.pink} />
                 <Typography style={s.locationBadgeText}>{city}</Typography>
               </View>
-              <Pressable onPress={() => setMedia(null)} style={s.glassIconBtn} hitSlop={12}>
+              <Pressable onPress={() => setCapturedMedia(null)} style={s.glassCircleBtn} hitSlop={12}>
                 <Ionicons name="refresh" size={22} color={c.white} />
               </Pressable>
             </View>
@@ -224,10 +404,9 @@ export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, 
               </View>
             )}
 
-            {/* Middle Spacer */}
             <View style={{ flex: 1 }} />
 
-            {/* Bottom Controls & Composer */}
+            {/* Bottom Controls */}
             <View style={s.editorBottomCard}>
               {/* Quick Mood Chips */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.moodScroll}>
@@ -257,14 +436,16 @@ export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, 
                 />
               </View>
 
-              {/* Share Button */}
-              <Pressable disabled={publishing} onPress={handleShare} style={[s.shareBtn, publishing && { opacity: 0.7 }]}>
+              {/* Instagram Style Share Button */}
+              <Pressable disabled={publishing || !capturedMedia?.uri} onPress={handleShare} style={[s.shareBtn, (publishing || !capturedMedia?.uri) && { opacity: 0.5 }]}>
                 {publishing ? (
                   <ActivityIndicator color={c.white} size="small" />
                 ) : (
                   <>
-                    <Typography style={s.shareBtnText}>Udostępnij relację</Typography>
-                    <Ionicons name="sparkles" size={19} color={c.white} />
+                    <Typography style={s.shareBtnText}>Twoja relacja</Typography>
+                    <View style={s.shareArrowCircle}>
+                      <Ionicons name="arrow-forward" size={18} color={c.pink} />
+                    </View>
                   </>
                 )}
               </Pressable>
@@ -279,124 +460,239 @@ export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, 
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F090C'
+    backgroundColor: '#000'
   },
-  pickerRoot: {
+  cameraWrapper: {
     flex: 1,
-    paddingHorizontal: sp.lg,
-    paddingTop: Platform.OS === 'ios' ? 56 : 40,
-    paddingBottom: 40,
+    backgroundColor: '#000',
     justifyContent: 'space-between'
   },
-  pickerTop: {
-    flexDirection: 'row',
+  permissionContainer: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#120A0E'
   },
-  pickerTitle: {
-    fontFamily: f.bold,
-    fontSize: 18,
-    color: c.white
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  pickerBody: {
-    alignItems: 'center',
-    paddingHorizontal: sp.md
-  },
-  heroOrb: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(206,4,89,0.16)',
+  permissionOrb: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(206,4,89,0.15)',
     borderWidth: 2,
     borderColor: 'rgba(206,4,89,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24
+    marginBottom: 20
   },
-  pickerHeading: {
+  permissionTitle: {
     fontFamily: f.bold,
-    fontSize: 26,
+    fontSize: 22,
     color: c.white,
     textAlign: 'center',
     marginBottom: 10
   },
-  pickerSub: {
+  permissionSub: {
     fontFamily: f.regular,
-    fontSize: 15,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    lineHeight: 22
+    lineHeight: 21,
+    marginBottom: 26
   },
-  pickerActions: {
-    gap: 12
-  },
-  actionBtnMain: {
-    height: 56,
+  permissionBtn: {
+    height: 52,
     borderRadius: 18,
     backgroundColor: '#CE0459',
-    flexDirection: 'row',
+    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    shadowColor: '#CE0459',
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8
+    width: '100%',
+    marginBottom: 12
   },
-  actionBtnMainText: {
+  permissionBtnText: {
     fontFamily: f.bold,
-    fontSize: 16,
+    fontSize: 15,
     color: c.white
   },
-  actionBtnSecondary: {
-    height: 52,
+  galleryFallbackBtn: {
+    height: 48,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10
+    gap: 8,
+    width: '100%'
   },
-  actionBtnSecText: {
+  galleryFallbackText: {
     fontFamily: f.semibold,
-    fontSize: 15,
+    fontSize: 14,
     color: c.white
   },
 
-  /* Editor / Preview */
-  editorRoot: {
-    flex: 1
-  },
-  editorGradientOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)'
-  },
-  editorTopBar: {
+  /* Top Bar */
+  cameraTopBar: {
     paddingTop: Platform.OS === 'ios' ? 56 : 40,
-    paddingHorizontal: sp.lg,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 10
   },
-  glassIconBtn: {
+  glassCircleBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)'
+  },
+  locationTagText: {
+    fontFamily: f.bold,
+    fontSize: 12,
+    color: c.white
+  },
+  recordingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(225,29,72,0.85)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: c.white
+  },
+  recordingTimer: {
+    fontFamily: f.bold,
+    fontSize: 12,
+    color: c.white
+  },
+
+  /* Bottom Shutter & Controls */
+  cameraBottomBar: {
+    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    zIndex: 10
+  },
+  modeSelector: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20
+  },
+  modeOption: {
+    paddingVertical: 4,
+    paddingHorizontal: 8
+  },
+  modeOptionActive: {},
+  modeOptionText: {
+    fontFamily: f.bold,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 1
+  },
+  modeOptionTextActive: {
+    color: '#FFD700',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowRadius: 6
+  },
+  shutterRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  galleryThumbBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  flipCameraBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+
+  /* IG SHUTTER BUTTON */
+  shutterOuter: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    borderWidth: 4,
+    borderColor: c.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent'
+  },
+  shutterOuterRecording: {
+    borderColor: '#E11D48',
+    transform: [{ scale: 1.08 }]
+  },
+  shutterInner: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: c.white
+  },
+  shutterInnerVideo: {
+    backgroundColor: '#E11D48'
+  },
+  shutterInnerRecording: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#E11D48'
+  },
+
+  /* Editor / Preview Screen */
+  editorRoot: {
+    flex: 1
+  },
+  editorGradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.25)'
+  },
+  editorTopBar: {
+    paddingTop: Platform.OS === 'ios' ? 56 : 40,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10
   },
   locationBadge: {
     flexDirection: 'row',
@@ -442,7 +738,7 @@ const s = StyleSheet.create({
     color: c.white
   },
   editorBottomCard: {
-    paddingHorizontal: sp.lg,
+    paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 44 : 26,
     paddingTop: 16,
     zIndex: 10
@@ -489,12 +785,12 @@ const s = StyleSheet.create({
   },
   shareBtn: {
     height: 54,
-    borderRadius: 18,
+    borderRadius: 27,
     backgroundColor: '#CE0459',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
     shadowColor: '#CE0459',
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -505,5 +801,13 @@ const s = StyleSheet.create({
     fontFamily: f.bold,
     fontSize: 16,
     color: c.white
+  },
+  shareArrowCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: c.white,
+    alignItems: 'center',
+    justifyContent: 'center'
   }
 });

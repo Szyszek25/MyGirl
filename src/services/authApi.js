@@ -31,6 +31,39 @@ export async function signUpEmail(email,password){
   return data;
 }
 
+export async function verifyEmailOtp(email,token,type='signup'){
+  const cleanEmail=email.trim();
+  const cleanToken=token.trim();
+  try{
+    const {data,error}=await supabase.auth.verifyOtp({
+      email:cleanEmail,
+      token:cleanToken,
+      type
+    });
+    if(error)throw error;
+    return data.session;
+  }catch(err){
+    if(type==='signup'){
+      const retry=await supabase.auth.verifyOtp({
+        email:cleanEmail,
+        token:cleanToken,
+        type:'email'
+      });
+      if(!retry.error&&retry.data?.session)return retry.data.session;
+    }
+    throw err;
+  }
+}
+
+export async function resendVerificationOtp(email,type='signup'){
+  const {data,error}=await supabase.auth.resend({
+    type,
+    email:email.trim()
+  });
+  if(error)throw error;
+  return data;
+}
+
 export async function signInApple(){
   const {data,error}=await supabase.auth.signInWithOAuth({
     provider:'apple',

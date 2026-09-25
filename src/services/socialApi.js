@@ -63,6 +63,7 @@ export async function loadFeed(city,userId){
       likedByMe:likes.some(l=>l.post_id===row.id&&l.user_id===userId),
       commentsCount:comments.filter(c=>c.post_id===row.id).length,
       avatar:profile.avatar_path?await signed('polka-avatars',profile.avatar_path):null,
+      aspectRatio: (/matcha|pilates|spacer|vintage|second hand/i.test(row.body || '') || (row.media_path || '').includes('matcha')) ? '4:5' : '16:9',
       remote:true
     };
   }));
@@ -82,9 +83,25 @@ export async function createPost({userId,body,imageUri,spotifyUrl}){
   return data;
 }
 
-export async function editPost(postId,userId,body,spotifyUrl){
+export async function editPost(postId,userId,body,spotifyUrl,media){
+  const updatePayload={
+    body:body.trim(),
+    spotify_url:spotifyUrl?.trim()||null,
+    edited_at:new Date().toISOString()
+  };
+  if(media===null||!media?.uri){
+    updatePayload.media_path=null;
+    updatePayload.media_type=null;
+  }else if(media.mediaPath&&typeof media.uri==='string'&&media.uri.startsWith('http')){
+    updatePayload.media_path=media.mediaPath;
+    updatePayload.media_type=media.mediaType||'image';
+  }else if(media?.uri){
+    const uploaded=await upload('polka-post-media',userId,media.uri,'post');
+    updatePayload.media_path=uploaded.path;
+    updatePayload.media_type=uploaded.type.startsWith('video/')?'video':'image';
+  }
   const {data,error}=await supabase.from('posts')
-    .update({body:body.trim(),spotify_url:spotifyUrl?.trim()||null,edited_at:new Date().toISOString()})
+    .update(updatePayload)
     .eq('id',postId)
     .select('id').single();
   if(error)throw error;
@@ -174,5 +191,10 @@ export async function createStory({userId,uri,caption=''}) {
 
 export async function markStoryViewed(storyId,userId){
   const {error}=await supabase.from('story_views').upsert({story_id:storyId,viewer_id:userId},{onConflict:'story_id,viewer_id'});
+  if(error)throw error;
+}
+
+export async function deleteStory(storyId,userId){
+  const {error}=await supabase.from('stories').delete().eq('id',storyId).eq('author_id',userId);
   if(error)throw error;
 }

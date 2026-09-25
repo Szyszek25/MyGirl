@@ -9,7 +9,7 @@ export const people = [
     "name": "Maja",
     "age": 22,
     "city": "Warszawa",
-    "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900&q=85",
+    "photo": "https://i.pinimg.com/736x/dd/de/4c/ddde4ca2a10484dea9d307b7dea56b0a.jpg",
     "bio": "Matcha, spacery i spontaniczne wyjścia po pracy.",
     "tags": [
       "Kawa",
@@ -1159,11 +1159,11 @@ export const people = [
 ];
 
 export const initialPosts=[
-  {id:'post-01',author:'Maja',city:'Warszawa',body:'Kto ma ochotę dziś po 18 na matchę w centrum?',likes:18,image:'https://images.unsplash.com/photo-1515823662972-da6a2e4d3002?w=1100&q=82'},
-  {id:'post-02',author:'Laura',city:'Warszawa',body:'Czy ktoś zna naprawdę dobry second hand na Mokotowie? Chcę zrobić rundkę w sobotę 👀',likes:34,image:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=1100&q=82'},
-  {id:'post-03',author:'Zuzia',city:'Warszawa',body:'Mam ochotę na pilates + brunch w weekend. Ktoś też?',likes:27,image:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1100&q=82'},
-  {id:'post-04',author:'Mia',city:'Warszawa',body:'Girls night w piątek? Myślę karaoke albo coś z muzyką na żywo 🪩',likes:41,image:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1100&q=82'},
-  {id:'post-05',author:'Daria',city:'Warszawa',body:'Szukam kogoś na foto-spacer po Pradze w złotej godzinie 📸',likes:24,image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&q=82'},
+  {id:'post-01',author:'Maja',city:'Warszawa',body:'Kto ma ochotę dziś po 18 na matchę w centrum? 🍵💚',likes:24,image:'https://i.pinimg.com/736x/d6/fa/fa/d6fafaf3671ea7e122648458326af708.jpg',aspectRatio:'4:5'},
+  {id:'post-02',author:'Laura',city:'Warszawa',body:'Czy ktoś zna naprawdę dobry second hand na Mokotowie? Chcę zrobić rundkę w sobotę 👀',likes:34,image:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=1100&q=82',aspectRatio:'16:9'},
+  {id:'post-03',author:'Zuzia',city:'Warszawa',body:'Mam ochotę na pilates + brunch w weekend. Ktoś też? 🧘‍♀️',likes:27,image:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1100&q=82',aspectRatio:'4:5'},
+  {id:'post-04',author:'Mia',city:'Warszawa',body:'Girls night w piątek? Myślę karaoke albo coś z muzyką na żywo 🪩',likes:41,image:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1100&q=82',aspectRatio:'16:9'},
+  {id:'post-05',author:'Daria',city:'Warszawa',body:'Szukam kogoś na foto-spacer po Pradze w złotej godzinie 📸',likes:24,image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&q=82',aspectRatio:'4:5'},
   {id:'post-06',author:'Klara',city:'Warszawa',body:'Gdzie chodzicie pracować z laptopem, kiedy nie chce się siedzieć w domu?',likes:29},
   {id:'post-07',author:'Malwina',city:'Warszawa',body:'Czy tylko ja mam milion pomysłów na projekty i zero ludzi do odbijania ich na żywo? 😅',likes:38},
   {id:'post-08',author:'Nadia',city:'Warszawa',body:'Ktoś na spontaniczną kawę dzisiaj po 19?',likes:16},

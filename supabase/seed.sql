@@ -444,3 +444,42 @@ begin
   on conflict do nothing;
 end $$;
 
+-- Stories Seed
+do $$
+declare
+  v_maja_id uuid;
+  v_ola_id uuid;
+  v_natalia_id uuid;
+  v_klara_id uuid;
+begin
+  select id into v_maja_id from public.profiles where display_name = 'Maja' limit 1;
+  select id into v_ola_id from public.profiles where display_name = 'Ola' limit 1;
+  select id into v_natalia_id from public.profiles where display_name = 'Natalia' limit 1;
+  select id into v_klara_id from public.profiles where display_name = 'Klara' limit 1;
+
+  if v_maja_id is not null then
+    insert into public.stories (author_id, media_path, media_type, caption, expires_at)
+    values (v_maja_id, 'demo/story-matcha.jpg', 'image', 'matcha run ☕ · Warszawa', now() + interval '24 hours')
+    on conflict do nothing;
+  end if;
+
+  if v_ola_id is not null then
+    insert into public.stories (author_id, media_path, media_type, caption, expires_at)
+    values (v_ola_id, 'demo/story-walk.jpg', 'image', 'spacer po mieście 🌸', now() + interval '24 hours')
+    on conflict do nothing;
+  end if;
+
+  if v_natalia_id is not null then
+    insert into public.stories (author_id, media_path, media_type, caption, expires_at)
+    values (v_natalia_id, 'demo/story-girls.jpg', 'image', 'girls night ✨ · Gdańsk', now() + interval '24 hours')
+    on conflict do nothing;
+  end if;
+
+  if v_klara_id is not null then
+    insert into public.stories (author_id, media_path, media_type, caption, expires_at)
+    values (v_klara_id, 'demo/story-book.jpg', 'image', 'book club 📚', now() + interval '24 hours')
+    on conflict do nothing;
+  end if;
+end $$;
+
+

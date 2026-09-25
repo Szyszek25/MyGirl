@@ -79,11 +79,7 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
   };
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
-      <View style={s.profileTop}>
-        <View style={{flex:1}}><PageHeading kicker="MOJA PRZESTRZEŃ" title="Twój profil."/></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Ustawienia" onPress={onSettings} style={s.settingsButton}><Ionicons name="settings-outline" size={23} color={c.ink}/></Pressable>
-        {!!onSignOut&&<Pressable accessibilityRole="button" accessibilityLabel="Wyloguj się" onPress={()=>Alert.alert('Wylogować się?','Będziesz mogła zalogować się ponownie.',[{text:'Anuluj',style:'cancel'},{text:'Wyloguj',style:'destructive',onPress:onSignOut}])} style={[s.settingsButton,{marginLeft:8}]}><Ionicons name="log-out-outline" size={23} color="#E03131"/></Pressable>}
-      </View>
+      <View style={s.profileTop} />
       <Surface style={s.head}>
         {(editing?draft.photo:account.photo)?<Image source={{uri:editing?draft.photo:account.photo}} style={s.avatar} accessibilityLabel="Twoje zdjęcie profilowe"/>:<View style={[s.avatar,s.placeholder]}><Ionicons name="person-outline" size={54} color={c.pink}/></View>}
         {!editing?<>

@@ -4,13 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { colors as c, fonts as f, radii as r, space as sp } from './theme';
 import { Typography } from './ui';
-import { signInApple, signInEmail, signInGoogle, signUpEmail } from './services/authApi';
+import { resendVerificationOtp, signInApple, signInEmail, signInGoogle, signUpEmail, verifyEmailOtp } from './services/authApi';
 
 const HERO = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
 const HERO_VIDEO = 'https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
 
 export default function WelcomeScreen({ onContinue, onBusiness }) {
   const [emailMode, setEmailMode] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authMode, setAuthMode] = useState('signin');
@@ -23,12 +25,40 @@ export default function WelcomeScreen({ onContinue, onBusiness }) {
     try {
       if (authMode === 'signup') {
         const data = await signUpEmail(email, password);
-        if (!data.session) Alert.alert('Sprawdź e-mail', 'Kliknij link potwierdzający konto Polki, a potem wróć do aplikacji.');
+        if (!data.session) {
+          setOtpStep(true);
+        }
       } else {
         await signInEmail(email, password);
       }
     } catch (error) { Alert.alert('Nie udało się zalogować', error.message || 'Spróbuj ponownie.'); }
     finally { setBusy(false); }
+  };
+
+  const handleVerifyOtp = async () => {
+    const clean = otpCode.trim();
+    if (clean.length < 6 || busy) return;
+    setBusy(true);
+    try {
+      await verifyEmailOtp(email, clean, 'signup');
+    } catch (error) {
+      Alert.alert('Błędny kod', error.message || 'Sprawdź wpisany kod i spróbuj ponownie.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!email.trim() || busy) return;
+    setBusy(true);
+    try {
+      await resendVerificationOtp(email, 'signup');
+      Alert.alert('Wysłano kod', 'Wysłaliśmy nowy 6-cyfrowy kod na Twój e-mail.');
+    } catch (error) {
+      Alert.alert('Błąd wysyłania', error.message || 'Nie udało się wysłać nowego kodu.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const googleAuth = async () => {
@@ -60,7 +90,7 @@ export default function WelcomeScreen({ onContinue, onBusiness }) {
       bounces={false}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[s.hero, emailMode && s.heroCompact]}>
+      <View style={[s.hero, (emailMode || otpStep) && s.heroCompact]}>
         <ImageBackground source={{ uri: HERO }} style={StyleSheet.absoluteFill} imageStyle={s.image} />
         {Platform.OS === 'web' ? (
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -92,14 +122,49 @@ export default function WelcomeScreen({ onContinue, onBusiness }) {
       </View>
 
       <View style={s.sheet}>
-        {emailMode ? <View>
-          <Typography variant="subtitle" style={{ marginBottom: sp.sm }}>{authMode === 'signup' ? 'Załóż konto' : 'Zaloguj się e-mailem'}</Typography>
-          <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" placeholder="twoj@email.pl" placeholderTextColor={c.muted} style={s.input} />
-          <TextInput value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} placeholder="Hasło · min. 8 znaków" placeholderTextColor={c.muted} style={[s.input, { marginTop: 10 }]} />
-          <Pressable disabled={!valid || busy} onPress={emailAuth} style={[s.primary, (!valid || busy) && { opacity: .4 }]}><Typography style={s.primaryText}>{busy ? 'Chwila…' : authMode === 'signup' ? 'Załóż konto' : 'Zaloguj się'}</Typography></Pressable>
-          <Pressable onPress={() => setAuthMode(v => v === 'signin' ? 'signup' : 'signin')} style={s.textButton}><Typography style={s.textButtonText}>{authMode === 'signin' ? 'Nie masz konta? Załóż' : 'Masz konto? Zaloguj się'}</Typography></Pressable>
-          <Pressable onPress={() => setEmailMode(false)} style={s.textButton}><Typography style={s.textButtonText}>Wróć</Typography></Pressable>
-        </View> : <>
+        {otpStep ? (
+          <View>
+            <Typography variant="subtitle" style={{ marginBottom: 4 }}>Wpisz kod weryfikacyjny</Typography>
+            <Typography variant="caption" style={{ color: c.muted, marginBottom: sp.base }}>
+              Wysłaliśmy 6-cyfrowy kod na adres {email || 'Twój e-mail'}. Wpisz go poniżej, aby aktywować konto:
+            </Typography>
+            <TextInput
+              value={otpCode}
+              onChangeText={v => setOtpCode(v.replace(/[^0-9]/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              placeholder="000000"
+              placeholderTextColor={c.muted}
+              style={[s.input, s.otpInput]}
+              autoFocus
+              maxLength={6}
+            />
+            <Pressable
+              disabled={otpCode.trim().length < 6 || busy}
+              onPress={handleVerifyOtp}
+              style={[s.primary, (otpCode.trim().length < 6 || busy) && { opacity: .4 }]}
+            >
+              <Typography style={s.primaryText}>{busy ? 'Sprawdzanie…' : 'Zatwierdź kod'}</Typography>
+            </Pressable>
+            <Pressable disabled={busy} onPress={handleResendOtp} style={s.textButton}>
+              <Typography style={s.textButtonText}>Wyślij kod ponownie</Typography>
+            </Pressable>
+            <Pressable onPress={() => setOtpStep(false)} style={s.textButton}>
+              <Typography style={s.textButtonText}>Wróć / Zmień e-mail</Typography>
+            </Pressable>
+          </View>
+        ) : emailMode ? (
+          <View>
+            <Typography variant="subtitle" style={{ marginBottom: sp.sm }}>{authMode === 'signup' ? 'Załóż konto' : 'Zaloguj się e-mailem'}</Typography>
+            <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" placeholder="twoj@email.pl" placeholderTextColor={c.muted} style={s.input} />
+            <TextInput value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} placeholder="Hasło · min. 8 znaków" placeholderTextColor={c.muted} style={[s.input, { marginTop: 10 }]} />
+            <Pressable disabled={!valid || busy} onPress={emailAuth} style={[s.primary, (!valid || busy) && { opacity: .4 }]}><Typography style={s.primaryText}>{busy ? 'Chwila…' : authMode === 'signup' ? 'Załóż konto' : 'Zaloguj się'}</Typography></Pressable>
+            <Pressable onPress={() => setAuthMode(v => v === 'signin' ? 'signup' : 'signin')} style={s.textButton}><Typography style={s.textButtonText}>{authMode === 'signin' ? 'Nie masz konta? Załóż' : 'Masz konto? Zaloguj się'}</Typography></Pressable>
+            <Pressable onPress={() => { if (!email.trim()) { Alert.alert('Wpisz e-mail', 'Podaj najpierw swój e-mail, aby wpisać otrzymany kod.'); return; } setOtpStep(true); }} style={s.textButton}>
+              <Typography style={[s.textButtonText, { fontSize: 13, color: c.pink }]}>Masz już 6-cyfrowy kod? Wpisz go</Typography>
+            </Pressable>
+            <Pressable onPress={() => setEmailMode(false)} style={s.textButton}><Typography style={s.textButtonText}>Wróć</Typography></Pressable>
+          </View>
+        ) : <>
           <Pressable disabled={busy} onPress={googleAuth} style={[s.google, busy && { opacity: .5 }]}><Ionicons name="logo-google" size={20} color={c.ink} /><Typography style={s.googleText}>Kontynuuj z Google</Typography></Pressable>
           <Pressable disabled={busy} onPress={appleAuth} style={[s.apple, busy && { opacity: .5 }]}><Ionicons name="logo-apple" size={20} color={c.white} /><Typography style={s.appleText}>Kontynuuj z Apple</Typography></Pressable>
           <Pressable onPress={() => setEmailMode(true)} style={[s.primary, { marginBottom: 12 }]}><Ionicons name="mail-outline" size={20} color={c.white} /><Typography style={s.primaryText}>Zaloguj się e-mailem</Typography></Pressable>
@@ -139,5 +204,6 @@ const s = StyleSheet.create({
   business: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   businessTitle: { fontFamily: f.bold, fontSize: 14 },
   input: { height: 54, borderRadius: r.md, borderWidth: 1, borderColor: c.line, paddingHorizontal: sp.base, fontFamily: f.regular, fontSize: 16, color: c.ink },
+  otpInput: { textAlign: 'center', fontSize: 24, letterSpacing: 8, fontFamily: f.bold, fontWeight: '700' },
   legal: { color: c.muted, textAlign: 'center', lineHeight: 17, marginTop: 8 }
 });
