@@ -27,7 +27,7 @@ const zodiacVibeFor=(sign,item)=>{
   const date=new Date(item.when);
   const seed=String(sign||'Lew')+item.id+date.getFullYear()+date.getMonth()+date.getDate()+item.category;
   const score=Math.abs(seed.split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0))%3;
-  if(score===0)return {tone:'high',short:'dobry vibe na wyjście',title:'Dobry vibe na to spotkanie',copy:item.category==='Wyjścia'||item.category==='Koncert'?'Zodiakowo to bardziej towarzyski dzień — dobry fallback na większą energię i ludzi.':'Zodiakowo ten termin wypada lekko i społecznie.'};
+  if(score===0)return {tone:'high',short:'dobry vibe na wyjście',title:'Dobry vibe na to spotkanie',copy:item.category==='Wyjścia'||item.category==='Koncert'?'Zodiakowo to bardziej towarzyski dzień — dobry moment na większą energię i ludzi.':'Zodiakowo ten termin wypada lekko i społecznie.'};
   if(score===1)return {tone:'soft',short:'raczej na spokojnie',title:'Raczej na spokojnie',copy:'Zodiakowo to dzień bardziej na małą ekipę, kawę albo plan bez dużej presji.'};
   return {tone:'mixed',short:'sprawdź swój nastrój',title:'Vibe mieszany',copy:'Zodiakowo dzień jest neutralny — potraktuj to jako zabawny kontekst i kieruj się tym, jak faktycznie się czujesz.'};
 };
@@ -59,7 +59,7 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',onReport,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:'Lew'}}){
+export default function MeetingsScreen({city='Warszawa',onReport,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
@@ -100,7 +100,7 @@ export default function MeetingsScreen({city='Warszawa',onReport,featurePreferen
             <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
             <View style={s.metaBadges}>
               {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(item.when),cycleData);return ctx?<View style={[s.cycleMini,ctx.tone==='easy'&&s.cycleMiniEasy,ctx.tone==='careful'&&s.cycleMiniCareful,ctx.tone==='period'&&s.cycleMiniPeriod]}><Ionicons name={ctx.icon} size={12} color={ctx.tone==='easy'?c.success:ctx.tone==='careful'?c.warning:c.pink}/><Typography style={[s.cycleMiniText,ctx.tone==='easy'&&{color:c.success},ctx.tone==='careful'&&{color:c.warning},ctx.tone==='period'&&{color:c.pink}]}>{ctx.label} · {ctx.daysText}</Typography></View>:null})()}
-              {featurePreferences.zodiacMeetingContext&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign||'Lew',item);return <View style={s.zodiacMini}><Typography style={s.zodiacMiniText}>✦ Dla {featurePreferences.zodiacSign||'Lwa'}: {vibe.short}</Typography></View>})()}
+              {featurePreferences.zodiacMeetingContext&&featurePreferences.zodiacSign&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign,item);return <View style={s.zodiacMini}><Typography style={s.zodiacMiniText}>✦ Dla {featurePreferences.zodiacSign}: {vibe.short}</Typography></View>})()}
             </View>
             <View style={s.cardBottom}>
               <View style={s.peopleRow}>{(cityPeople.length?cityPeople:people).slice(0,3).map(p=><Image key={p.id} source={{uri:p.photo}} style={s.avatar}/>)}</View>
@@ -133,8 +133,8 @@ export default function MeetingsScreen({city='Warszawa',onReport,featurePreferen
             <Typography style={s.careFitCopy}>{ctx?(ctx.tone==='easy'?'Termin nie wypada blisko przewidywanego okresu. Jeśli czujesz się dobrze, nic w trackerze nie sugeruje, żeby zmieniać plan.':ctx.tone==='careful'?'Termin wypada blisko przewidywanego okresu. Możesz zostawić sobie więcej luzu albo wybrać spokojniejszy plan — zależnie od samopoczucia.':'Termin może wypaść w przewidywane dni miesiączki. To nie znaczy, że masz rezygnować — potraktuj to tylko jako przypomnienie o własnym komforcie.'):'Ustaw cykl w Polka Care, żeby zobaczyć kontekst terminu.'}</Typography>
             <Typography style={s.careFitNote}>Prognoza okresu jest orientacyjna.</Typography>
           </View>})()}
-          {featurePreferences.zodiacMeetingContext&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign||'Lew',selected);return <View style={s.zodiacFit}>
-            <Typography style={s.zodiacLabel}>DLA {String(featurePreferences.zodiacSign||'Lew').toUpperCase()} · DLA ZABAWY</Typography>
+          {featurePreferences.zodiacMeetingContext&&featurePreferences.zodiacSign&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign,selected);return <View style={s.zodiacFit}>
+            <Typography style={s.zodiacLabel}>ASTRO VIBE · {String(featurePreferences.zodiacSign).toUpperCase()}</Typography>
             <Typography style={s.zodiacFitTitle}>{vibe.title}</Typography>
             <Typography style={s.zodiacFitCopy}>{vibe.copy}</Typography>
           </View>})()}
