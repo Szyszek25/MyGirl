@@ -11,6 +11,9 @@ alter table public.profiles
   add column if not exists goal text check (goal is null or char_length(goal) <= 100),
   add column if not exists adult_confirmed_at timestamptz;
 
+alter table public.posts add column if not exists media_path text
+  check (media_path is null or char_length(media_path)<=500);
+
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values
   ('polka-avatars','polka-avatars',false,5242880,array['image/jpeg','image/png','image/webp']),
@@ -54,9 +57,6 @@ create policy polka_chat_media_select on storage.objects for select to authentic
 using (bucket_id='polka-chat-media' and (storage.foldername(name))[1]=(select auth.uid())::text);
 create policy polka_chat_media_delete on storage.objects for delete to authenticated
 using (bucket_id='polka-chat-media' and (storage.foldername(name))[1]=(select auth.uid())::text);
-
-alter table public.posts add column if not exists media_path text
-  check (media_path is null or char_length(media_path)<=500);
 
 create table if not exists public.conversations (
   id uuid primary key default gen_random_uuid(),
