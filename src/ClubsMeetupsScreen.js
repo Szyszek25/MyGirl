@@ -61,7 +61,7 @@ export default function ClubsMeetupsScreen({onReport}){
     </ScrollView>
   </KeyboardAvoidingView>;
   return <View style={{flex:1,backgroundColor:c.canvas}}>
-    <View style={{paddingHorizontal:sp.lg,paddingTop:sp.lg}}><PageHeading kicker="MYGIRL / RAZEM" title="Spotkajmy się."/>
+    <View style={{paddingHorizontal:sp.lg,paddingTop:sp.lg}}><PageHeading kicker="POLKA / RAZEM" title="Spotkajmy się."/>
       <View style={s.switch}>{['Kluby','Spotkania'].map(item=><Pressable accessibilityRole="tab" accessibilityState={{selected:view===item}} key={item} style={[s.segment,view===item&&s.selected]} onPress={()=>setView(item)}><Typography style={{color:view===item?c.white:c.ink,fontFamily:f.bold}}>{item}</Typography></Pressable>)}</View>
       <Button title={view==='Kluby'?'+ Załóż klub':'+ Dodaj spotkanie'} onPress={()=>{reset();setForm(view==='Kluby'?'club':'meetup')}} style={{marginBottom:sp.md}}/>
     </View>
