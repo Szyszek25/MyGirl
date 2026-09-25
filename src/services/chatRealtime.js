@@ -1,69 +1,128 @@
-// Infrastructure module only: pass ONE shared authenticated Supabase client.
-// Not wired into demo until Auth, reviewed RLS/moderation and new project exist.
-// A single client owns one WebSocket for many channels; do not create a client
-// in every React screen or in a render callback.
 const PAGE_SIZE=30;
+
+export function newClientMessageId(){
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r=Math.floor(Math.random()*16);
+    const v=c==='x'?r:(r&0x3)|0x8;
+    return v.toString(16);
+  });
+}
+
 export function createChatRealtime(client){
   if(!client)throw new Error('Authenticated Supabase client required');
   let channel=null;
   let activeRoom=null;
   let generation=0;
+
   const stop=async()=>{
-    generation+=1;activeRoom=null;
-    const old=channel;channel=null;
+    generation+=1;
+    activeRoom=null;
+    const old=channel;
+    channel=null;
     if(old)await client.removeChannel(old);
   };
+
+  const listConversations=async(userId)=>{
+    if(!userId)return [];
+    const {data:memberRows,error:memberError}=await client.from('conversation_members')
+      .select('conversation_id').eq('user_id',userId);
+    if(memberError)throw memberError;
+    const ids=(memberRows||[]).map(row=>row.conversation_id);
+    if(!ids.length)return [];
+
+    const [{data:rooms,error:roomError},{data:members,error:membersError},{data:lastMessages,error:messageError}]=await Promise.all([
+      client.from('conversations').select('id,kind,title,created_by,updated_at,created_at').in('id',ids).order('updated_at',{ascending:false}),
+      client.from('conversation_members').select('conversation_id,user_id').in('conversation_id',ids),
+      client.from('messages').select('id,conversation_id,sender_id,body,created_at').in('conversation_id',ids).is('deleted_at',null).order('created_at',{ascending:false}).limit(150)
+    ]);
+    if(roomError)throw roomError;
+    if(membersError)throw membersError;
+    if(messageError)throw messageError;
+
+    const otherIds=[...new Set((members||[]).filter(row=>row.user_id!==userId).map(row=>row.user_id))];
+    let profiles=[];
+    if(otherIds.length){
+      const result=await client.from('profiles').select('id,display_name,avatar_path').in('id',otherIds);
+      if(result.error)throw result.error;
+      profiles=result.data||[];
+    }
+    const profileMap=new Map(profiles.map(profile=>[profile.id,profile]));
+    const latest=new Map();
+    for(const message of lastMessages||[])if(!latest.has(message.conversation_id))latest.set(message.conversation_id,message);
+
+    return (rooms||[]).map(room=>{
+      const roomMembers=(members||[]).filter(row=>row.conversation_id===room.id);
+      const other=profileMap.get(roomMembers.find(row=>row.user_id!==userId)?.user_id);
+      const last=latest.get(room.id);
+      return {
+        ...room,
+        name:room.kind==='group'?(room.title||'Grupa'):(other?.display_name||'Rozmowa'),
+        otherUserId:other?.id||null,
+        avatarPath:other?.avatar_path||null,
+        last:last?.body||'Nowa rozmowa',
+        time:last?.created_at||room.updated_at||room.created_at
+      };
+    });
+  };
+
   const history=async(roomId,{before,limit=PAGE_SIZE}={})=>{
     if(!roomId)throw new Error('Room ID required');
-    let q=client.from('messages').select('id,conversation_id,sender_id,body,created_at,client_message_id')
-      .eq('conversation_id',roomId).eq('moderation_status','approved')
-      .order('created_at',{ascending:false}).order('id',{ascending:false}).limit(Math.min(limit,50));
+    let q=client.from('messages')
+      .select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path')
+      .eq('conversation_id',roomId)
+      .is('deleted_at',null)
+      .order('created_at',{ascending:false})
+      .limit(Math.min(limit,50));
     if(before?.created_at)q=q.lt('created_at',before.created_at);
     const {data,error}=await q;
     if(error)throw error;
     return (data||[]).reverse();
   };
+
   const watch=async(roomId,onMessage,onState=()=>{})=>{
     if(typeof onMessage!=='function')throw new Error('onMessage required');
     await stop();
     if(!roomId)return ()=>{};
     activeRoom=roomId;
     const thisGeneration=generation;
-    const next=client.channel(`mygirl-room-${roomId}`);
+    const next=client.channel(`polka-room-${roomId}`);
     channel=next;
     next.on('postgres_changes',{
       event:'*',schema:'public',table:'messages',filter:`conversation_id=eq.${roomId}`
     },payload=>{
       if(activeRoom!==roomId||generation!==thisGeneration)return;
-      // Only RLS-visible APPROVED messages should be published. A moderator
-      // may transition a pending row to approved via UPDATE.
-      if(payload.new?.moderation_status==='approved')onMessage(payload.new);
+      if(payload.eventType==='INSERT'&&payload.new)onMessage(payload.new);
       if(payload.eventType==='DELETE'&&payload.old?.id)onMessage({id:payload.old.id,deleted:true});
-    }).subscribe(status=>{
-      if(generation===thisGeneration){
-        onState(status);
-        // On SUBSCRIBED/reconnect refetch history and merge by UUID in UI.
-        // Realtime events are not durable offline delivery.
-      }
-    });
+    }).subscribe(status=>{if(generation===thisGeneration)onState(status)});
     return ()=>{if(activeRoom===roomId)void stop()};
   };
-  const send=async({roomId,senderId,body,clientMessageId})=>{
-    if(!roomId||!senderId||!clientMessageId||!body?.trim())throw new Error('Missing message fields');
-    // Generate clientMessageId ONCE on send button press, reuse it on retry.
-    // Unique(sender_id, client_message_id) in SQL prevents duplicate inserts.
-    const payload={conversation_id:roomId,sender_id:senderId,body:body.trim().slice(0,4000),client_message_id:clientMessageId};
-    const {data,error}=await client.from('messages').insert(payload).select('id,created_at,moderation_status').single();
+
+  const send=async({roomId,senderId,body,clientMessageId=newClientMessageId()})=>{
+    if(!roomId||!senderId||!body?.trim())throw new Error('Missing message fields');
+    const payload={
+      conversation_id:roomId,
+      sender_id:senderId,
+      body:body.trim().slice(0,4000),
+      client_message_id:clientMessageId
+    };
+    const {data,error}=await client.from('messages').insert(payload)
+      .select('id,conversation_id,sender_id,body,created_at,client_message_id').single();
     if(error?.code==='23505'){
-      const existing=await client.from('messages').select('id,created_at,moderation_status')
+      const existing=await client.from('messages')
+        .select('id,conversation_id,sender_id,body,created_at,client_message_id')
         .eq('sender_id',senderId).eq('client_message_id',clientMessageId).single();
       if(existing.error)throw existing.error;
       return existing.data;
     }
     if(error)throw error;
-    // Base SQL marks new messages PENDING, so receiver cannot see them until
-    // trusted server-side moderation approves. Never bypass this on client.
     return data;
   };
-  return {history,watch,send,stop};
+
+  const startDirect=async(otherUserId)=>{
+    const {data,error}=await client.rpc('polka_start_direct_conversation',{p_other_user:otherUserId});
+    if(error)throw error;
+    return data;
+  };
+
+  return {listConversations,history,watch,send,startDirect,stop};
 }
