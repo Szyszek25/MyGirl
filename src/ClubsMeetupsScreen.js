@@ -57,7 +57,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
     const starts=new Date(`${date}T${time}:00`);
     if(Number.isNaN(starts.getTime())||starts.getTime()<=Date.now())return Alert.alert('Wybierz przyszły, poprawny termin');
     const selected=clubId?clubs.find(g=>g.id===clubId):null;
-    const meetup={id:localId(),title:text(name,100),description:text(description,500)||'Nowe spotkanie',activeCity,startsAt:starts.toISOString(),clubName:selected?.name||null,clubId:clubId||null,owned:true,spots:6,joined:1};
+    const meetup={id:localId(),title:text(name,100),description:text(description,500)||'Nowe spotkanie',city:activeCity,startsAt:starts.toISOString(),clubName:selected?.name||null,clubId:clubId||null,owned:true,spots:6,joined:1};
     setMeetups(old=>[meetup,...old]);setInterested(old=>[...old,meetup.id]);reset();setActiveMeetup(meetup);
   };
 
