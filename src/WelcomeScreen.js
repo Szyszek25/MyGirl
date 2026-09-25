@@ -4,7 +4,7 @@ import {Ionicons} from '@expo/vector-icons';
 import {useVideoPlayer,VideoView} from 'expo-video';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
-import {signInEmail,signInGoogle,signUpEmail} from './services/authApi';
+import {signInApple,signInEmail,signInGoogle,signUpEmail} from './services/authApi';
 
 const HERO='https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
 const HERO_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
@@ -36,6 +36,14 @@ export default function WelcomeScreen({onContinue,onBusiness}){
     setBusy(true);
     try{await signInGoogle();}
     catch(error){Alert.alert('Logowanie Google',error.message||'Nie udało się rozpocząć logowania.');}
+    finally{setBusy(false);}
+  };
+
+  const appleAuth=async()=>{
+    if(busy)return;
+    setBusy(true);
+    try{await signInApple();}
+    catch(error){Alert.alert('Logowanie Apple',error.message||'Nie udało się rozpocząć logowania.');}
     finally{setBusy(false);}
   };
   const player=useVideoPlayer(HERO_VIDEO,p=>{
@@ -87,6 +95,7 @@ export default function WelcomeScreen({onContinue,onBusiness}){
         <Pressable onPress={()=>setEmailMode(false)} style={s.textButton}><Typography style={s.textButtonText}>Wróć</Typography></Pressable>
       </View>:<>
         <Pressable disabled={busy} onPress={googleAuth} style={[s.google,busy&&{opacity:.5}]}><Ionicons name="logo-google" size={20} color={c.ink}/><Typography style={s.googleText}>Kontynuuj z Google</Typography></Pressable>
+        <Pressable disabled={busy} onPress={appleAuth} style={[s.apple,busy&&{opacity:.5}]}><Ionicons name="logo-apple" size={20} color={c.white}/><Typography style={s.appleText}>Kontynuuj z Apple</Typography></Pressable>
         <Pressable onPress={()=>setEmailMode(true)} style={s.primary}><Ionicons name="mail-outline" size={20} color={c.white}/><Typography style={s.primaryText}>Zaloguj się e-mailem</Typography></Pressable>
         <Pressable onPress={()=>onContinue?.({method:'skip'})} style={s.textButton}><Typography style={s.textButtonText}>Pomiń na razie</Typography></Pressable>
         <View style={s.divider}><View style={s.line}/><Typography variant="caption" style={{color:c.muted}}>albo</Typography><View style={s.line}/></View>
@@ -110,6 +119,8 @@ const s=StyleSheet.create({
   sheet:{backgroundColor:c.white,borderTopLeftRadius:30,borderTopRightRadius:30,marginTop:-28,padding:sp.lg,paddingTop:sp.xl},
   google:{height:54,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10},
   googleText:{fontFamily:f.bold,fontSize:15},
+  apple:{height:54,borderRadius:r.md,backgroundColor:'#111',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10,marginTop:10},
+  appleText:{fontFamily:f.bold,fontSize:15,color:c.white},
   primary:{height:54,borderRadius:r.md,backgroundColor:c.pink,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10,marginTop:10},
   primaryText:{fontFamily:f.bold,fontSize:15,color:c.white},
   textButton:{height:48,alignItems:'center',justifyContent:'center'},
