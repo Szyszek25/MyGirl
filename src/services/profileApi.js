@@ -1,3 +1,4 @@
+import {File} from 'expo-file-system';
 import {supabase} from '../lib/supabase';
 
 export async function loadRemoteProfile(userId){
@@ -38,14 +39,24 @@ export async function loadRemoteProfile(userId){
   };
 }
 
+function imageMimeFromUri(uri,fileType=''){
+  const normalized=(fileType||'').toLowerCase();
+  if(normalized.startsWith('image/'))return normalized;
+  const clean=(uri||'').split('?')[0].toLowerCase();
+  if(clean.endsWith('.png'))return 'image/png';
+  if(clean.endsWith('.webp'))return 'image/webp';
+  return 'image/jpeg';
+}
+
 async function uploadAvatar(userId,uri){
   if(!uri||uri.startsWith('http'))return null;
-  const response=await fetch(uri);
-  const blob=await response.blob();
-  const type=blob.type||'image/jpeg';
-  const ext=type.includes('png')?'png':type.includes('webp')?'webp':'jpg';
+  const file=new File(uri);
+  const bytes=await file.arrayBuffer();
+  if(!bytes.byteLength)throw new Error('Nie udało się odczytać zdjęcia profilowego.');
+  const type=imageMimeFromUri(uri,file.type);
+  const ext=type==='image/png'?'png':type==='image/webp'?'webp':'jpg';
   const path=`${userId}/avatar-${Date.now()}.${ext}`;
-  const {error}=await supabase.storage.from('polka-avatars').upload(path,blob,{contentType:type,upsert:false});
+  const {error}=await supabase.storage.from('polka-avatars').upload(path,bytes,{contentType:type,upsert:false});
   if(error)throw error;
   return path;
 }
