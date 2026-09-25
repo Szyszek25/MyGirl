@@ -31,6 +31,16 @@ export async function signUpEmail(email,password){
   return data;
 }
 
+export async function signInApple(){
+  const {data,error}=await supabase.auth.signInWithOAuth({
+    provider:'apple',
+    options:{redirectTo:AUTH_REDIRECT,skipBrowserRedirect:true}
+  });
+  if(error)throw error;
+  if(!data?.url)throw new Error('Brak adresu logowania Apple.');
+  await Linking.openURL(data.url);
+}
+
 export async function signInGoogle(){
   const {data,error}=await supabase.auth.signInWithOAuth({
     provider:'google',
