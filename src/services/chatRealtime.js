@@ -10,6 +10,13 @@ export function newClientMessageId(){
 
 export function createChatRealtime(client){
   if(!client)throw new Error('Authenticated Supabase client required');
+
+  const hydrateMedia=async message=>{
+    if(!message?.media_path)return message;
+    const {data,error}=await client.storage.from('polka-chat-media').createSignedUrl(message.media_path,60*60);
+    if(error)return message;
+    return {...message,media_url:data?.signedUrl||null};
+  };
   let channel=null;
   let activeRoom=null;
   let generation=0;
@@ -68,7 +75,7 @@ export function createChatRealtime(client){
   const history=async(roomId,{before,limit=PAGE_SIZE}={})=>{
     if(!roomId)throw new Error('Room ID required');
     let q=client.from('messages')
-      .select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path')
+      .select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path,message_type,duration_ms')
       .eq('conversation_id',roomId)
       .is('deleted_at',null)
       .order('created_at',{ascending:false})
@@ -76,7 +83,7 @@ export function createChatRealtime(client){
     if(before?.created_at)q=q.lt('created_at',before.created_at);
     const {data,error}=await q;
     if(error)throw error;
-    return (data||[]).reverse();
+    return Promise.all((data||[]).reverse().map(hydrateMedia));
   };
 
   const watch=async(roomId,onMessage,onState=()=>{})=>{
@@ -91,7 +98,7 @@ export function createChatRealtime(client){
       event:'*',schema:'public',table:'messages',filter:`conversation_id=eq.${roomId}`
     },payload=>{
       if(activeRoom!==roomId||generation!==thisGeneration)return;
-      if(payload.eventType==='INSERT'&&payload.new)onMessage(payload.new);
+      if(payload.eventType==='INSERT'&&payload.new)void hydrateMedia(payload.new).then(onMessage);
       if(payload.eventType==='DELETE'&&payload.old?.id)onMessage({id:payload.old.id,deleted:true});
     }).subscribe(status=>{if(generation===thisGeneration)onState(status)});
     return ()=>{if(activeRoom===roomId)void stop()};
@@ -106,10 +113,10 @@ export function createChatRealtime(client){
       client_message_id:clientMessageId
     };
     const {data,error}=await client.from('messages').insert(payload)
-      .select('id,conversation_id,sender_id,body,created_at,client_message_id').single();
+      .select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path,message_type,duration_ms').single();
     if(error?.code==='23505'){
       const existing=await client.from('messages')
-        .select('id,conversation_id,sender_id,body,created_at,client_message_id')
+.select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path,message_type,duration_ms')
         .eq('sender_id',senderId).eq('client_message_id',clientMessageId).single();
       if(existing.error)throw existing.error;
       return existing.data;
@@ -118,11 +125,38 @@ export function createChatRealtime(client){
     return data;
   };
 
+  const sendVoice=async({roomId,senderId,uri,durationMs,clientMessageId=newClientMessageId()})=>{
+    if(!roomId||!senderId||!uri)throw new Error('Missing voice message fields');
+    const response=await fetch(uri);
+    const blob=await response.blob();
+    const type=blob.type||'audio/m4a';
+    const ext=type.includes('webm')?'webm':type.includes('mpeg')?'mp3':type.includes('aac')?'aac':'m4a';
+    const mediaPath=`${senderId}/voice-${Date.now()}-${clientMessageId.slice(0,8)}.${ext}`;
+    const upload=await client.storage.from('polka-chat-media').upload(mediaPath,blob,{contentType:type,upsert:false});
+    if(upload.error)throw upload.error;
+    const payload={
+      conversation_id:roomId,
+      sender_id:senderId,
+      body:'Wiadomość głosowa',
+      client_message_id:clientMessageId,
+      media_path:mediaPath,
+      message_type:'voice',
+      duration_ms:Math.max(250,Math.min(600000,Math.round(durationMs||0)))
+    };
+    const {data,error}=await client.from('messages').insert(payload)
+      .select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path,message_type,duration_ms').single();
+    if(error){
+      await client.storage.from('polka-chat-media').remove([mediaPath]).catch(()=>{});
+      throw error;
+    }
+    return hydrateMedia(data);
+  };
+
   const startDirect=async(otherUserId)=>{
     const {data,error}=await client.rpc('polka_start_direct_conversation',{p_other_user:otherUserId});
     if(error)throw error;
     return data;
   };
 
-  return {listConversations,history,watch,send,startDirect,stop};
+  return {listConversations,history,watch,send,sendVoice,startDirect,stop};
 }
