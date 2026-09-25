@@ -1,10 +1,861 @@
-// Fictional demo personas, not actual MyGirl members. Photos are temporary remote editorial placeholders.
+// Fictional demo personas for Polka. They are NOT real members.
+// Remote photos are temporary editorial placeholders and must be replaced with licensed/consented media before release.
 export const cities=['Warszawa','Kraków','Gdańsk','Wrocław','Poznań','Łódź','Katowice'];
-export const interests=['Kawa','Podróże','Sport','Książki','Sztuka','Muzyka','Jedzenie','Spacery','Kino','Studia'];
+export const interests=['Kawa','Matcha','Podróże','Sport','Pilates','Książki','Sztuka','Muzyka','Jedzenie','Spacery','Kino','Koncerty','Moda','Second hand','Fotografia'];
+
 export const people=[
-{id:'maja',name:'Maja',age:22,city:'Warszawa',photo:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=75',bio:'Kawa, galerie i długie rozmowy.',tags:['Kawa','Sztuka'],prompt:'Idealny wolny dzień?',answer:'Spacer po mieście i coś dobrego do jedzenia.'},
-{id:'ola',name:'Ola',age:21,city:'Kraków',photo:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=75',bio:'Szukam ekipy na małe przygody.',tags:['Podróże','Kino'],prompt:'Zawsze namówię Cię na…',answer:'Wycieczkę bez wielkiego planowania.'},
-{id:'natalia',name:'Natalia',age:24,city:'Gdańsk',photo:'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=75',bio:'Morze, koncerty, spontaniczne plany.',tags:['Sport','Muzyka'],prompt:'W ten weekend…',answer:'Idę nad wodę. Kto dołącza?'},
+  {
+    "id": "demo-01",
+    "name": "Maja",
+    "age": 22,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=75",
+    "bio": "Matcha, spacery i spontaniczne wyjścia po pracy.",
+    "tags": [
+      "Kawa",
+      "Spacery"
+    ],
+    "prompt": "Idealny plan na piątek?",
+    "answer": "Matcha, spacer i spontaniczne wyjście później.",
+    "demo": true
+  },
+  {
+    "id": "demo-02",
+    "name": "Ola",
+    "age": 21,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=75",
+    "bio": "Lubię poznawać nowe miejsca i jeszcze lepsze kawiarnie.",
+    "tags": [
+      "Podróże",
+      "Jedzenie"
+    ],
+    "prompt": "Zawsze namówisz mnie na…",
+    "answer": "Nową kawiarnię albo mały weekendowy wyjazd.",
+    "demo": true
+  },
+  {
+    "id": "demo-03",
+    "name": "Natalia",
+    "age": 24,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=75",
+    "bio": "Koncerty, kino i wyjazdy bez wielkiego planowania.",
+    "tags": [
+      "Muzyka",
+      "Kino"
+    ],
+    "prompt": "Mój comfort plan to…",
+    "answer": "Długi spacer, coś dobrego do jedzenia i zero pośpiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-04",
+    "name": "Zuzia",
+    "age": 20,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=75",
+    "bio": "Pilates, kawa i długie rozmowy o wszystkim i o niczym.",
+    "tags": [
+      "Sport",
+      "Kawa"
+    ],
+    "prompt": "W ten weekend chcę…",
+    "answer": "Zrobić coś poza domem i poznać nowe osoby.",
+    "demo": true
+  },
+  {
+    "id": "demo-05",
+    "name": "Julia",
+    "age": 23,
+    "city": "Wrocław",
+    "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=75",
+    "bio": "Nowe miasto, nowe znajomości i małe przygody.",
+    "tags": [
+      "Sztuka",
+      "Spacery"
+    ],
+    "prompt": "Green flag u nowej znajomej?",
+    "answer": "Lekkość, inicjatywa i brak spiny.",
+    "demo": true
+  },
+  {
+    "id": "demo-06",
+    "name": "Kasia",
+    "age": 25,
+    "city": "Poznań",
+    "photo": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=75",
+    "bio": "Uwielbiam brunch, zdjęcia i weekendowe wypady.",
+    "tags": [
+      "Jedzenie",
+      "Kawa"
+    ],
+    "prompt": "Miejsce, do którego wracam?",
+    "answer": "Kawiarnie z dobrym światłem i jeszcze lepszą matchą.",
+    "demo": true
+  },
+  {
+    "id": "demo-07",
+    "name": "Wiktoria",
+    "age": 21,
+    "city": "Łódź",
+    "photo": "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=800&q=75",
+    "bio": "Chętnie dołączę do planów, na które zwykle brakuje ekipy.",
+    "tags": [
+      "Podróże",
+      "Muzyka"
+    ],
+    "prompt": "Najbardziej spontaniczna rzecz?",
+    "answer": "Kupienie biletu dzień przed wyjazdem.",
+    "demo": true
+  },
+  {
+    "id": "demo-08",
+    "name": "Martyna",
+    "age": 22,
+    "city": "Katowice",
+    "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=75",
+    "bio": "Książki, galerie, second handy i spokojne wieczory.",
+    "tags": [
+      "Książki",
+      "Sztuka"
+    ],
+    "prompt": "Mój typ girls night?",
+    "answer": "Karaoke, drinki i dużo śmiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-09",
+    "name": "Weronika",
+    "age": 24,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=75",
+    "bio": "Rower, spacery, dobra muzyka i spontaniczne plany.",
+    "tags": [
+      "Sport",
+      "Spacery"
+    ],
+    "prompt": "Na co zawsze mam czas?",
+    "answer": "Kawa i szybki spacer po mieście.",
+    "demo": true
+  },
+  {
+    "id": "demo-10",
+    "name": "Amelia",
+    "age": 19,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=75",
+    "bio": "Szukam dziewczyn do wspólnych wyjść i poznawania miasta.",
+    "tags": [
+      "Kino",
+      "Jedzenie"
+    ],
+    "prompt": "Chciałabym znaleźć ekipę na…",
+    "answer": "Koncerty, wypady i zwykłe codzienne plany.",
+    "demo": true
+  },
+  {
+    "id": "demo-11",
+    "name": "Nina",
+    "age": 23,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=75",
+    "bio": "Matcha, spacery i spontaniczne wyjścia po pracy.",
+    "tags": [
+      "Kawa",
+      "Spacery"
+    ],
+    "prompt": "Idealny plan na piątek?",
+    "answer": "Matcha, spacer i spontaniczne wyjście później.",
+    "demo": true
+  },
+  {
+    "id": "demo-12",
+    "name": "Laura",
+    "age": 22,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=75",
+    "bio": "Lubię poznawać nowe miejsca i jeszcze lepsze kawiarnie.",
+    "tags": [
+      "Podróże",
+      "Jedzenie"
+    ],
+    "prompt": "Zawsze namówisz mnie na…",
+    "answer": "Nową kawiarnię albo mały weekendowy wyjazd.",
+    "demo": true
+  },
+  {
+    "id": "demo-13",
+    "name": "Emilia",
+    "age": 25,
+    "city": "Wrocław",
+    "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=75",
+    "bio": "Koncerty, kino i wyjazdy bez wielkiego planowania.",
+    "tags": [
+      "Muzyka",
+      "Kino"
+    ],
+    "prompt": "Mój comfort plan to…",
+    "answer": "Długi spacer, coś dobrego do jedzenia i zero pośpiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-14",
+    "name": "Lena",
+    "age": 20,
+    "city": "Poznań",
+    "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=75",
+    "bio": "Pilates, kawa i długie rozmowy o wszystkim i o niczym.",
+    "tags": [
+      "Sport",
+      "Kawa"
+    ],
+    "prompt": "W ten weekend chcę…",
+    "answer": "Zrobić coś poza domem i poznać nowe osoby.",
+    "demo": true
+  },
+  {
+    "id": "demo-15",
+    "name": "Karolina",
+    "age": 26,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=75",
+    "bio": "Nowe miasto, nowe znajomości i małe przygody.",
+    "tags": [
+      "Sztuka",
+      "Spacery"
+    ],
+    "prompt": "Green flag u nowej znajomej?",
+    "answer": "Lekkość, inicjatywa i brak spiny.",
+    "demo": true
+  },
+  {
+    "id": "demo-16",
+    "name": "Pola",
+    "age": 21,
+    "city": "Łódź",
+    "photo": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=75",
+    "bio": "Uwielbiam brunch, zdjęcia i weekendowe wypady.",
+    "tags": [
+      "Jedzenie",
+      "Kawa"
+    ],
+    "prompt": "Miejsce, do którego wracam?",
+    "answer": "Kawiarnie z dobrym światłem i jeszcze lepszą matchą.",
+    "demo": true
+  },
+  {
+    "id": "demo-17",
+    "name": "Hania",
+    "age": 19,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=800&q=75",
+    "bio": "Chętnie dołączę do planów, na które zwykle brakuje ekipy.",
+    "tags": [
+      "Podróże",
+      "Muzyka"
+    ],
+    "prompt": "Najbardziej spontaniczna rzecz?",
+    "answer": "Kupienie biletu dzień przed wyjazdem.",
+    "demo": true
+  },
+  {
+    "id": "demo-18",
+    "name": "Dominika",
+    "age": 24,
+    "city": "Katowice",
+    "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=75",
+    "bio": "Książki, galerie, second handy i spokojne wieczory.",
+    "tags": [
+      "Książki",
+      "Sztuka"
+    ],
+    "prompt": "Mój typ girls night?",
+    "answer": "Karaoke, drinki i dużo śmiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-19",
+    "name": "Alicja",
+    "age": 23,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=75",
+    "bio": "Rower, spacery, dobra muzyka i spontaniczne plany.",
+    "tags": [
+      "Sport",
+      "Spacery"
+    ],
+    "prompt": "Na co zawsze mam czas?",
+    "answer": "Kawa i szybki spacer po mieście.",
+    "demo": true
+  },
+  {
+    "id": "demo-20",
+    "name": "Sara",
+    "age": 22,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=75",
+    "bio": "Szukam dziewczyn do wspólnych wyjść i poznawania miasta.",
+    "tags": [
+      "Kino",
+      "Jedzenie"
+    ],
+    "prompt": "Chciałabym znaleźć ekipę na…",
+    "answer": "Koncerty, wypady i zwykłe codzienne plany.",
+    "demo": true
+  },
+  {
+    "id": "demo-21",
+    "name": "Gabrysia",
+    "age": 20,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=75",
+    "bio": "Matcha, spacery i spontaniczne wyjścia po pracy.",
+    "tags": [
+      "Kawa",
+      "Spacery"
+    ],
+    "prompt": "Idealny plan na piątek?",
+    "answer": "Matcha, spacer i spontaniczne wyjście później.",
+    "demo": true
+  },
+  {
+    "id": "demo-22",
+    "name": "Iga",
+    "age": 24,
+    "city": "Wrocław",
+    "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=75",
+    "bio": "Lubię poznawać nowe miejsca i jeszcze lepsze kawiarnie.",
+    "tags": [
+      "Podróże",
+      "Jedzenie"
+    ],
+    "prompt": "Zawsze namówisz mnie na…",
+    "answer": "Nową kawiarnię albo mały weekendowy wyjazd.",
+    "demo": true
+  },
+  {
+    "id": "demo-23",
+    "name": "Paulina",
+    "age": 25,
+    "city": "Poznań",
+    "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=75",
+    "bio": "Koncerty, kino i wyjazdy bez wielkiego planowania.",
+    "tags": [
+      "Muzyka",
+      "Kino"
+    ],
+    "prompt": "Mój comfort plan to…",
+    "answer": "Długi spacer, coś dobrego do jedzenia i zero pośpiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-24",
+    "name": "Magda",
+    "age": 23,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=75",
+    "bio": "Pilates, kawa i długie rozmowy o wszystkim i o niczym.",
+    "tags": [
+      "Sport",
+      "Kawa"
+    ],
+    "prompt": "W ten weekend chcę…",
+    "answer": "Zrobić coś poza domem i poznać nowe osoby.",
+    "demo": true
+  },
+  {
+    "id": "demo-25",
+    "name": "Klaudia",
+    "age": 22,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=75",
+    "bio": "Nowe miasto, nowe znajomości i małe przygody.",
+    "tags": [
+      "Sztuka",
+      "Spacery"
+    ],
+    "prompt": "Green flag u nowej znajomej?",
+    "answer": "Lekkość, inicjatywa i brak spiny.",
+    "demo": true
+  },
+  {
+    "id": "demo-26",
+    "name": "Ania",
+    "age": 26,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=75",
+    "bio": "Uwielbiam brunch, zdjęcia i weekendowe wypady.",
+    "tags": [
+      "Jedzenie",
+      "Kawa"
+    ],
+    "prompt": "Miejsce, do którego wracam?",
+    "answer": "Kawiarnie z dobrym światłem i jeszcze lepszą matchą.",
+    "demo": true
+  },
+  {
+    "id": "demo-27",
+    "name": "Ewa",
+    "age": 24,
+    "city": "Łódź",
+    "photo": "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=800&q=75",
+    "bio": "Chętnie dołączę do planów, na które zwykle brakuje ekipy.",
+    "tags": [
+      "Podróże",
+      "Muzyka"
+    ],
+    "prompt": "Najbardziej spontaniczna rzecz?",
+    "answer": "Kupienie biletu dzień przed wyjazdem.",
+    "demo": true
+  },
+  {
+    "id": "demo-28",
+    "name": "Milena",
+    "age": 21,
+    "city": "Katowice",
+    "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=75",
+    "bio": "Książki, galerie, second handy i spokojne wieczory.",
+    "tags": [
+      "Książki",
+      "Sztuka"
+    ],
+    "prompt": "Mój typ girls night?",
+    "answer": "Karaoke, drinki i dużo śmiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-29",
+    "name": "Patrycja",
+    "age": 23,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=75",
+    "bio": "Rower, spacery, dobra muzyka i spontaniczne plany.",
+    "tags": [
+      "Sport",
+      "Spacery"
+    ],
+    "prompt": "Na co zawsze mam czas?",
+    "answer": "Kawa i szybki spacer po mieście.",
+    "demo": true
+  },
+  {
+    "id": "demo-30",
+    "name": "Sandra",
+    "age": 22,
+    "city": "Wrocław",
+    "photo": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=75",
+    "bio": "Szukam dziewczyn do wspólnych wyjść i poznawania miasta.",
+    "tags": [
+      "Kino",
+      "Jedzenie"
+    ],
+    "prompt": "Chciałabym znaleźć ekipę na…",
+    "answer": "Koncerty, wypady i zwykłe codzienne plany.",
+    "demo": true
+  },
+  {
+    "id": "demo-31",
+    "name": "Monika",
+    "age": 27,
+    "city": "Poznań",
+    "photo": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=75",
+    "bio": "Matcha, spacery i spontaniczne wyjścia po pracy.",
+    "tags": [
+      "Kawa",
+      "Spacery"
+    ],
+    "prompt": "Idealny plan na piątek?",
+    "answer": "Matcha, spacer i spontaniczne wyjście później.",
+    "demo": true
+  },
+  {
+    "id": "demo-32",
+    "name": "Marysia",
+    "age": 20,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=75",
+    "bio": "Lubię poznawać nowe miejsca i jeszcze lepsze kawiarnie.",
+    "tags": [
+      "Podróże",
+      "Jedzenie"
+    ],
+    "prompt": "Zawsze namówisz mnie na…",
+    "answer": "Nową kawiarnię albo mały weekendowy wyjazd.",
+    "demo": true
+  },
+  {
+    "id": "demo-33",
+    "name": "Ada",
+    "age": 23,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=75",
+    "bio": "Koncerty, kino i wyjazdy bez wielkiego planowania.",
+    "tags": [
+      "Muzyka",
+      "Kino"
+    ],
+    "prompt": "Mój comfort plan to…",
+    "answer": "Długi spacer, coś dobrego do jedzenia i zero pośpiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-34",
+    "name": "Joanna",
+    "age": 25,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=75",
+    "bio": "Pilates, kawa i długie rozmowy o wszystkim i o niczym.",
+    "tags": [
+      "Sport",
+      "Kawa"
+    ],
+    "prompt": "W ten weekend chcę…",
+    "answer": "Zrobić coś poza domem i poznać nowe osoby.",
+    "demo": true
+  },
+  {
+    "id": "demo-35",
+    "name": "Roksana",
+    "age": 21,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=75",
+    "bio": "Nowe miasto, nowe znajomości i małe przygody.",
+    "tags": [
+      "Sztuka",
+      "Spacery"
+    ],
+    "prompt": "Green flag u nowej znajomej?",
+    "answer": "Lekkość, inicjatywa i brak spiny.",
+    "demo": true
+  },
+  {
+    "id": "demo-36",
+    "name": "Agata",
+    "age": 24,
+    "city": "Wrocław",
+    "photo": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=75",
+    "bio": "Uwielbiam brunch, zdjęcia i weekendowe wypady.",
+    "tags": [
+      "Jedzenie",
+      "Kawa"
+    ],
+    "prompt": "Miejsce, do którego wracam?",
+    "answer": "Kawiarnie z dobrym światłem i jeszcze lepszą matchą.",
+    "demo": true
+  },
+  {
+    "id": "demo-37",
+    "name": "Kinga",
+    "age": 22,
+    "city": "Łódź",
+    "photo": "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=800&q=75",
+    "bio": "Chętnie dołączę do planów, na które zwykle brakuje ekipy.",
+    "tags": [
+      "Podróże",
+      "Muzyka"
+    ],
+    "prompt": "Najbardziej spontaniczna rzecz?",
+    "answer": "Kupienie biletu dzień przed wyjazdem.",
+    "demo": true
+  },
+  {
+    "id": "demo-38",
+    "name": "Basia",
+    "age": 26,
+    "city": "Katowice",
+    "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=75",
+    "bio": "Książki, galerie, second handy i spokojne wieczory.",
+    "tags": [
+      "Książki",
+      "Sztuka"
+    ],
+    "prompt": "Mój typ girls night?",
+    "answer": "Karaoke, drinki i dużo śmiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-39",
+    "name": "Liwia",
+    "age": 20,
+    "city": "Poznań",
+    "photo": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=75",
+    "bio": "Rower, spacery, dobra muzyka i spontaniczne plany.",
+    "tags": [
+      "Sport",
+      "Spacery"
+    ],
+    "prompt": "Na co zawsze mam czas?",
+    "answer": "Kawa i szybki spacer po mieście.",
+    "demo": true
+  },
+  {
+    "id": "demo-40",
+    "name": "Nadia",
+    "age": 23,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=75",
+    "bio": "Szukam dziewczyn do wspólnych wyjść i poznawania miasta.",
+    "tags": [
+      "Kino",
+      "Jedzenie"
+    ],
+    "prompt": "Chciałabym znaleźć ekipę na…",
+    "answer": "Koncerty, wypady i zwykłe codzienne plany.",
+    "demo": true
+  },
+  {
+    "id": "demo-41",
+    "name": "Eliza",
+    "age": 24,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=75",
+    "bio": "Matcha, spacery i spontaniczne wyjścia po pracy.",
+    "tags": [
+      "Kawa",
+      "Spacery"
+    ],
+    "prompt": "Idealny plan na piątek?",
+    "answer": "Matcha, spacer i spontaniczne wyjście później.",
+    "demo": true
+  },
+  {
+    "id": "demo-42",
+    "name": "Kornelia",
+    "age": 21,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=75",
+    "bio": "Lubię poznawać nowe miejsca i jeszcze lepsze kawiarnie.",
+    "tags": [
+      "Podróże",
+      "Jedzenie"
+    ],
+    "prompt": "Zawsze namówisz mnie na…",
+    "answer": "Nową kawiarnię albo mały weekendowy wyjazd.",
+    "demo": true
+  },
+  {
+    "id": "demo-43",
+    "name": "Daria",
+    "age": 25,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=75",
+    "bio": "Koncerty, kino i wyjazdy bez wielkiego planowania.",
+    "tags": [
+      "Muzyka",
+      "Kino"
+    ],
+    "prompt": "Mój comfort plan to…",
+    "answer": "Długi spacer, coś dobrego do jedzenia i zero pośpiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-44",
+    "name": "Marta",
+    "age": 23,
+    "city": "Wrocław",
+    "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=75",
+    "bio": "Pilates, kawa i długie rozmowy o wszystkim i o niczym.",
+    "tags": [
+      "Sport",
+      "Kawa"
+    ],
+    "prompt": "W ten weekend chcę…",
+    "answer": "Zrobić coś poza domem i poznać nowe osoby.",
+    "demo": true
+  },
+  {
+    "id": "demo-45",
+    "name": "Sylwia",
+    "age": 26,
+    "city": "Poznań",
+    "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=75",
+    "bio": "Nowe miasto, nowe znajomości i małe przygody.",
+    "tags": [
+      "Sztuka",
+      "Spacery"
+    ],
+    "prompt": "Green flag u nowej znajomej?",
+    "answer": "Lekkość, inicjatywa i brak spiny.",
+    "demo": true
+  },
+  {
+    "id": "demo-46",
+    "name": "Malwina",
+    "age": 22,
+    "city": "Łódź",
+    "photo": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=75",
+    "bio": "Uwielbiam brunch, zdjęcia i weekendowe wypady.",
+    "tags": [
+      "Jedzenie",
+      "Kawa"
+    ],
+    "prompt": "Miejsce, do którego wracam?",
+    "answer": "Kawiarnie z dobrym światłem i jeszcze lepszą matchą.",
+    "demo": true
+  },
+  {
+    "id": "demo-47",
+    "name": "Inga",
+    "age": 24,
+    "city": "Katowice",
+    "photo": "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=800&q=75",
+    "bio": "Chętnie dołączę do planów, na które zwykle brakuje ekipy.",
+    "tags": [
+      "Podróże",
+      "Muzyka"
+    ],
+    "prompt": "Najbardziej spontaniczna rzecz?",
+    "answer": "Kupienie biletu dzień przed wyjazdem.",
+    "demo": true
+  },
+  {
+    "id": "demo-48",
+    "name": "Kaja",
+    "age": 20,
+    "city": "Warszawa",
+    "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=75",
+    "bio": "Książki, galerie, second handy i spokojne wieczory.",
+    "tags": [
+      "Książki",
+      "Sztuka"
+    ],
+    "prompt": "Mój typ girls night?",
+    "answer": "Karaoke, drinki i dużo śmiechu.",
+    "demo": true
+  },
+  {
+    "id": "demo-49",
+    "name": "Róża",
+    "age": 23,
+    "city": "Kraków",
+    "photo": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=75",
+    "bio": "Rower, spacery, dobra muzyka i spontaniczne plany.",
+    "tags": [
+      "Sport",
+      "Spacery"
+    ],
+    "prompt": "Na co zawsze mam czas?",
+    "answer": "Kawa i szybki spacer po mieście.",
+    "demo": true
+  },
+  {
+    "id": "demo-50",
+    "name": "Jagoda",
+    "age": 21,
+    "city": "Gdańsk",
+    "photo": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=75",
+    "bio": "Szukam dziewczyn do wspólnych wyjść i poznawania miasta.",
+    "tags": [
+      "Kino",
+      "Jedzenie"
+    ],
+    "prompt": "Chciałabym znaleźć ekipę na…",
+    "answer": "Koncerty, wypady i zwykłe codzienne plany.",
+    "demo": true
+  }
 ];
-export const initialPosts=[{id:'1',author:'Maja',city:'Warszawa',body:'Kto idzie w sobotę na kawę?',likes:12},{id:'2',author:'Ola',city:'Kraków',body:'Szukam ekipy na kino w piątek.',likes:8}];
-export const groups=[{id:'coffee',name:'Coffee Girls',city:'Warszawa',description:'Kawa i nowe znajomości',icon:'cafe-outline'},{id:'books',name:'Book Club',city:'Gdańsk',description:'Czytamy razem',icon:'book-outline'},{id:'trips',name:'Weekend Trips',city:'Kraków',description:'Małe i duże wypady',icon:'airplane-outline'}];
+
+export const initialPosts=[
+  {
+    "id": "post-01",
+    "author": "Maja",
+    "city": "Warszawa",
+    "body": "Kto ma ochotę dziś po 18 na matchę w centrum?",
+    "likes": 18
+  },
+  {
+    "id": "post-02",
+    "author": "Ola",
+    "city": "Kraków",
+    "body": "Szukam 2–3 dziewczyn na kino w piątek 🎬",
+    "likes": 14
+  },
+  {
+    "id": "post-03",
+    "author": "Natalia",
+    "city": "Gdańsk",
+    "body": "Spacer nad morzem + kawa w sobotę?",
+    "likes": 22
+  },
+  {
+    "id": "post-04",
+    "author": "Julia",
+    "city": "Wrocław",
+    "body": "Ktoś chętny na pilates i brunch w niedzielę?",
+    "likes": 17
+  },
+  {
+    "id": "post-05",
+    "author": "Kasia",
+    "city": "Poznań",
+    "body": "Polecicie fajny second hand w centrum?",
+    "likes": 31
+  },
+  {
+    "id": "post-06",
+    "author": "Wiktoria",
+    "city": "Łódź",
+    "body": "Girls night w sobotę — mamy jeszcze 2 miejsca 🪩",
+    "likes": 26
+  },
+  {
+    "id": "post-07",
+    "author": "Martyna",
+    "city": "Katowice",
+    "body": "Ktoś wybiera się na koncert w przyszłym tygodniu?",
+    "likes": 11
+  },
+  {
+    "id": "post-08",
+    "author": "Laura",
+    "city": "Warszawa",
+    "body": "Chcę zrobić mały book club, ktoś dołączy?",
+    "likes": 19
+  }
+];
+
+export const groups=[
+  {
+    "id": "coffee-waw",
+    "name": "Matcha & Coffee Girls",
+    "city": "Warszawa",
+    "description": "Kawiarnie, matcha i spontaniczne spotkania",
+    "icon": "cafe-outline"
+  },
+  {
+    "id": "girls-night-waw",
+    "name": "Girls Night Warszawa",
+    "city": "Warszawa",
+    "description": "Wyjścia, karaoke i wieczorne plany",
+    "icon": "sparkles-outline"
+  },
+  {
+    "id": "books-gda",
+    "name": "Book Club",
+    "city": "Gdańsk",
+    "description": "Czytamy i spotykamy się raz w miesiącu",
+    "icon": "book-outline"
+  },
+  {
+    "id": "trips-krk",
+    "name": "Weekend Trips",
+    "city": "Kraków",
+    "description": "Małe i duże wypady bez wielkiego planowania",
+    "icon": "airplane-outline"
+  },
+  {
+    "id": "pilates-wro",
+    "name": "Pilates & Wellness",
+    "city": "Wrocław",
+    "description": "Treningi, pilates i zdrowy reset",
+    "icon": "fitness-outline"
+  },
+  {
+    "id": "food-poznan",
+    "name": "Brunch Club",
+    "city": "Poznań",
+    "description": "Testujemy śniadania i nowe miejsca",
+    "icon": "restaurant-outline"
+  }
+];
