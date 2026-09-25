@@ -213,10 +213,27 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
     {id:'maja',name:'Maja',photo:people[0].photo,last:'Hej! Widzimy się jutro? 💗',time:'18:42',unread:2},
     {id:'meet-matcha',name:'Matcha + spacer',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&q=80',last:'Maja: widzimy się przy wejściu o 17:30 ☕',time:'18:15',unread:4},
     {id:'meet-karaoke',name:'Girls night + karaoke',photo:'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=300&q=80',last:'Natalia: mamy jeszcze dwa miejsca 🎤',time:'17:48',unread:7},
+    {id:'cycle-support',name:'Cykl i samopoczucie',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&q=82',last:'Maja: spokojnie, u mnie też czasem się przesuwa 💗',time:'18:31',unread:9,group:true},
     {id:'group',name:'Coffee Girls',photo:people[1].photo,last:'Ola: mam stolik na 18:30',time:'17:10',unread:5},
     {id:'meet-pilates',name:'Pilates + brunch',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&q=80',last:'Klara: pamiętajcie o matach 🧘‍♀️',time:'15:22',unread:1},
     {id:'meet-books',name:'Book club + kawa',photo:'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80',last:'Sara: wrzucam lokalizację kawiarni',time:'wczoraj',unread:0}
   ].filter(chat=>!blockedIds.includes(chat.id));
+
+  const seededChatMessages={
+    'cycle-support':[
+      {id:'cs1',side:'in',author:'Maja',body:'Dziewczyny, czy wam też czasem przesuwa się okres o kilka dni?'},
+      {id:'cs2',side:'out',author:'Ty',body:'Mi się właśnie opóźnia kilka dni i trochę mnie to stresuje 😭'},
+      {id:'cs3',side:'in',author:'Ola',body:'U mnie tak, szczególnie jak mam dużo stresu. Zapisuję sobie daty, żeby widzieć czy to jednorazowe.'},
+      {id:'cs4',side:'in',author:'Natalia',body:'Ja też miałam ostatnio później niż zwykle. Najbardziej uspokaja mnie porównanie z poprzednimi cyklami 💗'},
+      {id:'cs5',side:'in',author:'Klara',body:'Jak coś mocno odbiega od Twojego zwykłego rytmu albo długo się utrzymuje, to ja bym po prostu zapytała lekarza zamiast się nakręcać.'},
+      {id:'cs6',side:'out',author:'Ty',body:'Właśnie dlatego zaczęłam to zapisywać w Polka Care, bo inaczej kompletnie tracę rachubę xd'},
+      {id:'cs7',side:'in',author:'Maja',body:'I to jest super. Samo zobaczenie historii dużo daje, bez zgadywania co się dzieje.'}
+    ],
+    'maja':[
+      {id:'m1',side:'in',author:'Maja',body:'Hej! Miło Cię poznać 🌸'},
+      {id:'m2',side:'in',author:'Maja',body:'Masz już jakiś plan na weekend?'}
+    ]
+  };
 
   const send=()=>{
     if(!active||!draft.trim())return;
@@ -236,9 +253,14 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
 
       <ScrollView style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
         <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>
-        <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Hej! Miło Cię poznać 🌸</Typography></View></View>
-        <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Masz już jakiś plan na weekend?</Typography></View></View>
-        {(messages[active.id]||[]).map((message,i)=><View key={i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
+        {(seededChatMessages[active.id]||[
+          {id:'fallback-1',side:'in',author:active.name,body:'Hej! Miło Cię poznać 🌸'},
+          {id:'fallback-2',side:'in',author:active.name,body:'Masz już jakiś plan na weekend?'}
+        ]).map(message=><View key={message.id} style={message.side==='out'?s.outgoingWrap:s.incomingWrap}>
+          {active.group&&message.side==='in'&&<Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
+          <View style={message.side==='out'?s.outgoingBubble:s.incomingBubble}><Typography style={message.side==='out'?s.outgoingText:s.bubbleText}>{message.body}</Typography></View>
+        </View>)}
+        {(messages[active.id]||[]).map((message,i)=><View key={'local-'+i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
       </ScrollView>
 
       <View style={s.fullComposer}>
@@ -408,6 +430,7 @@ const s=StyleSheet.create({
   dayPill:{alignSelf:'center',backgroundColor:c.white,borderRadius:999,paddingHorizontal:10,paddingVertical:5,marginBottom:16,borderWidth:1,borderColor:c.line},
   dayText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
   incomingWrap:{alignItems:'flex-start',marginBottom:8},
+  groupMessageAuthor:{fontFamily:f.bold,fontSize:10,color:c.muted,marginLeft:8,marginBottom:3},
   outgoingWrap:{alignItems:'flex-end',marginBottom:8},
   incomingBubble:{maxWidth:'78%',backgroundColor:c.white,borderRadius:20,borderTopLeftRadius:6,paddingHorizontal:14,paddingVertical:10,borderWidth:1,borderColor:c.line},
   outgoingBubble:{maxWidth:'78%',backgroundColor:c.pink,borderRadius:20,borderTopRightRadius:6,paddingHorizontal:14,paddingVertical:10},
