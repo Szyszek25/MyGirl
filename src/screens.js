@@ -14,12 +14,14 @@ function formatPostTime(createdAt) {
   return `${Math.floor(diffHours / 24)} d. temu`;
 }
 
-import React,{useMemo,useRef,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {people,groups,cities} from './data';
 import {Button,Chip,Field,PageHeading,Surface,Typography} from './ui';
+import {supabase} from './lib/supabase';
+import {createChatRealtime,newClientMessageId} from './services/chatRealtime';
 const W=Dimensions.get('window').width;
 const avatar=(photo,size=48)=><Image source={{uri:photo}} style={{width:size,height:size,borderRadius:size/2,backgroundColor:c.blush}}/>;
 const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
@@ -291,9 +293,16 @@ export function GroupsScreen({onReport}){
     ListFooterComponent={<Typography variant="caption" style={s.disclaimer}>Grupy i zgłoszenia demonstracyjne. Brak serwera i moderacji grup.</Typography>}/>;
 }
 
-export function ChatsScreen({blockedIds=[],onReport,onClose}){
-  const [active,setActive]=useState(null),[draft,setDraft]=useState(''),[messages,setMessages]=useState({});
-  const chats=[
+export function ChatsScreen({sessionUserId=null,blockedIds=[],supportChat=true,onReport,onClose}){
+  const [active,setActive]=useState(null);
+  const [draft,setDraft]=useState('');
+  const [messages,setMessages]=useState({});
+  const [remoteRooms,setRemoteRooms]=useState([]);
+  const [remoteMessages,setRemoteMessages]=useState([]);
+  const [sending,setSending]=useState(false);
+  const chatApi=useMemo(()=>sessionUserId?createChatRealtime(supabase):null,[sessionUserId]);
+
+  const demoChats=[
     {id:'maja',name:'Maja',photo:people[0].photo,last:'Hej! Widzimy się jutro? 💗',time:'18:42',unread:2},
     {id:'meet-matcha',name:'Matcha + spacer',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&q=80',last:'Maja: widzimy się przy wejściu o 17:30 ☕',time:'18:15',unread:4},
     {id:'meet-karaoke',name:'Girls night + karaoke',photo:'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=300&q=80',last:'Natalia: mamy jeszcze dwa miejsca 🎤',time:'17:48',unread:7},
@@ -301,7 +310,21 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
     {id:'group',name:'Coffee Girls',photo:people[1].photo,last:'Ola: mam stolik na 18:30',time:'17:10',unread:5},
     {id:'meet-pilates',name:'Pilates + brunch',photo:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&q=80',last:'Klara: pamiętajcie o matach 🧘‍♀️',time:'15:22',unread:1},
     {id:'meet-books',name:'Book club + kawa',photo:'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80',last:'Sara: wrzucam lokalizację kawiarni',time:'wczoraj',unread:0}
-  ].filter(chat=>!blockedIds.includes(chat.id));
+  ].filter(chat=>!blockedIds.includes(chat.id)&&(supportChat||chat.id!=='cycle-support'));
+
+  const chats=[
+    ...remoteRooms.map(room=>({
+      id:room.id,
+      name:room.name,
+      photo:people[0]?.photo,
+      last:room.last,
+      time:formatPostTime(room.time),
+      unread:0,
+      group:room.kind==='group',
+      remote:true
+    })),
+    ...demoChats
+  ];
 
   const seededChatMessages={
     'cycle-support':[
@@ -331,28 +354,73 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
     return photos[author]||people[0]?.photo;
   };
 
-  const send=()=>{
-    if(!active||!draft.trim())return;
+  useEffect(()=>{
+    if(!chatApi||!sessionUserId){setRemoteRooms([]);return;}
+    let alive=true;
+    chatApi.listConversations(sessionUserId)
+      .then(rows=>{if(alive)setRemoteRooms(rows)})
+      .catch(()=>{if(alive)setRemoteRooms([])});
+    return ()=>{alive=false;void chatApi.stop();};
+  },[chatApi,sessionUserId]);
+
+  useEffect(()=>{
+    if(!active?.remote||!chatApi){setRemoteMessages([]);return;}
+    let alive=true;
+    let unsubscribe=()=>{};
+    chatApi.history(active.id).then(rows=>{if(alive)setRemoteMessages(rows)}).catch(()=>{});
+    chatApi.watch(active.id,message=>{
+      if(!alive)return;
+      setRemoteMessages(prev=>{
+        if(message.deleted)return prev.filter(item=>item.id!==message.id);
+        if(prev.some(item=>item.id===message.id))return prev;
+        return [...prev,message];
+      });
+    }).then(stop=>{unsubscribe=stop}).catch(()=>{});
+    return ()=>{alive=false;unsubscribe?.();};
+  },[active?.id,active?.remote,chatApi]);
+
+  const send=async()=>{
+    if(!active||!draft.trim()||sending)return;
     const body=draft.trim();
-    setMessages(prev=>({...prev,[active.id]:[...(prev[active.id]||[]),body]}));
     setDraft('');
+    if(active.remote&&chatApi&&sessionUserId){
+      setSending(true);
+      try{
+        const sent=await chatApi.send({roomId:active.id,senderId:sessionUserId,body,clientMessageId:newClientMessageId()});
+        setRemoteMessages(prev=>prev.some(item=>item.id===sent.id)?prev:[...prev,{...sent,body,sender_id:sessionUserId,conversation_id:active.id}]);
+      }catch(error){
+        setDraft(body);
+        Alert.alert('Nie wysłano wiadomości',error.message||'Spróbuj ponownie.');
+      }finally{setSending(false);}
+      return;
+    }
+    setMessages(prev=>({...prev,[active.id]:[...(prev[active.id]||[]),body]}));
   };
+
+  const visibleMessages=active?.remote
+    ? remoteMessages.map(message=>({
+        id:message.id,
+        side:message.sender_id===sessionUserId?'out':'in',
+        author:message.sender_id===sessionUserId?'Ty':active.name,
+        body:message.body
+      }))
+    : (seededChatMessages[active?.id]||[
+        {id:'demo-1',side:'in',author:active?.name||'Polka',body:'Hej! Miło Cię poznać 🌸'},
+        {id:'demo-2',side:'in',author:active?.name||'Polka',body:'Masz już jakiś plan na weekend?'}
+      ]);
 
   if(active){
     return <KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={0}>
       <View style={s.fullChatHeader}>
         <Pressable onPress={()=>setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
-        {avatar(active.photo,42)}
-        <View style={{flex:1}}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>aktywna niedawno</Typography></View>
+        {avatar(active.photo||people[0]?.photo,42)}
+        <View style={{flex:1}}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote?'wiadomości online':'rozmowa demonstracyjna'}</Typography></View>
         <Pressable onPress={()=>onReport?.({kind:'chat',id:active.id,label:`Rozmowa: ${active.name}`})} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
       </View>
 
       <ScrollView style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
-        <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>
-        {(seededChatMessages[active.id]||[
-          {id:'fallback-1',side:'in',author:active.name,body:'Hej! Miło Cię poznać 🌸'},
-          {id:'fallback-2',side:'in',author:active.name,body:'Masz już jakiś plan na weekend?'}
-        ]).map(message=>message.side==='out'
+        <View style={s.dayPill}><Typography style={s.dayText}>{active.remote?'Realtime':'Dzisiaj'}</Typography></View>
+        {visibleMessages.map(message=>message.side==='out'
           ? <View key={message.id} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View></View>
           : <View key={message.id} style={s.incomingMessageRow}>
               {active.group&&<Image source={{uri:supportAuthorPhoto(message.author)}} style={s.groupMessageAvatar}/>}
@@ -361,22 +429,13 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
                 <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>
               </View>
             </View>)}
-        {(messages[active.id]||[]).map((message,i)=><View key={'local-'+i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
+        {!active.remote&&(messages[active.id]||[]).map((message,i)=><View key={'local-'+i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
       </ScrollView>
 
       <View style={s.fullComposer}>
         <Pressable style={s.attachButton}><Ionicons name="add" size={24} color={c.pink}/></Pressable>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Napisz wiadomość…"
-          placeholderTextColor={c.muted}
-          accessibilityLabel="Wiadomość"
-          multiline
-          maxLength={1200}
-          style={s.fullMessageInput}
-        />
-        <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()} onPress={send} style={[s.fullSend,!draft.trim()&&{opacity:.35}]}>
+        <TextInput value={draft} onChangeText={setDraft} placeholder="Napisz wiadomość…" placeholderTextColor={c.muted} accessibilityLabel="Wiadomość" multiline maxLength={1200} style={s.fullMessageInput}/>
+        <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()||sending} onPress={send} style={[s.fullSend,(!draft.trim()||sending)&&{opacity:.35}]}>
           <Ionicons name="arrow-up" color={c.white} size={21}/>
         </Pressable>
       </View>
@@ -387,15 +446,16 @@ export function ChatsScreen({blockedIds=[],onReport,onClose}){
     <View style={s.chatListHeader}>
       <Pressable onPress={onClose} style={s.fullChatIcon} accessibilityLabel="Zamknij wiadomości"><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
       <Typography style={s.chatListTitle}>Wiadomości</Typography>
-      <Pressable style={s.chatHeaderButton}><Ionicons name="create-outline" size={21} color={c.ink}/></Pressable>
+      <View style={s.chatHeaderButton}><Ionicons name={sessionUserId?'cloud-done-outline':'cloud-offline-outline'} size={21} color={sessionUserId?c.pink:c.muted}/></View>
     </View>
     <FlatList
       data={chats}
       keyExtractor={item=>item.id}
       contentContainerStyle={s.chatList}
       keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={sessionUserId?<Typography style={{paddingHorizontal:sp.lg,paddingVertical:9,color:c.muted,fontSize:11}}>Rozmowy z konta są synchronizowane przez Supabase Realtime.</Typography>:null}
       renderItem={({item})=><Pressable accessibilityRole="button" onPress={()=>setActive(item)} style={s.chatListRow}>
-        {avatar(item.photo,54)}
+        {avatar(item.photo||people[0]?.photo,54)}
         <View style={s.chatListBody}>
           <View style={s.chatTitleRow}><Typography style={s.chatName}>{item.name}</Typography><Typography style={s.chatTime}>{item.time}</Typography></View>
           <View style={s.chatPreviewRow}><Typography numberOfLines={1} style={s.chatPreview}>{item.last}</Typography>{item.unread>0&&<View style={s.unread}><Typography style={s.unreadText}>{item.unread}</Typography></View>}</View>
