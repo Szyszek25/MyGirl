@@ -1,6 +1,7 @@
-import React,{useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {Image,Modal,Pressable,ScrollView,StyleSheet,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
@@ -22,13 +23,49 @@ const starterMeetings=[
 ];
 
 const meetingCategories=['Wszystkie','Kawa','Wyjścia','Sport','Spacer','Jedzenie','Książki','Koncert','Moda'];
+const CYCLE_STORAGE_KEY='polka_cycle_tracker_v1';
+const DAY_MS=24*60*60*1000;
+const atNoon=value=>new Date(value.getFullYear(),value.getMonth(),value.getDate(),12);
+const addDays=(date,days)=>new Date(atNoon(date).getTime()+days*DAY_MS);
+const daysBetween=(a,b)=>Math.round((atNoon(a)-atNoon(b))/DAY_MS);
+const cycleContextFor=(meetingDate,cycle)=>{
+  if(!cycle?.lastPeriod||!cycle?.cycleLength)return null;
+  const start=new Date(cycle.lastPeriod+'T12:00:00');
+  const cycleLength=Math.max(21,Math.min(40,Number(cycle.cycleLength)||28));
+  const periodLength=Math.max(3,Math.min(7,Number(cycle.periodLength)||5));
+  let cycleIndex=Math.floor(daysBetween(meetingDate,start)/cycleLength);
+  if(cycleIndex<0)cycleIndex=0;
+  let predictedStart=addDays(start,cycleIndex*cycleLength);
+  if(predictedStart<atNoon(meetingDate)&&daysBetween(meetingDate,predictedStart)>=cycleLength){
+    predictedStart=addDays(predictedStart,cycleLength);
+  }
+  const offset=daysBetween(meetingDate,predictedStart);
+  const nextStart=offset<0?predictedStart:addDays(predictedStart,cycleLength);
+  const daysToPeriod=Math.max(0,daysBetween(nextStart,meetingDate));
+  const periodEnd=addDays(predictedStart,periodLength-1);
+  const duringPeriod=meetingDate>=predictedStart&&meetingDate<=periodEnd;
+  const nearPeriod=!duringPeriod&&(daysToPeriod<=3||Math.abs(offset)<=2);
+
+  if(duringPeriod)return {tone:'period',label:'Może wypaść w trakcie okresu',daysText:'przewidywany okres',icon:'water-outline'};
+  if(nearPeriod)return {tone:'careful',label:'Zostaw sobie luz',daysText:daysToPeriod===0?'okres może zacząć się tego dnia':daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'heart-outline'};
+  return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
+};
 
 export default function MeetingsScreen({city='Warszawa',onReport}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
+  const [cycleData,setCycleData]=useState(null);
   const data=useMemo(()=>starterMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[city,category]);
   const cityPeople=useMemo(()=>people.filter(p=>p.city===city),[city]);
+  useEffect(()=>{
+    let alive=true;
+    AsyncStorage.getItem(CYCLE_STORAGE_KEY).then(raw=>{
+      if(!alive||!raw)return;
+      try{setCycleData(JSON.parse(raw));}catch{}
+    }).catch(()=>{});
+    return ()=>{alive=false;};
+  },[]);
 
   const toggle=id=>setJoined(prev=>prev.includes(id)?prev.filter(v=>v!==id):[...prev,id]);
 
@@ -53,6 +90,7 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
           <View style={s.cardBody}>
             <Typography style={s.cardTitle}>{item.title}</Typography>
             <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
+            {(()=>{const ctx=cycleContextFor(new Date(item.when),cycleData);return ctx?<View style={[s.cycleMini,ctx.tone==='easy'&&s.cycleMiniEasy,ctx.tone==='careful'&&s.cycleMiniCareful,ctx.tone==='period'&&s.cycleMiniPeriod]}><Ionicons name={ctx.icon} size={12} color={ctx.tone==='easy'?c.success:ctx.tone==='careful'?c.warning:c.pink}/><Typography style={[s.cycleMiniText,ctx.tone==='easy'&&{color:c.success},ctx.tone==='careful'&&{color:c.warning},ctx.tone==='period'&&{color:c.pink}]}>{ctx.label} · {ctx.daysText}</Typography></View>:null})()}
             <View style={s.cardBottom}>
               <View style={s.peopleRow}>{(cityPeople.length?cityPeople:people).slice(0,3).map(p=><Image key={p.id} source={{uri:p.photo}} style={s.avatar}/>)}</View>
               <Typography style={s.spots}>{item.joined}/{item.spots}</Typography>
@@ -77,6 +115,14 @@ export default function MeetingsScreen({city='Warszawa',onReport}){
           <Typography style={s.detailTitle}>{selected.title}</Typography>
           <View style={s.infoRow}><Ionicons name="calendar-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{new Date(selected.when).toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</Typography></View>
           <View style={s.infoRow}><Ionicons name="location-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{selected.place}, {selected.city}</Typography></View>
+
+          {(()=>{const ctx=cycleContextFor(new Date(selected.when),cycleData);return ctx?<View style={s.careFit}>
+            <View style={s.careFitTop}><View><Typography style={s.careFitOverline}>POLKA CARE</Typography><Typography style={s.careFitTitle}>{ctx.label}</Typography></View><View style={[s.careFitIcon,ctx.tone==='easy'&&{backgroundColor:'#EAF6F0'},ctx.tone==='careful'&&{backgroundColor:'#FFF4E5'},ctx.tone==='period'&&{backgroundColor:c.blush}]}><Ionicons name={ctx.icon} size={22} color={ctx.tone==='easy'?c.success:ctx.tone==='careful'?c.warning:c.pink}/></View></View>
+            <Typography style={s.careFitDays}>{ctx.daysText}</Typography>
+            <Typography style={s.careFitCopy}>{ctx.tone==='easy'?'Termin nie wypada blisko przewidywanego okresu. Jeśli czujesz się dobrze, nic w trackerze nie sugeruje, żeby zmieniać plan.':ctx.tone==='careful'?'Termin wypada blisko przewidywanego okresu. Możesz zostawić sobie więcej luzu albo wybrać spokojniejszy plan — zależnie od samopoczucia.':'Termin może wypaść w przewidywane dni miesiączki. To nie znaczy, że masz rezygnować — potraktuj to tylko jako przypomnienie o własnym komforcie.'}</Typography>
+            <Typography style={s.careFitNote}>Prognoza orientacyjna na podstawie Twoich danych z Polka Care.</Typography>
+          </View>:<View style={s.careFitEmpty}><Ionicons name="heart-circle-outline" size={20} color={c.pink}/><Typography style={s.careFitEmptyText}>Ustaw cykl w Polka Care, a pokażemy tu kontekst terminu spotkania.</Typography></View>})()}
+
           <Typography style={s.description}>{selected.description}</Typography>
 
           <View style={s.section}>
@@ -126,6 +172,11 @@ const s=StyleSheet.create({
   cardTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
   meta:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:3},
   placeMeta:{fontFamily:f.semibold,fontSize:12,color:c.ink,marginTop:2},
+  cycleMini:{alignSelf:'flex-start',marginTop:7,paddingHorizontal:8,paddingVertical:5,borderRadius:999,flexDirection:'row',alignItems:'center',gap:5,borderWidth:1},
+  cycleMiniEasy:{backgroundColor:'#F3FAF7',borderColor:'#CFE8DC'},
+  cycleMiniCareful:{backgroundColor:'#FFF9EF',borderColor:'#F1DEC1'},
+  cycleMiniPeriod:{backgroundColor:c.blush,borderColor:'#F0C8D5'},
+  cycleMiniText:{fontFamily:f.bold,fontSize:9},
   cardBottom:{flexDirection:'row',alignItems:'center',marginTop:9},
   peopleRow:{flexDirection:'row',alignItems:'center'},
   avatar:{width:24,height:24,borderRadius:12,borderWidth:2,borderColor:c.white,marginRight:-6},
@@ -144,6 +195,16 @@ const s=StyleSheet.create({
   detailTitle:{fontFamily:f.bold,fontSize:32,lineHeight:36,letterSpacing:-1.2,color:c.ink,paddingHorizontal:sp.lg,marginTop:20},
   infoRow:{flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:sp.lg,marginTop:12},
   infoText:{fontFamily:f.semibold,fontSize:14,color:c.ink,flex:1},
+  careFit:{marginHorizontal:sp.lg,marginTop:18,paddingVertical:16,borderTopWidth:1,borderBottomWidth:1,borderColor:c.line},
+  careFitTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},
+  careFitOverline:{fontFamily:f.bold,fontSize:10,letterSpacing:1.2,color:c.pink},
+  careFitTitle:{fontFamily:f.bold,fontSize:24,lineHeight:29,letterSpacing:-.7,color:c.ink,marginTop:3},
+  careFitIcon:{width:44,height:44,borderRadius:15,alignItems:'center',justifyContent:'center'},
+  careFitDays:{fontFamily:f.bold,fontSize:15,color:c.pink,marginTop:10},
+  careFitCopy:{fontFamily:f.regular,fontSize:13,lineHeight:20,color:c.muted,marginTop:5},
+  careFitNote:{fontFamily:f.regular,fontSize:10,lineHeight:15,color:c.muted,marginTop:9},
+  careFitEmpty:{marginHorizontal:sp.lg,marginTop:18,paddingVertical:14,borderTopWidth:1,borderBottomWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',gap:10},
+  careFitEmptyText:{flex:1,fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted},
   description:{fontFamily:f.regular,fontSize:17,lineHeight:25,color:c.ink,paddingHorizontal:sp.lg,marginVertical:22},
   section:{marginHorizontal:sp.lg,marginBottom:12,padding:16,borderRadius:18,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
   sectionLabel:{fontFamily:f.regular,fontSize:12,color:c.muted},
