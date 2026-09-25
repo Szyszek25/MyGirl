@@ -32,6 +32,14 @@
           "cameraPermission": "Polka używa aparatu, gdy tworzysz Story lub zdjęcie do posta.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Polka używa mikrofonu tylko wtedy, gdy nagrywasz wiadomość głosową.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
       ]
     ]
   }
