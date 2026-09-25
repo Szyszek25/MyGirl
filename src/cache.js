@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Cache public UI drafts/preferences ONLY. No auth tokens, private messages, images or PII.
 const PREFIX='mygirl:public-cache:v1:';
 const MAX_BYTES=16_000;
-const validKey=key=>typeof key==='string'&&/^[a-z0-9_-]{1,64}$/.test(key);
+const validKey=key=>typeof key==='string'&&/^[a-zA-Z0-9_-]{1,64}$/.test(key);
 const storageKey=key=>{if(!validKey(key))throw new Error('Nieprawidłowy klucz pamięci.');return PREFIX+key;};
 
 export async function readCached(key,now=Date.now()){

@@ -77,13 +77,8 @@ export default function StoryViewerModal({
         s.key === (initialStory.authorId || initialStory.userId || initialStory.name)?.toLowerCase?.() ||
         s.slides?.some(sl => sl.id === initialStory.id)
       );
-      return foundIdx >= 0 ? foundIdx : 0;
-    }
-    return 0;
+      return 0;
   }, [initialSenderIndex, initialStory, resolvedSenders]);
-
-  // Early exit if no valid senders/slides - must be before any hooks
-  if (!visible || resolvedSenders.length === 0) return null;
 
   const [senderIndex, setSenderIndex] = useState(startIdx);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -417,6 +412,9 @@ export default function StoryViewerModal({
       </View>
     );
   };
+
+  // Early exit if not visible
+  if (!visible) return null;
 
   // Guard for invalid slide state
   if (!currentSender || !currentSlide || !currentSlide.mediaUrl) {

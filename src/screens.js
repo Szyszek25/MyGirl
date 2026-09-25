@@ -309,7 +309,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
 
   const getCacheKeys = () => {
     const uid = (sessionUserId || 'anon').replace(/[^a-z0-9]/gi, '');
-    const safeCity = city.replace(/[^a-z0-9]/gi, '');
+    const safeCity = city.toLowerCase().replace(/[^a-z0-9]/gi, '');
     return {
       feed: `feed_${safeCity}_${uid}`,
       stories: `stories_${safeCity}_${uid}`
@@ -340,6 +340,9 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
       setRemotePosts(feed);
       setStories(storyRows);
       const keys = getCacheKeys();
+      console.log('[cache] keys', keys);
+      console.log('[cache] feed size', JSON.stringify(feed).length);
+      console.log('[cache] stories size', JSON.stringify(storyRows).length);
       await Promise.all([
         writeCached(keys.feed, feed, 2 * 60 * 1000),
         writeCached(keys.stories, storyRows, 2 * 60 * 1000)
