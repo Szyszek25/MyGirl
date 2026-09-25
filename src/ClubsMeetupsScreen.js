@@ -117,14 +117,6 @@ export default function ClubsMeetupsScreen({city='Warszawa',onReport}){
                 <Pressable style={s.action}><Ionicons name="chatbubbles-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Czat grupy</Typography></Pressable>
                 <Pressable style={s.action} onPress={()=>onReport?.({kind:'group',id:club.id,label:`Grupa: ${club.name}`})}><Ionicons name="flag-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Zgłoś</Typography></Pressable>
               </View>
-
-              <View style={s.infoBox}>
-                <Ionicons name="calendar-outline" size={20} color={c.pink}/>
-                <View style={{flex:1}}>
-                  <Typography style={s.infoTitle}>Spotkania są w osobnej zakładce</Typography>
-                  <Typography style={s.infoText}>Tu zostaje społeczność i czat grupy. Konkretne wyjścia znajdziesz w „Spotkania”.</Typography>
-                </View>
-              </View>
             </ScrollView>
           </View>
         </View>;
