@@ -1,9 +1,10 @@
-import React,{useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {Alert,Image,KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {cities,people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Chip,Typography} from './ui';
+import {createPlan,loadPlans,setPlanJoined} from './services/plansApi';
 
 const starterPlans=[
   {id:'p1',title:'Matcha + spacer po centrum',city:'Warszawa',when:'Dzisiaj · 18:00',spots:'3/5',category:'Kawa',photo:'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=900&q=80',host:'Maja'},
@@ -23,22 +24,57 @@ const starterPlans=[
 ];
 const categories=['Wszystkie','Kawa','Wyjścia','Sport','Koncert','Spacer','Podróże'];
 
-export default function DiscoverScreen({city='Warszawa'}){
+export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
   const [category,setCategory]=useState('Wszystkie');
   const [plans,setPlans]=useState(starterPlans);
+  const [remoteLoaded,setRemoteLoaded]=useState(false);
+  const [details,setDetails]=useState('');
   const [creating,setCreating]=useState(false);
   const [title,setTitle]=useState('');
   const [joined,setJoined]=useState([]);
   const [selected,setSelected]=useState(null);
+  useEffect(()=>{
+    if(!sessionUserId){setPlans(starterPlans);setRemoteLoaded(false);return;}
+    let alive=true;
+    loadPlans(city,sessionUserId).then(rows=>{
+      if(!alive)return;
+      if(rows.length){setPlans(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));}
+      else setPlans([]);
+      setRemoteLoaded(true);
+    }).catch(()=>{if(alive){setPlans(starterPlans);setRemoteLoaded(false)}});
+    return ()=>{alive=false};
+  },[city,sessionUserId]);
+
   const visible=useMemo(()=>plans.filter(p=>(city==='Wszystkie'||p.city===city)&&(category==='Wszystkie'||p.category===category)),[plans,city,category]);
 
-  const addPlan=()=>{
+  const addPlan=async()=>{
     const clean=title.trim();
     if(clean.length<4){Alert.alert('Dodaj nazwę planu','Np. „Matcha i spacer po centrum”.');return;}
+    if(sessionUserId){
+      try{
+        await createPlan(sessionUserId,{title:clean,city:city==='Wszystkie'?'Warszawa':city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:'Termin do ustalenia',details,capacity:6});
+        const rows=await loadPlans(city,sessionUserId);
+        setPlans(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+        setTitle('');setDetails('');setCreating(false);return;
+      }catch(error){Alert.alert('Nie utworzono planu',error.message||'Spróbuj ponownie.');return;}
+    }
     const id='local-'+Date.now();
     setPlans(prev=>[{id,title:clean,city:city==='Wszystkie'?'Warszawa':city,when:'Termin do ustalenia',spots:'1/5',category:category==='Wszystkie'?'Wyjścia':category,photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80',host:'Ty'},...prev]);
-    setTitle('');
-    setCreating(false);
+    setTitle('');setDetails('');setCreating(false);
+  };
+
+  const toggleJoined=async plan=>{
+    const currently=joined.includes(plan.id);
+    setJoined(prev=>currently?prev.filter(id=>id!==plan.id):[...prev,plan.id]);
+    if(plan.remote&&sessionUserId){
+      try{
+        await setPlanJoined(plan.id,sessionUserId,!currently);
+        const rows=await loadPlans(city,sessionUserId);
+        setPlans(rows);
+      }catch(error){
+        setJoined(prev=>currently?[...new Set([...prev,plan.id])]:prev.filter(id=>id!==plan.id));
+      }
+    }
   };
 
   return <View style={s.root}>
@@ -64,7 +100,7 @@ export default function DiscoverScreen({city='Warszawa'}){
             <View style={s.hostRow}>
               {host?<Image source={{uri:host.photo}} style={s.avatar}/>:<View style={[s.avatar,s.avatarFallback]}><Ionicons name="person" size={15} color={c.pink}/></View>}
               <Typography style={s.hostText}>Organizuje {plan.host}</Typography>
-              <Pressable onPress={()=>setJoined(prev=>isJoined?prev.filter(id=>id!==plan.id):[...prev,plan.id])} style={[s.joinBtn,isJoined&&s.joinedBtn]}>
+              <Pressable onPress={()=>toggleJoined(plan)} style={[s.joinBtn,isJoined&&s.joinedBtn]}>
                 <Typography style={[s.joinText,isJoined&&{color:c.pink}]}>{isJoined?'Dołączono':'Dołącz'}</Typography>
               </Pressable>
             </View>
@@ -91,7 +127,7 @@ export default function DiscoverScreen({city='Warszawa'}){
             {people.find(p=>p.name===selected.host)?<Image source={{uri:people.find(p=>p.name===selected.host).photo}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
             <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
           </View>
-          <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do planu'} secondary={joined.includes(selected.id)} onPress={()=>setJoined(prev=>prev.includes(selected.id)?prev.filter(id=>id!==selected.id):[...prev,selected.id])}/>
+          <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do planu'} secondary={joined.includes(selected.id)} onPress={()=>toggleJoined(selected)}/>
         </ScrollView>
       </View>}
     </Modal>
@@ -104,6 +140,8 @@ export default function DiscoverScreen({city='Warszawa'}){
           <View style={s.sheetHeader}><Typography style={s.sheetTitle}>Nowy plan</Typography><Pressable onPress={()=>setCreating(false)}><Ionicons name="close" size={24} color={c.ink}/></Pressable></View>
           <Typography style={s.fieldLabel}>Co chcesz zrobić?</Typography>
           <TextInput value={title} onChangeText={setTitle} maxLength={80} placeholder="Np. matcha w centrum po 18" placeholderTextColor={c.muted} style={s.input}/>
+          <Typography style={s.fieldLabel}>Opis (opcjonalnie)</Typography>
+          <TextInput value={details} onChangeText={setDetails} maxLength={600} multiline placeholder="Dodaj klimat, miejsce albo dla kogo jest ten plan" placeholderTextColor={c.muted} style={[s.input,{height:86,textAlignVertical:'top',paddingTop:14}]}/>
           <View style={s.fixedCity}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.fixedCityText}>{city}</Typography></View>
           <Typography style={s.fieldLabel}>Kategoria</Typography>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.sheetChipScroll} contentContainerStyle={s.sheetChipContent}>{categories.filter(v=>v!=='Wszystkie').map(v=><Chip key={v} label={v} selected={category===v} onPress={()=>setCategory(v)}/>)}</ScrollView>
@@ -159,6 +197,7 @@ const s=StyleSheet.create({
   detailTitle:{fontFamily:f.bold,fontSize:32,lineHeight:36,letterSpacing:-1.1,color:c.ink,paddingHorizontal:sp.lg,marginTop:20,marginBottom:10},
   detailMetaRow:{flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:sp.lg,marginTop:8},
   detailMeta:{fontFamily:f.semibold,fontSize:14,color:c.ink},
+  detailDescription:{fontFamily:f.regular,fontSize:15,lineHeight:22,color:c.ink,paddingHorizontal:sp.lg,marginTop:16},
   detailHost:{margin:sp.lg,padding:14,borderRadius:18,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',gap:12},
   detailHostAvatar:{width:46,height:46,borderRadius:23,backgroundColor:c.blush},
   detailHostLabel:{fontFamily:f.regular,fontSize:11,color:c.muted},
