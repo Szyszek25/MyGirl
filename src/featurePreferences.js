@@ -7,7 +7,9 @@ export const defaultFeaturePreferences={
   cycleMeetingContext:true,
   zodiacMeetingContext:true,
   zodiacPeopleMatching:true,
+  stylePeopleMatching:true,
   zodiacSign:'Lew',
+  stylePreference:'Casual',
   supportChat:true
 };
 
