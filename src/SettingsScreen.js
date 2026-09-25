@@ -7,8 +7,6 @@ import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences}
 import {defaultAccountSettings,loadAccountSettings,updateAccountSettings} from './services/accountSettingsApi';
 
 const SHARE_URL='https://polka.app';
-const ZODIAC_SIGNS=['Baran','Byk','Bliźnięta','Rak','Lew','Panna','Waga','Skorpion','Strzelec','Koziorożec','Wodnik','Ryby'];
-const STYLE_OPTIONS=['Casual','Minimal','Vintage','Streetwear','Sporty','Classy','Artsy'];
 
 function Row({icon,title,subtitle,onPress,right,danger=false}){
   return <Pressable accessibilityRole="button" onPress={onPress} style={s.row}>
@@ -89,21 +87,8 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
       <Row icon="sparkles-outline" title="Zodiak przy spotkaniach" subtitle="Astro vibe dla terminu spotkania" right={<Switch value={features.zodiacMeetingContext} onValueChange={value=>setFeature('zodiacMeetingContext',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.zodiacMeetingContext?c.pink:'#fff'}/>}/>
       <Row icon="people-outline" title="Astro matching w Poznaj" subtitle="Dopasowanie znaków na profilach" right={<Switch value={features.zodiacPeopleMatching} onValueChange={value=>setFeature('zodiacPeopleMatching',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.zodiacPeopleMatching?c.pink:'#fff'}/>}/>
       <Row icon="shirt-outline" title="Styl ubierania w Poznaj" subtitle="Dopasowanie estetyki i stylu" right={<Switch value={features.stylePeopleMatching} onValueChange={value=>setFeature('stylePeopleMatching',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.stylePeopleMatching?c.pink:'#fff'}/>}/>
-      {features.zodiacPeopleMatching&&<View style={s.preferencePicker}>
-        <Typography style={s.pickerLabel}>Mój znak</Typography>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerScroll}>
-          {ZODIAC_SIGNS.map(sign=><Pressable key={sign} onPress={()=>setFeature('zodiacSign',sign)} style={[s.preferenceChip,features.zodiacSign===sign&&s.preferenceChipActive]}><Typography style={[s.preferenceChipText,features.zodiacSign===sign&&s.preferenceChipTextActive]}>{sign}</Typography></Pressable>)}
-        </ScrollView>
-      </View>}
-      {features.stylePeopleMatching&&<View style={s.preferencePicker}>
-        <Typography style={s.pickerLabel}>Mój styl</Typography>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerScroll}>
-          {STYLE_OPTIONS.map(style=><Pressable key={style} onPress={()=>setFeature('stylePreference',style)} style={[s.preferenceChip,features.stylePreference===style&&s.preferenceChipActive]}><Typography style={[s.preferenceChipText,features.stylePreference===style&&s.preferenceChipTextActive]}>{style}</Typography></Pressable>)}
-        </ScrollView>
-      </View>}
       <Row icon="chatbubbles-outline" title="Grupa wsparcia w wiadomościach" subtitle="Seedowana rozmowa „Cykl i samopoczucie”" right={<Switch value={features.supportChat} onValueChange={value=>setFeature('supportChat',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.supportChat?c.pink:'#fff'}/>}/>
       {isAuthenticated&&<Row icon="cloud-upload-outline" title="Synchronizuj cykl w chmurze" subtitle="Opcjonalnie · prywatne dane Polka Care w Twoim koncie" right={<Switch value={features.cycleCloudSync} onValueChange={value=>setFeature('cycleCloudSync',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.cycleCloudSync?c.pink:'#fff'}/>}/>}
-      <Row icon="videocam-outline" title="Film na ekranie Start" subtitle="Krótki film Polki nad feedem" right={<Switch value={features.homeIntroVideo} onValueChange={value=>setFeature('homeIntroVideo',value)} trackColor={{false:'#D9D4D7',true:'#F7A7C0'}} thumbColor={features.homeIntroVideo?c.pink:'#fff'}/>}/>
     </View>
 
     <Typography variant="eyebrow" style={s.sectionLabel}>PRYWATNOŚĆ I KONTO</Typography>
@@ -114,7 +99,7 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
       <Row icon="lock-closed-outline" title="Prywatność profilu" subtitle="Kto może zobaczyć Twój profil"/>
       <Row icon="person-add-outline" title="Kto może do mnie pisać" subtitle="Kontakty i wiadomości"/>
       <Row icon="location-outline" title="Miasto i lokalizacja" subtitle="Używaj miasta zamiast dokładnego adresu"/>
-      {isAuthenticated&&<Row icon="log-out-outline" title="Wyloguj się" subtitle="Zakończ sesję na tym urządzeniu" danger onPress={()=>Alert.alert('Wylogować się?','Będziesz musiała zalogować się ponownie.',[{text:'Anuluj',style:'cancel'},{text:'Wyloguj',style:'destructive',onPress:onSignOut}])}/>}
+      <Row icon="log-out-outline" title="Wyloguj się" subtitle={isAuthenticated?"Zakończ sesję na tym urządzeniu":"Opuść profil na tym urządzeniu"} danger onPress={()=>Alert.alert('Wylogować się?','Będziesz mogła zalogować się ponownie.',[{text:'Anuluj',style:'cancel'},{text:'Wyloguj',style:'destructive',onPress:onSignOut}])}/>
     </View>
 
     <Typography variant="eyebrow" style={s.sectionLabel}>POMOC</Typography>

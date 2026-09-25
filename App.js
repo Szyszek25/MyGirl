@@ -117,10 +117,18 @@ function PolkaApp(){
     const saved=authSession?.user?.id
       ? await saveRemoteProfile(authSession.user.id,profile)
       : await saveLocalProfile(profile);
-    setAccount(saved);
+    const merged={...saved,zodiac:profile.zodiac||saved?.zodiac||null,style:profile.style||saved?.style||null};
+    setAccount(merged);
     setEntryStarted(false);
-    if(saved?.city)setActiveCity(saved.city);
-    return saved;
+    if(merged?.city)setActiveCity(merged.city);
+    if(merged.zodiac||merged.style){
+      const nextPrefs={...featurePreferences};
+      if(merged.zodiac)nextPrefs.zodiacSign=merged.zodiac;
+      if(merged.style)nextPrefs.stylePreference=merged.style;
+      setFeaturePreferences(nextPrefs);
+      void saveFeaturePreferences(nextPrefs);
+    }
+    return merged;
   };
   const openDirectChat=async otherUserId=>{
     if(!authSession?.user?.id){
@@ -154,6 +162,20 @@ function PolkaApp(){
         setBlockedIds(prev=>prev.includes(id)?prev:[...prev,id]);
         Alert.alert('Nie odblokowano profilu',error.message||'Spróbuj ponownie.');
       }
+    }
+  };
+  const handleSignOut=async()=>{
+    try{
+      if(authSession?.user){
+        await signOut().catch(()=>{});
+      }
+      await deleteLocalProfile().catch(()=>{});
+      setAccount(null);
+      setAuthSession(null);
+      setEntryStarted(false);
+      setSettingsOpen(false);
+    }catch(error){
+      Alert.alert('Nie udało się wylogować',error.message||'Spróbuj ponownie.');
     }
   };
   const reset=async()=>{
@@ -191,7 +213,7 @@ function PolkaApp(){
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
     messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null)}}/></View>:
-    ({'Start':<View style={s.fill}><CommunityScreen city={activeCity} sessionUserId={authSession?.user?.id||null} showIntroVideo={!!featurePreferences.homeIntroVideo} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} onMessage={openDirectChat} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)}/>})[tab];
+    ({'Start':<View style={s.fill}><CommunityScreen city={activeCity} sessionUserId={authSession?.user?.id||null} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} onMessage={openDirectChat} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={account?.zodiac||featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={account?.style||featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/>})[tab];
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
@@ -217,10 +239,7 @@ function PolkaApp(){
           onSafety={()=>{setSettingsOpen(false);setSafetyOpen(true)}}
           onPartner={()=>{setSettingsOpen(false);setPartnerOpen(true)}}
           onPasswordReset={()=>{setSettingsOpen(false);setResetPasswordOpen(true)}}
-          onSignOut={async()=>{
-            try{await signOut();setAccount(null);setEntryStarted(false);setSettingsOpen(false);}
-            catch(error){Alert.alert('Nie udało się wylogować',error.message||'Spróbuj ponownie.');}
-          }}
+          onSignOut={handleSignOut}
           onDeleteAccount={async()=>{
             try{
               await deleteAccount();

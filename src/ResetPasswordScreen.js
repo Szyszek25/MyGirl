@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import {Alert,KeyboardAvoidingView,Platform,Pressable,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
@@ -34,13 +34,13 @@ export default function ResetPasswordScreen({onClose,email=''}) {
     }finally{setBusy(false);}
   };
 
-  return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':undefined}>
+  return <KeyboardAvoidingView style={s.root} behavior={Platform.OS==='ios'?'padding':'height'}>
     <View style={s.header}>
       <Pressable onPress={onClose} style={s.icon}><Ionicons name="close" size={24} color={c.ink}/></Pressable>
       <Typography style={s.headerTitle}>Hasło</Typography>
       <View style={s.icon}/>
     </View>
-    <View style={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
       <View style={s.lock}><Ionicons name="key-outline" size={30} color={c.pink}/></View>
       <Typography style={s.title}>{done?'Hasło zmienione':'Zmień hasło'}</Typography>
       <Typography style={s.copy}>{done?'Nowe hasło jest już aktywne na Twoim koncie Polki.':'Ustaw nowe hasło do konta. Minimum 8 znaków.'}</Typography>
@@ -52,7 +52,7 @@ export default function ResetPasswordScreen({onClose,email=''}) {
       </>}
       {done&&<Button title="Gotowe" onPress={onClose}/>}
       {!!email&&<Typography style={s.note}>Konto: {email}</Typography>}
-    </View>
+    </ScrollView>
   </KeyboardAvoidingView>;
 }
 

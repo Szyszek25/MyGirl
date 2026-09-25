@@ -11,8 +11,7 @@ export const defaultFeaturePreferences={
   zodiacSign:null,
   stylePreference:null,
   supportChat:true,
-  cycleCloudSync:false,
-  homeIntroVideo:true
+  cycleCloudSync:false
 };
 
 export async function loadFeaturePreferences(){

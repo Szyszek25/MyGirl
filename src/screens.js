@@ -18,7 +18,6 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {ActivityIndicator,Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import {useVideoPlayer,VideoView} from 'expo-video';
 import {AudioModule,RecordingPresets,setAudioModeAsync,useAudioPlayer,useAudioRecorder,useAudioRecorderState} from 'expo-audio';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {people,groups,cities} from './data';
@@ -32,15 +31,6 @@ const avatar=(photo,size=48)=><Image source={{uri:photo}} style={{width:size,hei
 const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
 function Section({title,children}){return <Surface><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{title}</Typography>{children}</Surface>}
 function TextAction({icon,title,onPress,danger=false}){return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger?c.pink:c.muted}/><Typography style={{color:danger?c.pink:c.muted,fontFamily:f.semibold,fontSize:13}}>{title}</Typography></Pressable>}
-const HOME_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
-function HomeIntroVideo(){
-  const player=useVideoPlayer(HOME_VIDEO,p=>{p.loop=true;p.muted=true;p.play();});
-  return <View style={s.homeVideoCard}>
-    <VideoView player={player} style={s.homeVideo} contentFit="cover" nativeControls={false}/>
-    <View style={s.homeVideoScrim}/>
-    <View style={s.homeVideoCopy}><Typography style={s.homeVideoLabel}>POLKA</Typography><Typography style={s.homeVideoTitle}>Dziewczyny z Twojego miasta.</Typography><Typography style={s.homeVideoText}>Zobacz, kto też chce wyjść.</Typography></View>
-  </View>;
-}
 
 
 export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,onMessage,sessionUserId=null,zodiacEnabled=true,userZodiac=null,styleEnabled=true,userStyle=null}){
@@ -282,7 +272,7 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
   </ScrollView>;
 }
 
-export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport,sessionUserId=null,showIntroVideo=false}){
+export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport,sessionUserId=null}){
   const [draft,setDraft]=useState('');
   const [likes,setLikes]=useState([]);
   const [composerOpen,setComposerOpen]=useState(false);
@@ -296,6 +286,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
   const [publishing,setPublishing]=useState(false);
   const [postMedia,setPostMedia]=useState(null);
   const [spotifyUrl,setSpotifyUrl]=useState('');
+  const [showSpotifyInput,setShowSpotifyInput]=useState(false);
   const [editingPost,setEditingPost]=useState(null);
   const [isAdmin,setIsAdmin]=useState(false);
 
@@ -330,6 +321,15 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
     }catch(error){Alert.alert('Galeria',error.message||'Nie udało się wybrać pliku.');}
   };
 
+  const takePostPhoto=async()=>{
+    try{
+      const permission=await ImagePicker.requestCameraPermissionsAsync();
+      if(!permission.granted)return Alert.alert('Aparat','Włącz dostęp do aparatu w ustawieniach telefonu.');
+      const result=await ImagePicker.launchCameraAsync({mediaTypes:['images','videos'],quality:.82});
+      if(!result.canceled&&result.assets?.[0]?.uri)setPostMedia(result.assets[0]);
+    }catch(error){Alert.alert('Aparat',error.message||'Nie udało się zrobić zdjęcia.');}
+  };
+
   const takeStory=async()=>{
     if(!sessionUserId)return Alert.alert('Zaloguj się','Stories online wymagają konta.');
     try{
@@ -359,7 +359,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
         }else{
           await createPost({userId:sessionUserId,body,imageUri:postMedia?.uri||null,spotifyUrl});
         }
-        setDraft('');setPostMedia(null);setSpotifyUrl('');setEditingPost(null);setComposerOpen(false);
+        setDraft('');setPostMedia(null);setSpotifyUrl('');setShowSpotifyInput(false);setEditingPost(null);setComposerOpen(false);
         await refresh();
       }catch(error){
         Alert.alert('Nie zapisano posta',error.message||'Spróbuj ponownie.');
@@ -367,13 +367,14 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
       return;
     }
     setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,image:postMedia?.uri||null,spotifyUrl:spotifyUrl||null,likes:0,createdAt:Date.now()},...prev]);
-    setDraft('');setPostMedia(null);setSpotifyUrl('');setComposerOpen(false);
+    setDraft('');setPostMedia(null);setSpotifyUrl('');setShowSpotifyInput(false);setComposerOpen(false);
   };
 
   const startEdit=item=>{
     setEditingPost(item);
     setDraft(item.body||'');
     setSpotifyUrl(item.spotifyUrl||'');
+    setShowSpotifyInput(!!item.spotifyUrl);
     setPostMedia(null);
     setComposerOpen(true);
   };
@@ -449,9 +450,8 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
       refreshing={loading}
       onRefresh={refresh}
       ListHeaderComponent={
-        <View>
-          {showIntroVideo&&<HomeIntroVideo/>}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.storiesRow}>
+        <View style={{backgroundColor:c.canvas}}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.storiesScroll} contentContainerStyle={s.storiesRow}>
             <Pressable onPress={takeStory} style={s.storyItem}>
               <View style={[s.storyRing,s.storyAddRing]}><View style={s.storyAdd}><Ionicons name="camera" size={22} color={c.pink}/></View></View>
               <Typography numberOfLines={1} style={s.storyName}>Dodaj</Typography>
@@ -462,7 +462,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
             </Pressable>)}
           </ScrollView>
           <View style={s.feedHeader}>
-            <Pressable onPress={()=>{setEditingPost(null);setDraft('');setSpotifyUrl('');setPostMedia(null);setComposerOpen(true)}} style={s.composerTrigger}>
+            <Pressable onPress={()=>{setEditingPost(null);setDraft('');setSpotifyUrl('');setShowSpotifyInput(false);setPostMedia(null);setComposerOpen(true)}} style={s.composerTrigger}>
               <View style={s.composerAvatar}><Ionicons name="person" size={18} color={c.pink}/></View>
               <Typography style={s.composerPlaceholder}>Napisz coś do dziewczyn w {city}…</Typography>
               <Ionicons name="add-circle" size={24} color={c.pink}/>
@@ -545,10 +545,19 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
           </View>
           <View style={s.postAudience}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.postAudienceText}>{city}</Typography></View>
           <TextInput autoFocus multiline value={draft} onChangeText={value=>setDraft(value.slice(0,1200))} placeholder={`Co dzieje się w ${city}?`} placeholderTextColor={c.muted} style={s.postInput}/>
-          {!!postMedia?.uri&&<Image source={{uri:postMedia.uri}} style={s.postComposerPreview}/>}
-          <View style={s.postComposerTools}>
-            {!editingPost&&<Pressable onPress={pickPostMedia} style={s.postTool}><Ionicons name="images-outline" size={22} color={c.pink}/><Typography style={s.postToolText}>Galeria</Typography></Pressable>}
-            <View style={s.postTool}><Ionicons name="musical-notes-outline" size={22} color={c.pink}/><TextInput value={spotifyUrl} onChangeText={setSpotifyUrl} autoCapitalize="none" placeholder="Link Spotify (opcjonalnie)" placeholderTextColor={c.muted} style={s.spotifyInput}/></View>
+          {!!postMedia?.uri&&<View style={s.postComposerPreviewWrap}>
+            <Image source={{uri:postMedia.uri}} style={s.postComposerPreview} resizeMode="cover"/>
+            <Pressable onPress={()=>setPostMedia(null)} style={s.postComposerRemoveMedia} hitSlop={8}><Ionicons name="close" size={17} color={c.white}/></Pressable>
+          </View>}
+          {showSpotifyInput&&<View style={s.spotifyInputRow}>
+            <Ionicons name="musical-notes" size={18} color={c.pink}/>
+            <TextInput value={spotifyUrl} onChangeText={setSpotifyUrl} autoCapitalize="none" placeholder="Wklej link do Spotify…" placeholderTextColor={c.muted} style={s.spotifyInputCompact}/>
+            {!!spotifyUrl&&<Pressable onPress={()=>setSpotifyUrl('')} hitSlop={8}><Ionicons name="close-circle" size={18} color={c.muted}/></Pressable>}
+          </View>}
+          <View style={s.composerToolbar}>
+            {!editingPost&&<Pressable accessibilityRole="button" accessibilityLabel="Galeria" onPress={pickPostMedia} style={[s.composerToolBtn,!!postMedia&&s.composerToolBtnActive]}><Ionicons name="images-outline" size={21} color={postMedia?c.pink:c.ink}/></Pressable>}
+            {!editingPost&&<Pressable accessibilityRole="button" accessibilityLabel="Aparat" onPress={takePostPhoto} style={s.composerToolBtn}><Ionicons name="camera-outline" size={21} color={c.ink}/></Pressable>}
+            <Pressable accessibilityRole="button" accessibilityLabel="Spotify" onPress={()=>setShowSpotifyInput(v=>!v)} style={[s.composerToolBtn,(showSpotifyInput||!!spotifyUrl)&&s.composerToolBtnActive]}><Ionicons name="musical-notes-outline" size={21} color={(showSpotifyInput||!!spotifyUrl)?c.pink:c.ink}/></Pressable>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -820,16 +829,10 @@ export function ProfileScreen({account,onSafety}){
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
   feedPage:{paddingBottom:110,backgroundColor:'#F7F3F5'},
-  homeVideoCard:{marginHorizontal:sp.lg,marginTop:4,height:180,borderRadius:24,overflow:'hidden',backgroundColor:'#1b1116'},
-  homeVideo:{...StyleSheet.absoluteFillObject},
-  homeVideoScrim:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(20,8,14,.28)'},
-  homeVideoCopy:{position:'absolute',left:16,right:16,bottom:16},
-  homeVideoLabel:{fontFamily:f.bold,fontSize:9,letterSpacing:1.3,color:c.white},
-  homeVideoTitle:{fontFamily:f.bold,fontSize:22,lineHeight:25,color:c.white,marginTop:4},
-  homeVideoText:{fontFamily:f.semibold,fontSize:12,color:'rgba(255,255,255,.88)',marginTop:3},
   feedLoading:{position:'absolute',top:6,alignSelf:'center',zIndex:30,flexDirection:'row',gap:8,alignItems:'center',backgroundColor:c.white,paddingHorizontal:12,paddingVertical:8,borderRadius:999,borderWidth:1,borderColor:c.line},
   feedLoadingText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
-  storiesRow:{paddingHorizontal:sp.lg,paddingTop:8,paddingBottom:12,gap:12},
+  storiesScroll:{backgroundColor:c.canvas},
+  storiesRow:{paddingHorizontal:sp.lg,paddingTop:8,paddingBottom:12,gap:12,backgroundColor:c.canvas},
   storyItem:{width:68,alignItems:'center'},
   storyRing:{width:62,height:62,borderRadius:31,borderWidth:3,borderColor:c.pink,padding:2,alignItems:'center',justifyContent:'center'},
   storyAddRing:{borderColor:c.line},
@@ -847,11 +850,14 @@ const s=StyleSheet.create({
   spotifyUrl:{fontFamily:f.regular,fontSize:11,color:c.muted,marginTop:2},
   pendingBadge:{alignSelf:'flex-start',backgroundColor:c.blush,borderRadius:999,paddingHorizontal:10,paddingVertical:6,marginBottom:8},
   pendingText:{fontFamily:f.bold,fontSize:10,color:c.pink},
-  postComposerPreview:{width:'100%',height:180,borderRadius:16,marginTop:10,backgroundColor:c.blush},
-  postComposerTools:{borderTopWidth:1,borderTopColor:c.line,paddingTop:10,gap:8},
-  postTool:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8},
-  postToolText:{fontFamily:f.semibold,fontSize:13,color:c.ink},
-  spotifyInput:{flex:1,height:42,borderRadius:12,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,paddingHorizontal:12,fontFamily:f.regular,fontSize:13,color:c.ink},
+  postComposerPreviewWrap:{width:'100%',height:180,borderRadius:16,marginTop:10,overflow:'hidden',backgroundColor:c.blush},
+  postComposerPreview:{width:'100%',height:'100%'},
+  postComposerRemoveMedia:{position:'absolute',top:8,right:8,width:28,height:28,borderRadius:14,backgroundColor:'rgba(0,0,0,0.55)',alignItems:'center',justifyContent:'center'},
+  composerToolbar:{flexDirection:'row',alignItems:'center',gap:12,borderTopWidth:1,borderTopColor:c.line,paddingTop:12,marginTop:8},
+  composerToolBtn:{width:42,height:42,borderRadius:21,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
+  composerToolBtnActive:{backgroundColor:c.blush,borderColor:c.pink},
+  spotifyInputRow:{flexDirection:'row',alignItems:'center',gap:8,marginTop:10,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,borderRadius:14,paddingHorizontal:12,height:42},
+  spotifyInputCompact:{flex:1,fontFamily:f.regular,fontSize:13,color:c.ink},
   feedHeader:{paddingHorizontal:sp.lg,paddingTop:6,paddingBottom:12,backgroundColor:c.canvas},
   composerTrigger:{minHeight:54,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:18,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:12},
   composerAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
