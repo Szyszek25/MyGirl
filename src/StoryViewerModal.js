@@ -78,6 +78,7 @@ export default function StoryViewerModal({
         s.slides?.some(sl => sl.id === initialStory.id)
       );
       return foundIdx >= 0 ? foundIdx : 0;
+    }
   }, [initialSenderIndex, initialStory, resolvedSenders]);
 
   const [senderIndex, setSenderIndex] = useState(startIdx);
