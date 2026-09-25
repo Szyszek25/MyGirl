@@ -18,6 +18,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {ActivityIndicator,Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import {useVideoPlayer,VideoView} from 'expo-video';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {people,groups,cities} from './data';
 import {Button,Chip,Field,PageHeading,Surface,Typography} from './ui';
@@ -30,6 +31,16 @@ const avatar=(photo,size=48)=><Image source={{uri:photo}} style={{width:size,hei
 const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
 function Section({title,children}){return <Surface><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{title}</Typography>{children}</Surface>}
 function TextAction({icon,title,onPress,danger=false}){return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger?c.pink:c.muted}/><Typography style={{color:danger?c.pink:c.muted,fontFamily:f.semibold,fontSize:13}}>{title}</Typography></Pressable>}
+const HOME_VIDEO='https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
+function HomeIntroVideo(){
+  const player=useVideoPlayer(HOME_VIDEO,p=>{p.loop=true;p.muted=true;p.play();});
+  return <View style={s.homeVideoCard}>
+    <VideoView player={player} style={s.homeVideo} contentFit="cover" nativeControls={false}/>
+    <View style={s.homeVideoScrim}/>
+    <View style={s.homeVideoCopy}><Typography style={s.homeVideoLabel}>POLKA</Typography><Typography style={s.homeVideoTitle}>Dziewczyny z Twojego miasta.</Typography><Typography style={s.homeVideoText}>Zobacz, kto też chce wyjść.</Typography></View>
+  </View>;
+}
+
 
 export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,onMessage,sessionUserId=null,zodiacEnabled=true,userZodiac=null,styleEnabled=true,userStyle=null}){
   const [index,setIndex]=useState(0),[saved,setSaved]=useState([]);
@@ -270,7 +281,7 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,o
   </ScrollView>;
 }
 
-export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport,sessionUserId=null}){
+export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport,sessionUserId=null,showIntroVideo=false}){
   const [draft,setDraft]=useState('');
   const [likes,setLikes]=useState([]);
   const [composerOpen,setComposerOpen]=useState(false);
@@ -430,6 +441,7 @@ export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[]
       onRefresh={refresh}
       ListHeaderComponent={
         <View>
+          {showIntroVideo&&<HomeIntroVideo/>}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.storiesRow}>
             <Pressable onPress={takeStory} style={s.storyItem}>
               <View style={[s.storyRing,s.storyAddRing]}><View style={s.storyAdd}><Ionicons name="camera" size={22} color={c.pink}/></View></View>
@@ -744,6 +756,13 @@ export function ProfileScreen({account,onSafety}){
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
   feedPage:{paddingBottom:110,backgroundColor:'#F7F3F5'},
+  homeVideoCard:{marginHorizontal:sp.lg,marginTop:4,height:180,borderRadius:24,overflow:'hidden',backgroundColor:'#1b1116'},
+  homeVideo:{...StyleSheet.absoluteFillObject},
+  homeVideoScrim:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(20,8,14,.28)'},
+  homeVideoCopy:{position:'absolute',left:16,right:16,bottom:16},
+  homeVideoLabel:{fontFamily:f.bold,fontSize:9,letterSpacing:1.3,color:c.white},
+  homeVideoTitle:{fontFamily:f.bold,fontSize:22,lineHeight:25,color:c.white,marginTop:4},
+  homeVideoText:{fontFamily:f.semibold,fontSize:12,color:'rgba(255,255,255,.88)',marginTop:3},
   feedLoading:{position:'absolute',top:6,alignSelf:'center',zIndex:30,flexDirection:'row',gap:8,alignItems:'center',backgroundColor:c.white,paddingHorizontal:12,paddingVertical:8,borderRadius:999,borderWidth:1,borderColor:c.line},
   feedLoadingText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
   storiesRow:{paddingHorizontal:sp.lg,paddingTop:8,paddingBottom:12,gap:12},
