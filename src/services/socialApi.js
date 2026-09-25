@@ -87,14 +87,13 @@ export async function editPost(postId,userId,body,spotifyUrl){
   const {data,error}=await supabase.from('posts')
     .update({body:body.trim(),spotify_url:spotifyUrl?.trim()||null,edited_at:new Date().toISOString()})
     .eq('id',postId)
-    .eq('author_id',userId)
     .select('id').single();
   if(error)throw error;
   return data;
 }
 
 export async function deletePost(postId,userId){
-  const {error}=await supabase.from('posts').delete().eq('id',postId).eq('author_id',userId);
+  const {error}=await supabase.from('posts').delete().eq('id',postId);
   if(error)throw error;
 }
 
