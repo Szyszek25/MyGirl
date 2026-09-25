@@ -1,5 +1,5 @@
 import React,{useMemo,useRef,useState} from 'react';
-import {Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,Animated,Dimensions,FlatList,Image,KeyboardAvoidingView,Modal,PanResponder,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {people,groups,cities} from './data';
@@ -10,9 +10,9 @@ const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
 function Section({title,children}){return <Surface><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{title}</Typography>{children}</Surface>}
 function TextAction({icon,title,onPress,danger=false}){return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger?c.pink:c.muted}/><Typography style={{color:danger?c.pink:c.muted,fontFamily:f.semibold,fontSize:13}}>{title}</Typography></Pressable>}
 
-export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
-  const [city,setCity]=useState('Wszystkie'),[index,setIndex]=useState(0),[saved,setSaved]=useState([]);
-  const filtered=people.filter(p=>!blockedIds.includes(p.id)&&(city==='Wszystkie'||p.city===city));
+export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport}){
+  const [index,setIndex]=useState(0),[saved,setSaved]=useState([]);
+  const filtered=people.filter(p=>!blockedIds.includes(p.id)&&p.city===city);
   const person=filtered.length?filtered[index%filtered.length]:null;
   const xy=useRef(new Animated.ValueXY()).current;
   const vibeFor=p=>{
@@ -38,7 +38,7 @@ export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
   const stack=[0,1,2].map(offset=>filtered.length?filtered[(index+offset)%filtered.length]:null).filter(Boolean);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page,{paddingBottom:110}]}>
     <View style={s.discoverControls}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography><Ionicons name="options-outline" size={22} color={c.ink}/></View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingBottom:4}}>{['Wszystkie',...cities].map(v=><Chip key={v} label={v} selected={city===v} onPress={()=>{setCity(v);setIndex(0)}}/>)}</ScrollView>
+    <Typography style={s.cityContext}>{city}</Typography>
     {person?<>
       <View style={s.stackWrap}>
         {stack.slice().reverse().map((p,revIndex)=>{
@@ -73,25 +73,69 @@ export function DiscoverScreen({blockedIds=[],onBlock,onReport}){
   </ScrollView>;
 }
 
-export function CommunityScreen({posts=[],setPosts,blockedIds=[],onReport}){
-  const [draft,setDraft]=useState(''),[likes,setLikes]=useState([]);
-  const visiblePosts=posts.filter(post=>!blockedIds.includes(authorId(post)));
-  const deleteOwnPost=item=>Alert.alert('Usunąć wpis?','Wpis zostanie usunięty z bieżącej sesji prototypu.',[
+export function CommunityScreen({city='Warszawa',posts=[],setPosts,blockedIds=[],onReport}){
+  const [draft,setDraft]=useState(''),[likes,setLikes]=useState([]),[composerOpen,setComposerOpen]=useState(false);
+  const visiblePosts=posts.filter(post=>!blockedIds.includes(authorId(post))&&post.city===city);
+  const deleteOwnPost=item=>Alert.alert('Usunąć wpis?','Wpis zniknie z tej sesji.',[
     {text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:()=>setPosts(prev=>prev.filter(p=>p.id!==item.id))}
   ]);
-  return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-    <FlatList data={visiblePosts} keyExtractor={item=>item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}
-      ListHeaderComponent={<><Surface><Field label="Dodaj wpis" value={draft} onChangeText={value=>setDraft(value.slice(0,2000))} placeholder="Kto ma ochotę na kawę?" multiline/><Button title="Dodaj wpis demo" disabled={!draft.trim()} onPress={()=>{setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city:'Demo',body:draft.trim(),likes:0},...prev]);setDraft('')}}/><Typography variant="caption" style={s.disclaimer}>Wpis widoczny tylko w tej sesji. Wersja online wymaga moderacji.</Typography></Surface></>}
-      renderItem={({item})=><Surface>
-        <View style={s.postHeader}>{avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo)}<View style={{flex:1}}><Typography variant="subtitle">{item.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{item.city} · DEMO</Typography></View></View>
-        <Typography style={{fontSize:18,marginBottom:sp.lg}}>{item.body}</Typography>
+  const publish=()=>{
+    const body=draft.trim();
+    if(!body)return;
+    setPosts(prev=>[{id:String(Date.now()),author:'Ty',authorId:'local-demo',city,body,likes:0},...prev]);
+    setDraft('');
+    setComposerOpen(false);
+  };
+
+  return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+    <FlatList
+      data={visiblePosts}
+      keyExtractor={item=>item.id}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={s.feedPage}
+      ListHeaderComponent={
+        <View style={s.feedHeader}>
+          <Pressable onPress={()=>setComposerOpen(true)} style={s.composerTrigger}>
+            <View style={s.composerAvatar}><Ionicons name="person" size={18} color={c.pink}/></View>
+            <Typography style={s.composerPlaceholder}>Napisz coś do dziewczyn w {city}…</Typography>
+            <Ionicons name="add-circle" size={24} color={c.pink}/>
+          </Pressable>
+        </View>
+      }
+      renderItem={({item})=><View style={s.feedPost}>
+        <View style={s.postHeader}>{avatar(people.find(p=>p.name===item.author)?.photo||people[0].photo,42)}<View style={{flex:1}}><Typography style={s.postAuthor}>{item.author}</Typography><Typography variant="caption" style={{color:c.muted}}>{item.city}</Typography></View></View>
+        <Typography style={s.postBody}>{item.body}</Typography>
         <View style={s.postActions}>
           <TextAction icon={likes.includes(item.id)?'heart':'heart-outline'} title={String(item.likes+(likes.includes(item.id)?1:0))} onPress={()=>setLikes(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id])}/>
-          {item.author==='Ty'?<TextAction icon="trash-outline" title="Usuń wpis" danger onPress={()=>deleteOwnPost(item)}/>:<TextAction icon="flag-outline" title="Zgłoś wpis" danger onPress={()=>onReport({kind:'post',id:item.id,label:`Wpis: ${item.author}`})}/>}
+          {item.author==='Ty'?<TextAction icon="trash-outline" title="Usuń" danger onPress={()=>deleteOwnPost(item)}/>:<TextAction icon="flag-outline" title="Zgłoś" danger onPress={()=>onReport({kind:'post',id:item.id,label:`Wpis: ${item.author}`})}/>}
         </View>
-      </Surface>}
-      ListEmptyComponent={<Surface><Typography>Nie ma widocznych wpisów.</Typography></Surface>}
+      </View>}
+      ListEmptyComponent={<View style={s.feedEmpty}><Typography style={s.emptyFeedTitle}>Jeszcze cicho w {city}</Typography><Typography style={s.emptyFeedText}>Napisz pierwszy post albo zmień miasto u góry.</Typography></View>}
     />
+
+    <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={()=>setComposerOpen(false)}>
+      <KeyboardAvoidingView style={s.postModalBackdrop} behavior={Platform.OS==='ios'?'padding':'height'}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setComposerOpen(false)}/>
+        <View style={s.postSheet}>
+          <View style={s.postSheetHandle}/>
+          <View style={s.postSheetTop}>
+            <Pressable onPress={()=>setComposerOpen(false)}><Typography style={s.cancelText}>Anuluj</Typography></Pressable>
+            <Typography style={s.postSheetTitle}>Nowy post</Typography>
+            <Pressable disabled={!draft.trim()} onPress={publish}><Typography style={[s.publishText,!draft.trim()&&{opacity:.35}]}>Publikuj</Typography></Pressable>
+          </View>
+          <View style={s.postAudience}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.postAudienceText}>{city}</Typography></View>
+          <TextInput
+            autoFocus
+            multiline
+            value={draft}
+            onChangeText={value=>setDraft(value.slice(0,1200))}
+            placeholder={`Co dzieje się w ${city}?`}
+            placeholderTextColor={c.muted}
+            style={s.postInput}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   </KeyboardAvoidingView>;
 }
 
@@ -135,6 +179,28 @@ export function ProfileScreen({account,onSafety}){
 }
 const s=StyleSheet.create({
   page:{padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas,flexGrow:1},
+  cityContext:{fontFamily:f.bold,fontSize:14,color:c.pink,marginBottom:8},
+  feedPage:{paddingBottom:110,backgroundColor:c.canvas},
+  feedHeader:{paddingHorizontal:sp.lg,paddingBottom:8},
+  composerTrigger:{minHeight:54,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:18,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:12},
+  composerAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  composerPlaceholder:{flex:1,fontFamily:f.regular,fontSize:14,color:c.muted},
+  feedPost:{paddingHorizontal:sp.lg,paddingVertical:16,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line,backgroundColor:c.white},
+  postAuthor:{fontFamily:f.bold,fontSize:15,color:c.ink},
+  postBody:{fontFamily:f.regular,fontSize:17,lineHeight:24,color:c.ink,marginTop:10,marginBottom:10},
+  feedEmpty:{padding:36,alignItems:'center'},
+  emptyFeedTitle:{fontFamily:f.bold,fontSize:18,color:c.ink},
+  emptyFeedText:{fontFamily:f.regular,fontSize:14,color:c.muted,marginTop:5,textAlign:'center'},
+  postModalBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.28)'},
+  postSheet:{backgroundColor:c.white,borderTopLeftRadius:28,borderTopRightRadius:28,padding:sp.lg,paddingTop:10,minHeight:330},
+  postSheetHandle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:14},
+  postSheetTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:18},
+  postSheetTitle:{fontFamily:f.bold,fontSize:17,color:c.ink},
+  cancelText:{fontFamily:f.semibold,fontSize:14,color:c.muted},
+  publishText:{fontFamily:f.bold,fontSize:14,color:c.pink},
+  postAudience:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:10,paddingVertical:7,marginBottom:12},
+  postAudienceText:{fontFamily:f.bold,fontSize:12,color:c.pink},
+  postInput:{minHeight:150,fontFamily:f.regular,fontSize:20,lineHeight:28,color:c.ink,textAlignVertical:'top'},
   discoverControls:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8},
   discoverHint:{fontFamily:f.semibold,fontSize:14,color:c.muted},
   stackWrap:{height:520,marginTop:8,marginBottom:12,position:'relative'},
