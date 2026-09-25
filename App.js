@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
+import {Alert,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView,useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@expo-google-fonts/dm-sans';
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
@@ -19,6 +19,8 @@ import ClubsMeetupsScreen from './src/ClubsMeetupsScreen';
 import MeetingsScreen from './src/MeetingsScreen';
 import {ReportForm,SafetyCenter} from './src/Safety';
 import {loadLocalProfile,saveLocalProfile,deleteLocalProfile} from './src/localProfile';
+import {getSession,handleAuthCallback,onAuthStateChange,signOut} from './src/services/authApi';
+import {loadRemoteProfile,saveRemoteProfile} from './src/services/profileApi';
 import {cities,initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
@@ -31,6 +33,7 @@ function PolkaApp(){
   const [fontsLoaded]=useFonts(Platform.OS==='web'?{}:{DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold,PlayfairDisplay_700Bold});
   const loaded=Platform.OS==='web'||fontsLoaded;
   const [account,setAccount]=useState(null);
+  const [authSession,setAuthSession]=useState(null);
   const [entryStarted,setEntryStarted]=useState(false);
   const [preBusiness,setPreBusiness]=useState(false);
   const [booting,setBooting]=useState(true);
@@ -57,19 +60,55 @@ function PolkaApp(){
   });
   useEffect(()=>{
     let alive=true;
-    Promise.all([loadLocalProfile(),loadFeaturePreferences()]).then(([profile,prefs])=>{
+    const syncSession=async session=>{
       if(!alive)return;
-      setAccount(profile);
+      setAuthSession(session||null);
+      if(session?.user?.id){
+        try{
+          const remote=await loadRemoteProfile(session.user.id);
+          if(!alive)return;
+          if(remote?.onboardingComplete){
+            setAccount(remote);
+            setEntryStarted(false);
+            if(remote.city)setActiveCity(remote.city);
+          }else{
+            setAccount(null);
+            setEntryStarted(true);
+          }
+        }catch(error){
+          if(alive)Alert.alert('Nie udało się wczytać konta',error.message||'Spróbuj ponownie.');
+        }
+      }else{
+        const local=await loadLocalProfile();
+        if(!alive)return;
+        setAccount(local);
+        if(local?.city)setActiveCity(local.city);
+      }
+    };
+
+    Promise.all([getSession(),loadFeaturePreferences(),Linking.getInitialURL()]).then(async([session,prefs,url])=>{
+      if(!alive)return;
       setFeaturePreferences(prefs);
-      if(profile?.city)setActiveCity(profile.city);
+      if(url)await handleAuthCallback(url).catch(()=>null);
+      const latest=await getSession();
+      await syncSession(latest||session);
     }).catch(()=>{
-      if(alive)Alert.alert('Błąd odczytu profilu','Nie udało się wczytać lokalnych danych.');
+      if(alive)Alert.alert('Błąd uruchamiania','Nie udało się wczytać sesji Polki.');
     }).finally(()=>{if(alive)setBooting(false);});
-    return ()=>{alive=false;};
+
+    const unsubAuth=onAuthStateChange((_event,session)=>{void syncSession(session)});
+    const linkSub=Linking.addEventListener('url',({url})=>{
+      void handleAuthCallback(url).catch(error=>Alert.alert('Logowanie',error.message||'Nie udało się dokończyć logowania.'));
+    });
+    return ()=>{alive=false;unsubAuth?.();linkSub.remove();};
   },[]);
+
   const saveProfile=async profile=>{
-    const saved=await saveLocalProfile(profile);
+    const saved=authSession?.user?.id
+      ? await saveRemoteProfile(authSession.user.id,profile)
+      : await saveLocalProfile(profile);
     setAccount(saved);
+    setEntryStarted(false);
     if(saved?.city)setActiveCity(saved.city);
     return saved;
   };
@@ -84,22 +123,20 @@ function PolkaApp(){
   if(!loaded||booting)return <View style={s.safe}/>;
   if(!account){
     if(preBusiness)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><PartnerPanel onClose={()=>setPreBusiness(false)}/></SafeAreaView>;
-    if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={()=>setEntryStarted(true)} onBusiness={()=>setPreBusiness(true)}/></View>;
+    if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={({method}={})=>{if(method==='skip')setEntryStarted(true)}} onBusiness={()=>setPreBusiness(true)}/></View>;
     return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} onComplete={saveProfile}/></SafeAreaView>;
   }
-  const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!settingsOpen&&!messagesOpen&&!cycleOpen&&!careOpen&&!resetPasswordOpen;
+  const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!messagesOpen&&!cycleOpen&&!careOpen;
   const clubsVisible=tab==='Grupy'&&showTabs;
   const content=reportTarget?
     <ReportForm target={reportTarget} onCancel={()=>setReportTarget(null)} onSave={report=>{setReports(prev=>[...prev,report]);setReportTarget(null);}}/>:
     safetyOpen?<SafetyCenter blockedIds={blockedIds} onUnblock={id=>setBlockedIds(prev=>prev.filter(v=>v!==id))} reports={reports} onClose={()=>setSafetyOpen(false)} onReset={reset}/>:
     partnerOpen?<PartnerPanel onClose={()=>setPartnerOpen(false)}/>:
-    settingsOpen?<SettingsScreen onClose={()=>setSettingsOpen(false)} onSafety={()=>{setSettingsOpen(false);setSafetyOpen(true)}} onPartner={()=>{setSettingsOpen(false);setPartnerOpen(true)}} onPasswordReset={()=>{setSettingsOpen(false);setResetPasswordOpen(true)}} onFeaturePreferencesChange={setFeaturePreferences} onReset={reset}/>:
-    resetPasswordOpen?<ResetPasswordScreen onClose={()=>{setResetPasswordOpen(false);setSettingsOpen(true)}}/>:
     cycleOpen?<CycleScreen onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onClose={()=>setMessagesOpen(false)}/></View>:
+    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onClose={()=>setMessagesOpen(false)}/></View>:
     ({'Start':<View style={s.fill}><CommunityScreen city={activeCity} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget}/></View>,'Poznaj':<PeopleDiscoverScreen city={activeCity} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} featurePreferences={featurePreferences} onReport={setReportTarget}/>}</View>,'Profil':<NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)}/>})[tab];
-  const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':settingsOpen?'settings':resetPasswordOpen?'reset-password':cycleOpen?'cycle':careOpen?'polka-care':messagesOpen?'messages':tab;
+  const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
       <View style={s.fill}>
@@ -114,6 +151,29 @@ function PolkaApp(){
       </View>
     </ShiftTransition>
     <Modal visible={cityPickerOpen} transparent animationType="fade" onRequestClose={()=>setCityPickerOpen(false)}><Pressable style={s.cityModalBackdrop} onPress={()=>setCityPickerOpen(false)}><View style={s.citySheet}><Typography style={s.citySheetTitle}>Wybierz miasto</Typography>{cities.map(city=><Pressable key={city} onPress={()=>{setActiveCity(city);setCityPickerOpen(false)}} style={s.cityOption}><Typography style={[s.cityOptionText,activeCity===city&&{color:c.pink,fontFamily:f.bold}]}>{city}</Typography>{activeCity===city&&<Ionicons name="checkmark" size={20} color={c.pink}/>}</Pressable>)}</View></Pressable></Modal>
+    <Modal visible={settingsOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setSettingsOpen(false)}>
+      <SafeAreaView edges={['top','bottom']} style={s.safe}>
+        <SettingsScreen
+          onClose={()=>setSettingsOpen(false)}
+          accountEmail={authSession?.user?.email||''}
+          isAuthenticated={!!authSession?.user}
+          onSafety={()=>{setSettingsOpen(false);setSafetyOpen(true)}}
+          onPartner={()=>{setSettingsOpen(false);setPartnerOpen(true)}}
+          onPasswordReset={()=>{setSettingsOpen(false);setResetPasswordOpen(true)}}
+          onSignOut={async()=>{
+            try{await signOut();setAccount(null);setEntryStarted(false);setSettingsOpen(false);}
+            catch(error){Alert.alert('Nie udało się wylogować',error.message||'Spróbuj ponownie.');}
+          }}
+          onFeaturePreferencesChange={setFeaturePreferences}
+          onReset={reset}
+        />
+      </SafeAreaView>
+    </Modal>
+    <Modal visible={resetPasswordOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>{setResetPasswordOpen(false);setSettingsOpen(true)}}>
+      <SafeAreaView edges={['top','bottom']} style={s.safe}>
+        <ResetPasswordScreen email={authSession?.user?.email||''} onClose={()=>{setResetPasswordOpen(false);setSettingsOpen(true)}}/>
+      </SafeAreaView>
+    </Modal>
 
     {showTabs && (
       <Pressable
