@@ -156,6 +156,7 @@ function PolkaApp(){
         <SettingsScreen
           onClose={()=>setSettingsOpen(false)}
           accountEmail={authSession?.user?.email||''}
+          userId={authSession?.user?.id||null}
           isAuthenticated={!!authSession?.user}
           onSafety={()=>{setSettingsOpen(false);setSafetyOpen(true)}}
           onPartner={()=>{setSettingsOpen(false);setPartnerOpen(true)}}
