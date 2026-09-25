@@ -189,7 +189,7 @@ export function GroupsScreen({onReport}){
     ListFooterComponent={<Typography variant="caption" style={s.disclaimer}>Grupy i zgłoszenia demonstracyjne. Brak serwera i moderacji grup.</Typography>}/>;
 }
 
-export function ChatsScreen({blockedIds=[],onReport}){
+export function ChatsScreen({blockedIds=[],onReport,onClose}){
   const [active,setActive]=useState(null),[draft,setDraft]=useState(''),[messages,setMessages]=useState({});
   const chats=[
     {id:'maja',name:'Maja',photo:people[0].photo,last:'Hej! Widzimy się jutro? 💗',time:'18:42',unread:2},
@@ -203,12 +203,52 @@ export function ChatsScreen({blockedIds=[],onReport}){
     setDraft('');
   };
 
+  if(active){
+    return <KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={0}>
+      <View style={s.fullChatHeader}>
+        <Pressable onPress={()=>setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
+        {avatar(active.photo,42)}
+        <View style={{flex:1}}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>aktywna niedawno</Typography></View>
+        <Pressable onPress={()=>onReport?.({kind:'chat',id:active.id,label:`Rozmowa: ${active.name}`})} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
+      </View>
+
+      <ScrollView style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
+        <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>
+        <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Hej! Miło Cię poznać 🌸</Typography></View></View>
+        <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Masz już jakiś plan na weekend?</Typography></View></View>
+        {(messages[active.id]||[]).map((message,i)=><View key={i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
+      </ScrollView>
+
+      <View style={s.fullComposer}>
+        <Pressable style={s.attachButton}><Ionicons name="add" size={24} color={c.pink}/></Pressable>
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="Napisz wiadomość…"
+          placeholderTextColor={c.muted}
+          accessibilityLabel="Wiadomość"
+          multiline
+          maxLength={1200}
+          style={s.fullMessageInput}
+        />
+        <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()} onPress={send} style={[s.fullSend,!draft.trim()&&{opacity:.35}]}>
+          <Ionicons name="arrow-up" color={c.white} size={21}/>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>;
+  }
+
   return <View style={s.chatListRoot}>
-    <View style={s.chatListHeader}><Typography style={s.chatListTitle}>Wiadomości</Typography><Pressable style={s.chatHeaderButton}><Ionicons name="create-outline" size={21} color={c.ink}/></Pressable></View>
+    <View style={s.chatListHeader}>
+      <Pressable onPress={onClose} style={s.fullChatIcon} accessibilityLabel="Zamknij wiadomości"><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
+      <Typography style={s.chatListTitle}>Wiadomości</Typography>
+      <Pressable style={s.chatHeaderButton}><Ionicons name="create-outline" size={21} color={c.ink}/></Pressable>
+    </View>
     <FlatList
       data={chats}
       keyExtractor={item=>item.id}
       contentContainerStyle={s.chatList}
+      keyboardShouldPersistTaps="handled"
       renderItem={({item})=><Pressable accessibilityRole="button" onPress={()=>setActive(item)} style={s.chatListRow}>
         {avatar(item.photo,54)}
         <View style={s.chatListBody}>
@@ -217,41 +257,6 @@ export function ChatsScreen({blockedIds=[],onReport}){
         </View>
       </Pressable>}
     />
-
-    <Modal visible={!!active} animationType="slide" onRequestClose={()=>setActive(null)}>
-      {!!active&&<KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={0}>
-        <View style={s.fullChatHeader}>
-          <Pressable onPress={()=>setActive(null)} style={s.fullChatIcon}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
-          {avatar(active.photo,42)}
-          <View style={{flex:1}}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>aktywna niedawno</Typography></View>
-          <Pressable onPress={()=>onReport?.({kind:'chat',id:active.id,label:`Rozmowa: ${active.name}`})} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
-        </View>
-
-        <ScrollView style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
-          <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>
-          <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Hej! Miło Cię poznać 🌸</Typography></View></View>
-          <View style={s.incomingWrap}><View style={s.incomingBubble}><Typography style={s.bubbleText}>Masz już jakiś plan na weekend?</Typography></View></View>
-          {(messages[active.id]||[]).map((message,i)=><View key={i} style={s.outgoingWrap}><View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View></View>)}
-        </ScrollView>
-
-        <View style={s.fullComposer}>
-          <Pressable style={s.attachButton}><Ionicons name="add" size={24} color={c.pink}/></Pressable>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Napisz wiadomość…"
-            placeholderTextColor={c.muted}
-            accessibilityLabel="Wiadomość"
-            multiline
-            maxLength={1200}
-            style={s.fullMessageInput}
-          />
-          <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim()} onPress={send} style={[s.fullSend,!draft.trim()&&{opacity:.35}]}>
-            <Ionicons name="arrow-up" color={c.white} size={21}/>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>}
-    </Modal>
   </View>;
 }
 
@@ -343,7 +348,7 @@ const s=StyleSheet.create({
   chatBack:{flexDirection:'row',alignItems:'center',gap:12,marginBottom:sp.base},
   compose:{flexDirection:'row',gap:8,alignItems:'center'},
   chatListRoot:{flex:1,backgroundColor:c.canvas},
-  chatListHeader:{height:54,paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  chatListHeader:{height:60,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},
   chatListTitle:{fontFamily:f.bold,fontSize:24,letterSpacing:-.8,color:c.ink},
   chatHeaderButton:{width:38,height:38,borderRadius:19,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},
   chatList:{paddingBottom:40},
@@ -371,7 +376,7 @@ const s=StyleSheet.create({
   outgoingBubble:{maxWidth:'78%',backgroundColor:c.pink,borderRadius:20,borderTopRightRadius:6,paddingHorizontal:14,paddingVertical:10},
   bubbleText:{fontFamily:f.regular,fontSize:15,lineHeight:20,color:c.ink},
   outgoingText:{fontFamily:f.regular,fontSize:15,lineHeight:20,color:c.white},
-  fullComposer:{paddingHorizontal:12,paddingTop:8,paddingBottom:12,flexDirection:'row',alignItems:'flex-end',gap:8,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,backgroundColor:c.white},
+  fullComposer:{paddingHorizontal:12,paddingTop:8,paddingBottom:10,flexDirection:'row',alignItems:'flex-end',gap:8,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,backgroundColor:c.white},
   attachButton:{width:40,height:40,borderRadius:20,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
   fullMessageInput:{flex:1,maxHeight:120,minHeight:42,borderRadius:21,backgroundColor:c.canvas,borderWidth:1,borderColor:c.line,paddingHorizontal:14,paddingTop:10,paddingBottom:10,fontFamily:f.regular,fontSize:15,color:c.ink,textAlignVertical:'center'},
   fullSend:{width:40,height:40,borderRadius:20,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'}
