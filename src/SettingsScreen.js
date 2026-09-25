@@ -18,7 +18,7 @@ function Row({icon,title,subtitle,onPress,right,danger=false}){
   </Pressable>;
 }
 
-export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange,onSignOut,isAuthenticated=false,accountEmail='',userId=null}){
+export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPasswordReset,onFeaturePreferencesChange,onSignOut,onDeleteAccount,isAuthenticated=false,accountEmail='',userId=null}){
   const [accountSettings,setAccountSettings]=useState(defaultAccountSettings);
   const push=accountSettings.push_enabled;
   const plans=accountSettings.plans_notifications;
@@ -124,7 +124,9 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
     </View>
 
     <View style={[s.group,{marginTop:sp.lg}]}>
-      <Row icon="trash-outline" title="Usuń dane demo" danger onPress={()=>Alert.alert('Usunąć dane demo?','Profil lokalny i dane tej wersji zostaną usunięte z telefonu.',[{text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:onReset}])}/>
+      {isAuthenticated
+        ? <Row icon="trash-outline" title="Usuń konto" subtitle="Trwale usuń konto i dane Polki" danger onPress={()=>Alert.alert('Usunąć konto?','Tej operacji nie można cofnąć. Usuniemy konto oraz przypisane dane i pliki.',[{text:'Anuluj',style:'cancel'},{text:'Usuń konto',style:'destructive',onPress:onDeleteAccount}])}/>
+        : <Row icon="trash-outline" title="Usuń dane lokalne" danger onPress={()=>Alert.alert('Usunąć dane lokalne?','Profil lokalny i dane tej wersji zostaną usunięte z telefonu.',[{text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:onReset}])}/>}
     </View>
     <Typography variant="caption" style={s.footer}>{isAuthenticated?'Polka 1.0.0 · konto online aktywne':'Polka 1.0.0 · tryb lokalny'}</Typography>
   </ScrollView>;
