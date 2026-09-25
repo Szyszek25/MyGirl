@@ -1,3 +1,5 @@
+import {File} from 'expo-file-system';
+
 const PAGE_SIZE=30;
 
 export function newClientMessageId(){
@@ -127,12 +129,17 @@ export function createChatRealtime(client){
 
   const sendVoice=async({roomId,senderId,uri,durationMs,clientMessageId=newClientMessageId()})=>{
     if(!roomId||!senderId||!uri)throw new Error('Missing voice message fields');
-    const response=await fetch(uri);
-    const blob=await response.blob();
-    const type=blob.type||'audio/m4a';
+    const file=new File(uri);
+    const bytes=await file.arrayBuffer();
+    if(!bytes.byteLength)throw new Error('Nie udało się odczytać nagrania.');
+    const rawType=(file.type||'').toLowerCase();
+    const clean=uri.split('?')[0].toLowerCase();
+    const type=rawType.startsWith('audio/')?rawType:
+      clean.endsWith('.webm')?'audio/webm':clean.endsWith('.mp3')?'audio/mpeg':
+      clean.endsWith('.aac')?'audio/aac':'audio/mp4';
     const ext=type.includes('webm')?'webm':type.includes('mpeg')?'mp3':type.includes('aac')?'aac':'m4a';
     const mediaPath=`${senderId}/voice-${Date.now()}-${clientMessageId.slice(0,8)}.${ext}`;
-    const upload=await client.storage.from('polka-chat-media').upload(mediaPath,blob,{contentType:type,upsert:false});
+    const upload=await client.storage.from('polka-chat-media').upload(mediaPath,bytes,{contentType:type,upsert:false});
     if(upload.error)throw upload.error;
     const payload={
       conversation_id:roomId,
