@@ -28,10 +28,53 @@ const authorId=post=>post.authorId||people.find(p=>p.name===post.author)?.id;
 function Section({title,children}){return <Surface><Typography variant="subtitle" style={{marginBottom:sp.sm}}>{title}</Typography>{children}</Surface>}
 function TextAction({icon,title,onPress,danger=false}){return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger?c.pink:c.muted}/><Typography style={{color:danger?c.pink:c.muted,fontFamily:f.semibold,fontSize:13}}>{title}</Typography></Pressable>}
 
-export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,zodiacEnabled=true,userZodiac=null,styleEnabled=true,userStyle=null}){
+export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,onMessage,sessionUserId=null,zodiacEnabled=true,userZodiac=null,styleEnabled=true,userStyle=null}){
   const [index,setIndex]=useState(0),[saved,setSaved]=useState([]);
+  const [remotePeople,setRemotePeople]=useState([]);
   const [filtersOpen,setFiltersOpen]=useState(false);
   const [selectedTags,setSelectedTags]=useState([]);
+  useEffect(()=>{
+    if(!sessionUserId){setRemotePeople([]);return;}
+    let alive=true;
+    (async()=>{
+      const {data:profiles,error}=await supabase.from('profiles')
+        .select('id,display_name,city,bio,avatar_path')
+        .neq('id',sessionUserId)
+        .eq('city',city)
+        .eq('onboarding_complete',true)
+        .limit(80);
+      if(error)throw error;
+      const ids=(profiles||[]).map(item=>item.id);
+      let interests=[];
+      if(ids.length){
+        const result=await supabase.from('profile_interests').select('profile_id,interest').in('profile_id',ids);
+        if(result.error)throw result.error;
+        interests=result.data||[];
+      }
+      const rows=await Promise.all((profiles||[]).map(async profile=>{
+        let photo=null;
+        if(profile.avatar_path){
+          const signed=await supabase.storage.from('polka-avatars').createSignedUrl(profile.avatar_path,3600);
+          photo=signed.data?.signedUrl||null;
+        }
+        return {
+          id:profile.id,
+          name:profile.display_name||'Polka',
+          age:null,
+          city:profile.city,
+          photo:photo||'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=900&q=85',
+          bio:profile.bio||'Hej! Jestem w Polce i chętnie poznam nowe osoby.',
+          tags:interests.filter(row=>row.profile_id===profile.id).map(row=>row.interest),
+          prompt:'Napisz do mnie',
+          answer:'Najłatwiej zacząć od prostego hej 👋',
+          remote:true
+        };
+      }));
+      if(alive){setRemotePeople(rows);setIndex(0);}
+    })().catch(()=>{if(alive)setRemotePeople([])});
+    return ()=>{alive=false};
+  },[sessionUserId,city]);
+
   const zodiacSigns=['Baran','Byk','Bliźnięta','Rak','Lew','Panna','Waga','Skorpion','Strzelec','Koziorożec','Wodnik','Ryby'];
   const zodiacForPerson=p=>p?.zodiac||zodiacSigns[Math.abs(String(p?.id||p?.name||'Polka').split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0))%zodiacSigns.length];
   const styleForPerson=p=>{
@@ -72,8 +115,9 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,z
     if(trickyPairs.has(key))return {theirs,label:'może iskrzyć',icon:'flash',copy:'Różne tempo i podejście — może być ciekawie, ale nie zawsze bez tarcia.'};
     return {theirs,label:'neutralnie',icon:'moon',copy:'Ani wielki „match”, ani red flag — reszta zależy od Was, nie od znaków.'};
   };
-  const availableTags=useMemo(()=>Array.from(new Set(people.filter(p=>p.city===city).flatMap(p=>p.tags||[]))).sort(),[city]);
-  const filtered=people.filter(p=>!blockedIds.includes(p.id)&&p.city===city&&(selectedTags.length===0||selectedTags.some(tag=>(p.tags||[]).includes(tag))));
+  const sourcePeople=sessionUserId&&remotePeople.length?remotePeople:people;
+  const availableTags=useMemo(()=>Array.from(new Set(sourcePeople.filter(p=>p.city===city).flatMap(p=>p.tags||[]))).sort(),[city,sourcePeople]);
+  const filtered=sourcePeople.filter(p=>!blockedIds.includes(p.id)&&p.city===city&&(selectedTags.length===0||selectedTags.some(tag=>(p.tags||[]).includes(tag))));
   const person=filtered.length?filtered[index%filtered.length]:null;
   const xy=useRef(new Animated.ValueXY()).current;
   const vibeFor=p=>{
@@ -115,7 +159,7 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,z
             <View style={s.cardScrim}/>
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
             <View style={s.cardIdentity}>
-              <Typography style={s.cardName}>{p.name}, {p.age}</Typography>
+              <Typography style={s.cardName}>{p.name}{p.age?`, ${p.age}`:''}</Typography>
               <Typography style={s.cardMeta}>{p.city} · {(p.tags||[]).slice(0,2).join(' · ')}</Typography>
             </View>
           </Wrapper>
@@ -123,6 +167,7 @@ export function DiscoverScreen({city='Warszawa',blockedIds=[],onBlock,onReport,z
       </View>
       <View style={s.actions}>
         <Pressable accessibilityRole="button" accessibilityLabel="Pomiń profil" onPress={()=>decide(-1)} style={s.round}><Ionicons name="close" size={28} color={c.ink}/></Pressable>
+        {person.remote&&onMessage&&<Pressable accessibilityRole="button" accessibilityLabel="Napisz wiadomość" onPress={()=>onMessage(person.id)} style={s.round}><Ionicons name="chatbubble-ellipses-outline" size={24} color={c.pink}/></Pressable>}
         <Pressable accessibilityRole="button" accessibilityLabel="Polub profil" onPress={()=>decide(1)} style={[s.round,s.heartRound]}><Ionicons name="heart" size={25} color={c.white}/></Pressable>
       </View>
       {(zodiacEnabled&&userZodiac)||(styleEnabled&&userStyle)?<View style={s.matchSection}>
@@ -293,8 +338,9 @@ export function GroupsScreen({onReport}){
     ListFooterComponent={<Typography variant="caption" style={s.disclaimer}>Grupy i zgłoszenia demonstracyjne. Brak serwera i moderacji grup.</Typography>}/>;
 }
 
-export function ChatsScreen({sessionUserId=null,blockedIds=[],supportChat=true,onReport,onClose}){
+export function ChatsScreen({sessionUserId=null,initialConversationId=null,blockedIds=[],supportChat=true,onReport,onClose}){
   const [active,setActive]=useState(null);
+  const initialOpened=useRef(false);
   const [draft,setDraft]=useState('');
   const [messages,setMessages]=useState({});
   const [remoteRooms,setRemoteRooms]=useState([]);
@@ -358,10 +404,23 @@ export function ChatsScreen({sessionUserId=null,blockedIds=[],supportChat=true,o
     if(!chatApi||!sessionUserId){setRemoteRooms([]);return;}
     let alive=true;
     chatApi.listConversations(sessionUserId)
-      .then(rows=>{if(alive)setRemoteRooms(rows)})
+      .then(rows=>{
+        if(!alive)return;
+        setRemoteRooms(rows);
+        if(initialConversationId&&!initialOpened.current){
+          const room=rows.find(item=>item.id===initialConversationId);
+          if(room){
+            initialOpened.current=true;
+            setActive({
+              id:room.id,name:room.name,photo:people[0]?.photo,last:room.last,
+              time:formatPostTime(room.time),unread:0,group:room.kind==='group',remote:true
+            });
+          }
+        }
+      })
       .catch(()=>{if(alive)setRemoteRooms([])});
     return ()=>{alive=false;void chatApi.stop();};
-  },[chatApi,sessionUserId]);
+  },[chatApi,sessionUserId,initialConversationId]);
 
   useEffect(()=>{
     if(!active?.remote||!chatApi){setRemoteMessages([]);return;}
