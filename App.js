@@ -29,6 +29,7 @@ import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
 import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './src/featurePreferences';
 import {defaultAppFeatureFlags,loadAppFeatureFlags} from './src/services/appFeatureFlagsApi';
+import {loadBusinessAccount} from './src/services/businessApi';
 const tabs=[{key:'Start',icon:'home-outline',active:'home'},{key:'Poznaj',icon:'heart-outline',active:'heart'},{key:'Plany',icon:'calendar-outline',active:'calendar'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Profil',icon:'person-outline',active:'person'}];
 
 export default function App(){return <SafeAreaProvider><PolkaApp/></SafeAreaProvider>}
@@ -61,12 +62,20 @@ function PolkaApp(){
   const [session,setSession]=useState(0);
   const [featurePreferences,setFeaturePreferences]=useState(defaultFeaturePreferences);
   const [appFeatureFlags,setAppFeatureFlags]=useState(defaultAppFeatureFlags);
+  const [businessAccount,setBusinessAccount]=useState(null);
   const [mountedTabs,setMountedTabs]=useState(()=>new Set(['Start']));
   const [mountedPlanViews,setMountedPlanViews]=useState(()=>new Set(['Plany']));
   const [sleepReminderOpen,setSleepReminderOpen]=useState(()=>{
     const hour=new Date().getHours();
     return hour>=22||hour<5;
   });
+  useEffect(()=>{
+    const userId=authSession?.user?.id;
+    if(!userId){setBusinessAccount(null);return;}
+    let alive=true;
+    loadBusinessAccount(userId).then(value=>{if(alive)setBusinessAccount(value)}).catch(()=>{if(alive)setBusinessAccount(null)});
+    return()=>{alive=false};
+  },[authSession?.user?.id,partnerOpen]);
   useEffect(()=>{
     const userId=authSession?.user?.id;
     if(!userId)return;
@@ -343,10 +352,10 @@ function PolkaApp(){
         {mountedTabs.has('Plany')&&<View style={[s.fill,{display:showTabs&&tab==='Plany'?'flex':'none'}]}>
           <View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>
           {mountedPlanViews.has('Plany')&&<View style={[s.fill,{display:plansView==='Plany'?'flex':'none'}]}><DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null}/></View>}
-          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat} onOpenCycle={()=>setCycleOpen(true)}/></View>}
+          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat} onOpenCycle={()=>setCycleOpen(true)} onOpenProfile={()=>setTab("Poznaj")}/></View>}
         </View>}
         {mountedTabs.has('Grupy')&&<View style={[s.fill,{display:showTabs&&tab==='Grupy'?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget} onOpenChat={openGroupChat}/></View>}
-        {mountedTabs.has('Profil')&&<View style={[s.fill,{display:showTabs&&tab==='Profil'?'flex':'none'}]}><NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/></View>}
+        {mountedTabs.has('Profil')&&<View style={[s.fill,{display:showTabs&&tab==='Profil'?'flex':'none'}]}><NativeProfile account={account} businessAccount={businessAccount} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/></View>}
         {!showTabs&&<View style={s.fill}>{overlayContent}</View>}
       </View>
     </ShiftTransition>
