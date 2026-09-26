@@ -26,7 +26,7 @@ const starterPlans=[
 ];
 const categories=['Wszystkie','Kawa','Wyjścia','Sport','Koncert','Spacer','Podróże'];
 
-export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
+export default function DiscoverScreen({city='Warszawa',sessionUserId=null,onOpenProfile}){
   const [category,setCategory]=useState('Wszystkie');
   const [plans,setPlans]=useState(()=>sessionUserId?[]:starterPlans);
   const [remoteLoaded,setRemoteLoaded]=useState(false);
@@ -139,10 +139,11 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
           <View style={s.detailMetaRow}><Ionicons name="calendar-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.when}</Typography></View>
           <View style={s.detailMetaRow}><Ionicons name="location-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.city}</Typography></View>
           <View style={s.detailMetaRow}><Ionicons name="people-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.spots} osób</Typography></View>
-          <View style={s.detailHost}>
+          <Pressable disabled={!selected.hostId||!onOpenProfile} onPress={()=>onOpenProfile?.(selected.hostId,selected.host)} style={s.detailHost}>
             {(selected.remote?selected.hostPhoto:(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo))?<Image source={{uri:selected.remote?selected.hostPhoto:(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo)}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
-            <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
-          </View>
+            <View style={{flex:1}}><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
+            {!!selected.hostId&&!!onOpenProfile&&<Ionicons name="chevron-forward" size={20} color={c.muted}/>}
+          </Pressable>
           {selected.remote&&selected.hostId===sessionUserId&&<View style={s.hostActions}><Pressable onPress={()=>setEditing(selected)} style={s.hostAction}><Ionicons name="create-outline" size={18} color={c.ink}/><Typography style={s.hostActionText}>Edytuj</Typography></Pressable><Pressable onPress={()=>removeSelected(selected)} style={s.hostAction}><Ionicons name="trash-outline" size={18} color={c.pink}/><Typography style={[s.hostActionText,{color:c.pink}]}>Usuń</Typography></Pressable></View>}
           <View style={s.detailActionRow}>
             <Pressable onPress={()=>toggleJoined(selected)} style={[s.detailJoinBtn,joined.includes(selected.id)&&s.detailJoinBtnActive]}>
