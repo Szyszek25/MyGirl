@@ -120,6 +120,7 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null
     return next;
   },[lastPeriod,cycleLength]);
   const daysToPeriod=Math.max(0,daysBetween(nextPeriod,today));
+  const cycleProgress=Math.max(0,Math.min(100,Math.round((cycleDay/cycleLength)*100)));
   const cells=useMemo(()=>monthCells(month),[month]);
   const recentEntries=useMemo(()=>history.slice(0,historyExpanded?12:4),[history,historyExpanded]);
   const periodStarts=useMemo(()=>history.filter(item=>item.isPeriodStart).sort((a,b)=>b.date.localeCompare(a.date)),[history]);
@@ -180,15 +181,42 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null
     </View>
 
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-      <View style={s.summary}>
-        <View style={s.summaryBadgeRow}><Typography style={s.summaryOverline}>POLKA CARE</Typography>{cloudSync&&userId&&<View style={s.cloudBadge}><Ionicons name="cloud-done-outline" size={13} color={c.pink}/><Typography style={s.cloudBadgeText}>prywatnie w chmurze</Typography></View>}</View>
-        <View style={s.summaryMain}>
-          <View><Typography style={s.summaryNumber}>{daysToPeriod}</Typography><Typography style={s.summaryLabel}>{daysToPeriod===1?'dzień do okresu':'dni do okresu'}</Typography></View>
-          <View style={s.summarySide}><Ionicons name={phase.icon} size={22} color={c.pink}/><Typography style={s.summaryPhase}>{phase.name}</Typography><Typography style={s.summaryDay}>Dzień {cycleDay}</Typography></View>
+      <View style={s.careHero}>
+        <View style={s.careHeroTop}>
+          <View>
+            <Typography style={s.careEyebrow}>POLKA CARE</Typography>
+            <Typography style={s.careHeroTitle}>{daysToPeriod===0?'Okres może zacząć się dziś':`${daysToPeriod} ${daysToPeriod===1?'dzień':'dni'} do okresu`}</Typography>
+            <Typography style={s.careHeroSubtitle}>{phase.name} · dzień {cycleDay} cyklu</Typography>
+          </View>
+          {cloudSync&&userId&&<View style={s.cloudBadge}><Ionicons name="cloud-done-outline" size={13} color={c.pink}/><Typography style={s.cloudBadgeText}>prywatnie</Typography></View>}
         </View>
-        <Typography style={s.summaryCopy}>{phase.copy}</Typography>
+
+        <View style={s.careHeroBody}>
+          <View style={s.clayScene}>
+            <View style={s.clayGlow}/>
+            <View style={s.clayHairBack}/>
+            <View style={s.clayHead}>
+              <View style={s.clayHairFront}/>
+              <View style={s.clayEyeLeft}/>
+              <View style={s.clayEyeRight}/>
+              <View style={s.claySmile}/>
+            </View>
+            <View style={s.clayBody}/>
+            <View style={[s.claySparkle,{top:18,left:8}]}/>
+            <View style={[s.claySparkle,{bottom:22,right:8}]}/>
+          </View>
+          <View style={s.careStats}>
+            <View style={s.careStat}><Typography style={s.careStatValue}>{daysToPeriod}</Typography><Typography style={s.careStatLabel}>dni do okresu</Typography></View>
+            <View style={s.careStat}><Typography style={s.careStatValue}>{cycleDay}</Typography><Typography style={s.careStatLabel}>dzień cyklu</Typography></View>
+          </View>
+        </View>
+
+        <View style={s.progressTrackHero}><View style={[s.progressFillHero,{width:`${cycleProgress}%`}]}/></View>
+        <View style={s.progressMeta}><Typography style={s.progressMetaText}>Początek cyklu</Typography><Typography style={s.progressMetaText}>{cycleLength} dni</Typography></View>
+        <Typography style={s.careHeroCopy}>{phase.copy}</Typography>
       </View>
 
+      <View style={s.sectionIntro}><Typography style={s.sectionIntroEyebrow}>KALENDARZ</Typography><Typography style={s.sectionIntroTitle}>Twój cykl</Typography><Typography style={s.sectionIntroCopy}>Prognoza, wpisy i samopoczucie w jednym miejscu.</Typography></View>
       <View style={s.calendarHead}>
         <Pressable onPress={()=>setMonth(m=>new Date(m.getFullYear(),m.getMonth()-1,1,12))} style={s.monthButton}><Ionicons name="chevron-back" size={21} color={c.ink}/></Pressable>
         <Pressable onPress={()=>{setMonth(new Date(today.getFullYear(),today.getMonth(),1,12));setSelectedDate(today)}}><Typography style={s.monthTitle}>{MONTHS[month.getMonth()]} {month.getFullYear()}</Typography></Pressable>
@@ -302,6 +330,35 @@ const s=StyleSheet.create({
   summaryDay:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},
   summaryCopy:{fontFamily:f.regular,fontSize:13,lineHeight:19,color:c.muted,marginTop:13,maxWidth:340},
 
+  careHero:{marginHorizontal:sp.lg,marginTop:18,marginBottom:26,borderRadius:30,backgroundColor:'#F7DCE6',padding:20,overflow:'hidden',borderWidth:1,borderColor:'#F0C8D7'},
+  careHeroTop:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',gap:12},
+  careEyebrow:{fontFamily:f.bold,fontSize:10,letterSpacing:1.3,color:c.pink},
+  careHeroTitle:{fontFamily:f.bold,fontSize:27,lineHeight:31,color:c.ink,letterSpacing:-.8,marginTop:4,maxWidth:250},
+  careHeroSubtitle:{fontFamily:f.semibold,fontSize:12,color:c.muted,marginTop:6},
+  careHeroBody:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:12,gap:16},
+  clayScene:{width:150,height:150,borderRadius:36,backgroundColor:'#F3C6D7',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden',shadowColor:'#8F5168',shadowOpacity:.18,shadowRadius:18,shadowOffset:{width:0,height:10},elevation:4},
+  clayGlow:{position:'absolute',width:112,height:112,borderRadius:56,backgroundColor:'#FFEAF1',top:18,left:19},
+  clayHairBack:{position:'absolute',width:78,height:84,borderRadius:38,backgroundColor:'#7A4A5D',top:31,left:36,transform:[{rotate:'-7deg'}]},
+  clayHead:{width:66,height:76,borderRadius:33,backgroundColor:'#F4BFAE',position:'absolute',top:36,left:42,alignItems:'center'},
+  clayHairFront:{position:'absolute',width:48,height:18,borderBottomLeftRadius:16,borderBottomRightRadius:20,backgroundColor:'#7A4A5D',top:0,left:5,transform:[{rotate:'-8deg'}]},
+  clayEyeLeft:{position:'absolute',width:5,height:5,borderRadius:3,backgroundColor:'#3F2830',top:35,left:20},
+  clayEyeRight:{position:'absolute',width:5,height:5,borderRadius:3,backgroundColor:'#3F2830',top:35,right:20},
+  claySmile:{position:'absolute',width:18,height:8,borderBottomWidth:2,borderColor:'#A64D63',borderRadius:12,bottom:18},
+  clayBody:{position:'absolute',width:92,height:66,borderTopLeftRadius:42,borderTopRightRadius:42,borderBottomLeftRadius:24,borderBottomRightRadius:24,backgroundColor:c.pink,bottom:-8,left:29},
+  claySparkle:{position:'absolute',width:11,height:11,borderRadius:4,backgroundColor:'#FFF6C9',transform:[{rotate:'45deg'}]},
+  careStats:{flex:1,gap:10},
+  careStat:{backgroundColor:'rgba(255,255,255,.72)',borderRadius:18,paddingVertical:12,paddingHorizontal:14},
+  careStatValue:{fontFamily:f.bold,fontSize:22,color:c.ink},
+  careStatLabel:{fontFamily:f.regular,fontSize:10,color:c.muted,marginTop:2},
+  progressTrackHero:{height:8,borderRadius:999,backgroundColor:'rgba(255,255,255,.68)',overflow:'hidden',marginTop:18},
+  progressFillHero:{height:'100%',borderRadius:999,backgroundColor:c.pink},
+  progressMeta:{flexDirection:'row',justifyContent:'space-between',marginTop:6},
+  progressMetaText:{fontFamily:f.semibold,fontSize:9,color:c.muted},
+  careHeroCopy:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,marginTop:14},
+  sectionIntro:{paddingHorizontal:sp.lg,marginBottom:4},
+  sectionIntroEyebrow:{fontFamily:f.bold,fontSize:9,letterSpacing:1.2,color:c.pink},
+  sectionIntroTitle:{fontFamily:f.bold,fontSize:24,color:c.ink,marginTop:3},
+  sectionIntroCopy:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:3},
   calendarHead:{paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:4},
   monthButton:{width:40,height:40,alignItems:'center',justifyContent:'center'},
   monthTitle:{fontFamily:f.bold,fontSize:18,color:c.ink,textTransform:'capitalize'},
