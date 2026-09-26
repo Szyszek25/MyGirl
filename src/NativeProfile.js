@@ -157,8 +157,7 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
             </Surface>
             <Surface>
               <Field label="Imię" value={draft.name} onChangeText={value=>edit('name',value.slice(0,60))} placeholder="Jak się do Ciebie zwracać?"/>
-              <Field label="Nagłówek profilu (opcjonalnie)" value={draft.headline||''} onChangeText={value=>edit('headline',value.slice(0,80))} placeholder="np. Nowa w Warszawie ✨"/>
-              <Field label="Podtytuł (opcjonalnie)" value={draft.subtitle||''} onChangeText={value=>edit('subtitle',value.slice(0,120))} placeholder="np. matcha · koncerty · spacery"/>
+              <Field label="Krótki opis (opcjonalnie)" value={draft.headline||''} onChangeText={value=>edit('headline',value.slice(0,140))} placeholder="np. Matcha, koncerty i spontaniczne spacery ✨"/>
               <Typography variant="subtitle" style={s.title}>Miasto</Typography>
               <View style={s.wrap}>{cities.map(city=><Chip key={city} label={city} selected={draft.city===city} onPress={()=>edit('city',city)}/>)}</View>
               <Typography variant="subtitle" style={s.title}>Po co tu jesteś?</Typography>
