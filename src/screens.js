@@ -1172,7 +1172,7 @@ function VoiceMessageBubble({ message, outgoing = false }) {
   </Pressable>;
 }
 
-export function ChatsScreen({ sessionUserId = null, initialConversationId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat }) {
+export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat, onOpenMeetup }) {
   const formatActivityStatus = lastActiveAt => {
     if (!lastActiveAt) return 'ostatnio aktywna niedawno';
     const ts = new Date(lastActiveAt).getTime();
@@ -1431,11 +1431,11 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     >
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
-        <Pressable disabled={!active.otherUserId} onPress={() => setChatProfileOpen(true)} style={s.chatProfileHeader}>
+        <Pressable disabled={!active.otherUserId && !initialMeetupId} onPress={() => active.otherUserId ? setChatProfileOpen(true) : initialMeetupId&&onOpenMeetup?.(initialMeetupId)} style={s.chatProfileHeader}>
           {avatar(active.photo || people[0]?.photo, 42)}
           <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
         </Pressable>
-        <Pressable onPress={() => onReport?.({ kind: 'chat', id: active.id, label: `Rozmowa: ${active.name}` })} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink} /></Pressable>
+        {initialMeetupId&&active.group?<Pressable onPress={()=>onOpenMeetup?.(initialMeetupId)} style={s.fullChatIcon} accessibilityLabel="Otwórz spotkanie"><Ionicons name="calendar-outline" size={22} color={c.pink}/></Pressable>:<Pressable onPress={() => onReport?.({ kind: 'chat', id: active.id, label: `Rozmowa: ${active.name}` })} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink} /></Pressable>}
       </View>
 
       <ScrollView ref={chatScrollRef} onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: true })} style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
