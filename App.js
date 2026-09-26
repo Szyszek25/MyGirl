@@ -27,6 +27,7 @@ import {blockProfile as blockRemote,loadMyBlocks,loadMyReports,reportTarget,unbl
 import {cities,initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
+import PublicProfileModal from './src/PublicProfileModal';
 import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './src/featurePreferences';
 import {defaultAppFeatureFlags,loadAppFeatureFlags} from './src/services/appFeatureFlagsApi';
 import {loadBusinessAccount} from './src/services/businessApi';
@@ -63,6 +64,7 @@ function PolkaApp(){
   const [featurePreferences,setFeaturePreferences]=useState(defaultFeaturePreferences);
   const [appFeatureFlags,setAppFeatureFlags]=useState(defaultAppFeatureFlags);
   const [businessAccount,setBusinessAccount]=useState(null);
+  const [publicProfileTarget,setPublicProfileTarget]=useState(null);
   const [mountedTabs,setMountedTabs]=useState(()=>new Set(['Start']));
   const [mountedPlanViews,setMountedPlanViews]=useState(()=>new Set(['Plany']));
   const [sleepReminderOpen,setSleepReminderOpen]=useState(()=>{
@@ -352,7 +354,7 @@ function PolkaApp(){
         {mountedTabs.has('Plany')&&<View style={[s.fill,{display:showTabs&&tab==='Plany'?'flex':'none'}]}>
           <View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>
           {mountedPlanViews.has('Plany')&&<View style={[s.fill,{display:plansView==='Plany'?'flex':'none'}]}><DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null}/></View>}
-          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat} onOpenCycle={()=>setCycleOpen(true)} onOpenProfile={()=>setTab("Poznaj")}/></View>}
+          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat} onOpenCycle={()=>setCycleOpen(true)} onOpenProfile={hostId=>setPublicProfileTarget({id:hostId})}/></View>}
         </View>}
         {mountedTabs.has('Grupy')&&<View style={[s.fill,{display:showTabs&&tab==='Grupy'?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget} onOpenChat={openGroupChat}/></View>}
         {mountedTabs.has('Profil')&&<View style={[s.fill,{display:showTabs&&tab==='Profil'?'flex':'none'}]}><NativeProfile account={account} businessAccount={businessAccount} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/></View>}
@@ -403,6 +405,8 @@ function PolkaApp(){
     )}
     {showTabs&&<View style={[s.tabBar,{paddingBottom:Math.max(insets.bottom,sp.sm)}]}>{tabs.map(item=><Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={item.key} accessibilityState={{selected:tab===item.key}} onPress={()=>setTab(item.key)} style={s.tab}><Ionicons name={tab===item.key?item.active:item.icon} size={23} color={tab===item.key?c.pink:c.muted}/><Typography style={[s.tabText,tab===item.key&&{color:c.pink,fontFamily:f.bold}]}>{item.key}</Typography></Pressable>)}</View>}
   
+      <PublicProfileModal visible={!!publicProfileTarget} authorId={publicProfileTarget?.id} authorName={publicProfileTarget?.name} initialData={publicProfileTarget} sessionUserId={authSession?.user?.id||null} onClose={()=>setPublicProfileTarget(null)} onOpenChat={conversationId=>{setPublicProfileTarget(null);setPendingConversationId(conversationId);setMessagesOpen(true)}} onReport={target=>{setPublicProfileTarget(null);setReportTarget(target)}} />
+
       <Modal visible={sleepReminderOpen} transparent animationType="fade" onRequestClose={()=>setSleepReminderOpen(false)}>
         <Pressable style={s.sleepBackdrop} onPress={()=>setSleepReminderOpen(false)}>
           <Pressable style={s.sleepCard} onPress={e=>e.stopPropagation()}>
