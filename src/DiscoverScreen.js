@@ -89,7 +89,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
     <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
       {visible.map(plan=>{
         const isJoined=joined.includes(plan.id);
-        const host=people.find(p=>p.name===plan.host);
+        const hostPhoto=plan.hostPhoto||people.find(p=>p.name===plan.host)?.photo||null;
         return <Pressable key={plan.id} onPress={()=>setSelected(plan)} style={s.planCard}>
           <Image source={{uri:plan.photo}} style={s.cover}/>
           <View style={s.overlay}/>
@@ -101,7 +101,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
             <Typography style={s.planTitle}>{plan.title}</Typography>
             <Typography style={s.planMeta}>{plan.when} · luźny plan</Typography>
             <View style={s.hostRow}>
-              {host?<Image source={{uri:host.photo}} style={s.avatar}/>:<View style={[s.avatar,s.avatarFallback]}><Ionicons name="person" size={15} color={c.pink}/></View>}
+              {hostPhoto?<Image source={{uri:hostPhoto}} style={s.avatar}/>:<View style={[s.avatar,s.avatarFallback]}><Ionicons name="person" size={15} color={c.pink}/></View>}
               <Typography style={s.hostText}>Organizuje {plan.host}</Typography>
               <Pressable onPress={e=>{e.stopPropagation?.();void toggleJoined(plan);}} style={[s.joinBtn,isJoined&&s.joinedBtn]} hitSlop={6}>
                 <Typography style={[s.joinText,isJoined&&{color:c.pink}]}>{isJoined?'Dołączono':'Dołącz'}</Typography>
@@ -127,7 +127,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
           <View style={s.detailMetaRow}><Ionicons name="location-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.city}</Typography></View>
           <View style={s.detailMetaRow}><Ionicons name="people-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.spots} osób</Typography></View>
           <View style={s.detailHost}>
-            {people.find(p=>p.name===selected.host)?<Image source={{uri:people.find(p=>p.name===selected.host).photo}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
+            {(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo)?<Image source={{uri:selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
             <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
           </View>
           <View style={s.detailActionRow}>
