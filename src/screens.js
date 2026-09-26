@@ -994,7 +994,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             <TextAction icon="chatbubble-outline" title={String(item.remote ? (item.commentsCount || 0) : seededComments(item).length)} onPress={() => openComments(item)} />
             {item.remote && <View style={s.reactionControl}>
               <Pressable onPress={() => setReactionPickerPostId(current => current === item.id ? null : item.id)} style={s.reactionAddButton}>
-                <Ionicons name="happy-outline" size={20} color={c.ink} /><Ionicons name="add" size={11} color={c.ink} style={s.reactionPlus} />
+                <Ionicons name="happy-outline" size={23} color={c.muted} />
               </Pressable>
               {reactionPickerPostId === item.id && <View style={s.reactionPicker}>
                 {['🌹', '😂', '😍', '🥹', '🔥'].map(reaction => <Pressable key={reaction} onPress={() => reactToPost(item, reaction)} style={s.reactionChoice}><Typography style={s.reactionEmoji}>{reaction}</Typography></Pressable>)}
@@ -1708,8 +1708,7 @@ const s = StyleSheet.create({
   postActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   postActionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   reactionControl: { position: 'relative' },
-  reactionAddButton: { width: 38, height: 34, borderRadius: 999, borderWidth: 1, borderColor: c.line, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center' },
-  reactionPlus: { position: 'absolute', right: 6, top: 5 },
+  reactionAddButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   reactionPicker: { position: 'absolute', left: 0, bottom: 40, zIndex: 30, flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 7, paddingVertical: 6, borderRadius: 999, backgroundColor: c.white, borderWidth: 1, borderColor: c.line, elevation: 7 },
   reactionChoice: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   reactionEmoji: { fontSize: 22, lineHeight: 28 },
@@ -1725,9 +1724,9 @@ const s = StyleSheet.create({
   postMenuHandle: { alignSelf: 'center', width: 42, height: 5, borderRadius: 99, backgroundColor: c.line, marginBottom: 10 },
   postMenuOption: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   postMenuOptionText: { fontFamily: f.semi, fontSize: 16, color: c.ink },
-  commentComposerRow: { marginTop: 8, marginBottom: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }, commentComposerPreview: { flex: 1, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: c.white },
+  commentComposerRow: { marginTop: 8, marginBottom: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }, commentComposerPreview: { flex: 1, height: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 0, justifyContent: 'center', backgroundColor: c.white },
   commentComposerAvatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.soft, borderWidth: 1, borderColor: c.line, overflow: 'hidden' },
-  commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, color: c.muted },
+  commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, lineHeight: 20, color: c.muted, includeFontPadding: false, textAlignVertical: 'center' },
   commentsRoot: { flex: 1, backgroundColor: c.white },
   commentsHeader: { height: 60, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   commentsBack: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
