@@ -477,11 +477,12 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: '#92400E'
   },
-  primaryMsgBtn: {
   quickActionsRow: { flexDirection: 'row', gap: 10, width: '100%' },
   quickActionBtn: { flex: 1 },
   friendActionBtn: { minHeight: 48, borderRadius: 999, borderWidth: 1.5, borderColor: c.pink, backgroundColor: c.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  friendActionText: { fontFamily: f.semi, fontSize: 15, color: c.pink },
+  friendActionText: { fontFamily: f.semibold, fontSize: 15, color: c.pink },
+  primaryMsgBtn: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
