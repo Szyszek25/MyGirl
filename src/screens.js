@@ -1195,7 +1195,11 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     ]);
 
   if (active) {
-    return <KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 44 : 0}>
+    return <KeyboardAvoidingView
+      style={s.fullChat}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 44 : 0}
+    >
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
         {avatar(active.photo || people[0]?.photo, 42)}
@@ -1503,7 +1507,7 @@ const s = StyleSheet.create({
   outgoingBubble: { maxWidth: '78%', backgroundColor: c.pink, borderRadius: 20, borderTopRightRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },
   bubbleText: { fontFamily: f.regular, fontSize: 15, lineHeight: 20, color: c.ink },
   outgoingText: { fontFamily: f.regular, fontSize: 15, lineHeight: 20, color: c.white },
-  fullComposer: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 10, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line, backgroundColor: c.white },
+  fullComposer: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: Platform.OS === 'ios' ? 10 : 8, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line, backgroundColor: c.white, zIndex: 20 },
   attachButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.blush, alignItems: 'center', justifyContent: 'center' },
   fullMessageInput: { flex: 1, maxHeight: 120, minHeight: 42, borderRadius: 21, backgroundColor: c.canvas, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, fontFamily: f.regular, fontSize: 15, color: c.ink, textAlignVertical: 'center' },
   fullSend: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center' },
