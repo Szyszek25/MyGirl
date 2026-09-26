@@ -510,7 +510,7 @@ const s = StyleSheet.create({
   permissionBtn: {
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#CE0459',
+    backgroundColor: '#C84F7A',
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -763,8 +763,8 @@ const s = StyleSheet.create({
     paddingVertical: 8
   },
   moodChipActive: {
-    backgroundColor: '#CE0459',
-    borderColor: '#CE0459'
+    backgroundColor: '#C84F7A',
+    borderColor: '#C84F7A'
   },
   moodChipText: {
     fontFamily: f.semibold,
@@ -793,12 +793,12 @@ const s = StyleSheet.create({
   shareBtn: {
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#CE0459',
+    backgroundColor: '#C84F7A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 22,
-    shadowColor: '#CE0459',
+    shadowColor: '#C84F7A',
     shadowOpacity: 0.45,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 6 },
