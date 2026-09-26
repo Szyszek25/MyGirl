@@ -14,6 +14,8 @@ import { colors as c, fonts as f, radii as r, space as sp } from './theme';
 import { Typography } from './ui';
 import { people } from './data';
 import { supabase } from './lib/supabase';
+import { createChatRealtime } from './services/chatRealtime';
+import { loadFriendRequests, sendFriendRequest } from './services/friendsApi';
 
 function formatMemberSince(dateStr) {
   if (!dateStr) return 'W Polce od września 2026';
@@ -38,10 +40,14 @@ export default function PublicProfileModal({
   initialData = null,
   onClose,
   onOpenChat,
-  onReport
+  onReport,
+  sessionUserId = null
 }) {
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState(null);
+  const [existingConversationId, setExistingConversationId] = useState(null);
+  const [friendSent, setFriendSent] = useState(false);
+  const [friendBusy, setFriendBusy] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -59,7 +65,8 @@ export default function PublicProfileModal({
       tags: fallbackPerson?.tags || ['Kawa', 'Spacery', 'Matcha'],
       prompt: fallbackPerson?.prompt || 'Idealny plan na weekend?',
       answer: fallbackPerson?.answer || 'Kawa w centrum, spacer i zero pośpiechu.',
-      createdAt: fallbackPerson?.createdAt || initialData?.createdAt || '2026-09-01T12:00:00Z'
+      createdAt: fallbackPerson?.createdAt || initialData?.createdAt || '2026-09-01T12:00:00Z',
+      galleryPhotos: (fallbackPerson?.galleryPhotos || initialData?.galleryPhotos || []).map(item => item?.url || item).filter(Boolean)
     });
 
     if (authorId && /^[0-9a-f-]{36}$/i.test(authorId)) {
@@ -79,11 +86,16 @@ export default function PublicProfileModal({
             avatarUrl = signed?.signedUrl;
           }
 
-          // Fetch interests tags
-          const { data: interests } = await supabase
-            .from('profile_interests')
-            .select('interest')
-            .eq('profile_id', authorId);
+          const [{ data: interests }, { data: photoRows }] = await Promise.all([
+            supabase.from('profile_interests').select('interest').eq('profile_id', authorId),
+            supabase.from('profile_photos').select('storage_path,source_url,position').eq('user_id', authorId).order('position',{ascending:true})
+          ]);
+          const galleryPhotos = (await Promise.all((photoRows || []).map(async row => {
+            if (row.source_url) return row.source_url;
+            if (!row.storage_path) return null;
+            const { data: signed } = await supabase.storage.from('polka-profile-photos').createSignedUrl(row.storage_path, 3600);
+            return signed?.signedUrl || null;
+          }))).filter(Boolean);
 
           setProfileData(prev => ({
             ...prev,
@@ -92,7 +104,8 @@ export default function PublicProfileModal({
             bio: data.bio || prev.bio,
             photo: avatarUrl || prev.photo,
             createdAt: data.created_at || prev.createdAt,
-            tags: interests?.length ? interests.map(i => i.interest) : prev.tags
+            tags: interests?.length ? interests.map(i => i.interest) : prev.tags,
+            galleryPhotos
           }));
         })
         .finally(() => {
@@ -104,6 +117,37 @@ export default function PublicProfileModal({
       alive = false;
     };
   }, [visible, authorName, authorId, initialData]);
+
+  useEffect(() => {
+    if (!visible || !sessionUserId || !authorId || !/^[0-9a-f-]{36}$/i.test(authorId)) {
+      setExistingConversationId(null);
+      setFriendSent(false);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const [rooms, requests] = await Promise.all([
+        createChatRealtime(supabase).listConversations(sessionUserId),
+        loadFriendRequests(sessionUserId)
+      ]);
+      if (!alive) return;
+      const direct = (rooms || []).find(room => room.kind === 'direct' && room.otherUserId === authorId);
+      setExistingConversationId(direct?.id || null);
+      setFriendSent((requests || []).some(row => row.direction === 'outgoing' && row.otherId === authorId));
+    })().catch(() => {});
+    return () => { alive = false; };
+  }, [visible, sessionUserId, authorId]);
+
+  const handleAddFriend = async () => {
+    if (!sessionUserId || !profileData?.id || friendBusy || friendSent) return;
+    setFriendBusy(true);
+    try {
+      await sendFriendRequest(sessionUserId, profileData.id);
+      setFriendSent(true);
+    } finally {
+      setFriendBusy(false);
+    }
+  };
 
   if (!visible || !profileData) return null;
 
@@ -169,8 +213,8 @@ export default function PublicProfileModal({
 
             <View style={s.nameRow}>
               <Typography style={s.name}>{profileData.name}</Typography>
-              <Pressable onPress={() => {}} style={s.addFriendBtn}>
-                <Typography style={s.addFriendText}>Dodaj do znajomego</Typography>
+              <Pressable disabled={friendBusy || friendSent || !sessionUserId} onPress={handleAddFriend} style={[s.addFriendBtn, friendSent && s.addFriendBtnSent]}>
+                <Typography style={[s.addFriendText, friendSent && s.addFriendTextSent]}>{friendBusy ? 'Wysyłam…' : friendSent ? 'Zaproszenie wysłane' : 'Dodaj do znajomego'}</Typography>
               </Pressable>
             </View>
 
@@ -191,7 +235,7 @@ export default function PublicProfileModal({
             {/* Quick Action Button */}
             <Pressable onPress={handleMessage} style={s.primaryMsgBtn}>
               <Ionicons name="chatbubble-ellipses" size={18} color={c.white} />
-              <Typography style={s.primaryMsgText}>Napisz do {profileData.name}</Typography>
+              <Typography style={s.primaryMsgText}>{existingConversationId ? 'Otwórz czat' : `Napisz do ${profileData.name}`}</Typography>
             </Pressable>
           </View>
 
@@ -200,6 +244,15 @@ export default function PublicProfileModal({
             <Typography style={s.sectionHeader}>O MNIE</Typography>
             <Typography style={s.bioText}>{profileData.bio}</Typography>
           </View>
+
+          {Boolean(profileData.galleryPhotos?.length) && (
+            <View style={s.photoSection}>
+              <Typography style={s.sectionHeader}>ZDJĘCIA</Typography>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.photoRail}>
+                {profileData.galleryPhotos.map((uri, idx) => <Image key={uri || idx} source={{uri}} style={s.profilePhoto} resizeMode="cover" />)}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Interests Tags */}
           {Boolean(profileData.tags?.length) && (
@@ -351,6 +404,11 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: c.pinkDark
   },
+  addFriendBtnSent: { backgroundColor: c.blush, borderColor: c.blush },
+  addFriendTextSent: { color: c.pink },
+  photoSection: { backgroundColor: c.white, borderRadius: 20, paddingVertical: 18, borderWidth: 1, borderColor: c.line },
+  photoRail: { paddingHorizontal: 18, gap: 10 },
+  profilePhoto: { width: 210, aspectRatio: .78, borderRadius: 20, backgroundColor: c.blush },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
