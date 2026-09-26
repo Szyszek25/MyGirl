@@ -34,10 +34,10 @@ Primary: Social Networking
 Secondary: Lifestyle
 
 ## URL-e
-- Privacy Policy URL: https://polka.app/privacy.html
-- Support URL: https://polka.app/
-- Account deletion URL: https://polka.app/delete-account.html
-- Marketing URL: https://polka.app/
+- Privacy Policy URL: https://polka-red.vercel.app/privacy.html
+- Support URL: https://polka-red.vercel.app/
+- Account deletion URL: https://polka-red.vercel.app/delete-account.html
+- Marketing URL: https://polka-red.vercel.app/
 
 ## Review notes — szablon
 Polka is an 18+ local social app for women. The review account should have access to the production moderation/reporting flow. Provide exact review credentials only in App Store Connect, never in this repository.
