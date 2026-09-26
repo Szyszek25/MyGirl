@@ -11,7 +11,7 @@ const SHARE_URL='https://polka-red.vercel.app';
 const PRIVACY_URL='https://polka-red.vercel.app/privacy.html';
 const TERMS_URL='https://polka-red.vercel.app/terms.html';
 const DELETE_ACCOUNT_URL='https://polka-red.vercel.app/delete-account.html';
-const SUPPORT_EMAIL='mycampus.kontakt@gmail.com';
+const SUPPORT_EMAIL='polka.pomoc@gmail.com';
 
 function Row({icon,title,subtitle,onPress,right,danger=false}){
   return <Pressable accessibilityRole="button" onPress={onPress} style={s.row}>
