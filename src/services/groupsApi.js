@@ -1,4 +1,5 @@
 import {supabase} from '../lib/supabase';
+import {extensionForContentType,uriToUploadPayload} from './storageHelper';
 
 export async function loadGroups(city,userId){
   const {data:rows,error}=await supabase.from('groups')
@@ -23,13 +24,26 @@ export async function loadGroups(city,userId){
     members:(members||[]).filter(m=>m.group_id===row.id).length,
     joinedByMe:!!userId&&(members||[]).some(m=>m.group_id===row.id&&m.user_id===userId),
     owned:row.owner_id===userId,
+    coverPath:row.cover_path||null,
     remote:true
   }));
 }
 
-export async function createGroup(userId,{name,description,city,category}){
+async function uploadGroupCover(userId,uri){
+  if(!uri)return null;
+  const {buffer,contentType}=await uriToUploadPayload(uri,'image/jpeg');
+  if(!String(contentType).startsWith('image/'))throw new Error('Wybierz zdjęcie.');
+  const ext=extensionForContentType(contentType);
+  const path=`${userId}/group-${Date.now()}.${ext}`;
+  const {error}=await supabase.storage.from('polka-group-covers').upload(path,buffer,{contentType,upsert:false});
+  if(error)throw error;
+  return path;
+}
+
+export async function createGroup(userId,{name,description,city,category,coverUri=null}){
+  const coverPath=await uploadGroupCover(userId,coverUri);
   const {data,error}=await supabase.from('groups').insert({
-    owner_id:userId,name:name.trim(),description:description.trim(),city,category
+    owner_id:userId,name:name.trim(),description:description.trim(),city,category,cover_path:coverPath
   }).select('id').single();
   if(error)throw error;
   const {error:memberError}=await supabase.from('group_members')
