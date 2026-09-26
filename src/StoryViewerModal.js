@@ -99,8 +99,16 @@ export default function StoryViewerModal({
   const isCubeAnimating = useRef(false);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const onStoryViewedRef = useRef(onStoryViewed);
+  const lastMarkedStoryRef = useRef(null);
 
-  // Sync when visible or index changes
+  useEffect(() => {
+    onStoryViewedRef.current = onStoryViewed;
+  }, [onStoryViewed]);
+
+  // Sync only when opening/changing requested start. Do NOT depend on the
+  // senders array: marking a story viewed updates that array and used to
+  // reset the viewer back to the original person on every render.
   useEffect(() => {
     if (visible) {
       setSenderIndex(startIdx >= 0 && startIdx < resolvedSenders.length ? startIdx : 0);
@@ -110,7 +118,7 @@ export default function StoryViewerModal({
       isCubeAnimating.current = false;
       cubeAnim.setValue(0);
     }
-  }, [visible, startIdx, resolvedSenders]);
+  }, [visible, startIdx]);
 
   const currentSender = resolvedSenders[senderIndex] || resolvedSenders[0];
   const currentSlides = currentSender?.slides || [];
@@ -133,8 +141,14 @@ export default function StoryViewerModal({
 
   useEffect(() => {
     if (!visible || !currentSlide?.id) return;
-    onStoryViewed?.(currentSlide.id);
-  }, [visible, senderIndex, slideIndex, currentSlide?.id, onStoryViewed]);
+    if (lastMarkedStoryRef.current === currentSlide.id) return;
+    lastMarkedStoryRef.current = currentSlide.id;
+    onStoryViewedRef.current?.(currentSlide.id);
+  }, [visible, currentSlide?.id]);
+
+  useEffect(() => {
+    if (!visible) lastMarkedStoryRef.current = null;
+  }, [visible]);
 
   // Slide progress timer
   useEffect(() => {
@@ -361,26 +375,6 @@ export default function StoryViewerModal({
                   </Typography>
                 </View>
               </View>
-
-              {!isTarget && sender.authorId === sessionUserId && (
-                <Pressable onPress={() => {
-                  Alert.alert('Usuń relację?', 'Ta operacja jest nieodwracalna.', [
-                    { text: 'Anuluj', style: 'cancel' },
-                    {
-                      text: 'Usuń', style: 'destructive', onPress: async () => {
-                        try {
-                          await deleteStory(slideObj.id, sessionUserId);
-                          onClose();
-                        } catch (error) {
-                          Alert.alert('Nie usunięto relacji', error.message || 'Spróbuj ponownie.');
-                        }
-                      }
-                    }
-                  ]);
-                }} style={s.deleteBtn} hitSlop={14}>
-                  <Ionicons name="trash-outline" size={26} color="#FF6B6B" />
-                </Pressable>
-              )}
             </View>
         </View>
 
@@ -510,7 +504,26 @@ export default function StoryViewerModal({
 
         {/* Fixed top bar (close button) - NOT in 3D cube, on top */}
         <View style={s.fixedTopBar} pointerEvents="box-none">
-          <Pressable onPress={onClose} style={s.closeBtn} hitSlop={14} accessibilityLabel="Zamknij">
+          {currentSender?.authorId === sessionUserId && (
+            <Pressable onPress={() => {
+              Alert.alert('Usuń relację?', 'Ta operacja jest nieodwracalna.', [
+                { text: 'Anuluj', style: 'cancel' },
+                {
+                  text: 'Usuń', style: 'destructive', onPress: async () => {
+                    try {
+                      await deleteStory(currentSlide.id, sessionUserId);
+                      onClose();
+                    } catch (error) {
+                      Alert.alert('Nie usunięto relacji', error.message || 'Spróbuj ponownie.');
+                    }
+                  }
+                }
+              ]);
+            }} style={s.fixedDeleteBtn} hitSlop={10} accessibilityLabel="Usuń relację">
+              <Ionicons name="trash-outline" size={23} color="#FF8A8A" />
+            </Pressable>
+          )}
+          <Pressable onPress={onClose} style={s.closeBtn} hitSlop={12} accessibilityLabel="Zamknij">
             <Ionicons name="close" size={28} color={c.white} />
           </Pressable>
         </View>
@@ -541,6 +554,8 @@ const s = StyleSheet.create({
     zIndex: 100,
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 6,
   },
   cubeViewport: {
     ...StyleSheet.absoluteFill,
@@ -650,18 +665,19 @@ const s = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowRadius: 4
   },
+  fixedDeleteBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,.28)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   closeBtn: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  deleteBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8
   },
 
   /* Bottom Overlay */
