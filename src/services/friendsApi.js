@@ -11,7 +11,7 @@ export async function searchPeople(query,userId,city){
   const term=query.trim();
   if(term.length<2)return [];
   let q=supabase.from('profiles')
-    .select('id,display_name,city,bio,avatar_path,headline,subtitle')
+    .select('id,display_name,city,bio,avatar_path,avatar_thumb_path,headline,subtitle')
     .eq('onboarding_complete',true)
     .neq('id',userId)
     .ilike('display_name',`%${term}%`)
@@ -41,7 +41,7 @@ export async function loadFriendRequests(userId){
     .order('created_at',{ascending:false});
   if(error)throw error;
   const ids=[...new Set((rows||[]).flatMap(r=>[r.sender_id,r.recipient_id]).filter(id=>id!==userId))];
-  const {data:profiles,error:pError}=ids.length?await supabase.from('profiles').select('id,display_name,city,avatar_path').in('id',ids):{data:[],error:null};
+  const {data:profiles,error:pError}=ids.length?await supabase.from('profiles').select('id,display_name,city,avatar_path,avatar_thumb_path').in('id',ids):{data:[],error:null};
   if(pError)throw pError;
   const pmap=new Map((profiles||[]).map(p=>[p.id,p]));
   return Promise.all((rows||[]).map(async row=>{
@@ -68,7 +68,7 @@ export async function loadFriends(userId){
     .order('created_at',{ascending:false});
   if(error)throw error;
   const ids=(rows||[]).map(r=>r.user_a===userId?r.user_b:r.user_a);
-  const {data:profiles,error:pError}=ids.length?await supabase.from('profiles').select('id,display_name,city,avatar_path').in('id',ids):{data:[],error:null};
+  const {data:profiles,error:pError}=ids.length?await supabase.from('profiles').select('id,display_name,city,avatar_path,avatar_thumb_path').in('id',ids):{data:[],error:null};
   if(pError)throw pError;
   return Promise.all((profiles||[]).map(async p=>({id:p.id,name:p.display_name,city:p.city,photo:await avatarUrl(p.avatar_path)})));
 }
