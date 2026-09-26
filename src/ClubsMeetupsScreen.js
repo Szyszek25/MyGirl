@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,FlatList,KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StyleSheet,View} from 'react-native';
+import {Alert,FlatList,Image,KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StyleSheet,View} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {Ionicons} from '@expo/vector-icons';
 import {groups as seedGroups,people} from './data';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
@@ -20,6 +21,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
   const [description,setDescription]=useState('');
   const [category,setCategory]=useState('Kawa');
   const [groupFilter,setGroupFilter]=useState('Wszystkie');
+  const [coverUri,setCoverUri]=useState(null);
   useEffect(()=>{
     if(!sessionUserId){
       setClubs(seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
@@ -48,6 +50,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
     setName('');
     setDescription('');
     setCategory('Kawa');
+    setCoverUri(null);
     setCreating(false);
   };
 
@@ -80,12 +83,14 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
     }catch(error){Alert.alert('Czat grupy',error.message||'Nie udało się otworzyć czatu.');}
   };
 
+  const pickCover=async()=>{const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!permission.granted)return;const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:.85});if(!result.canceled&&result.assets?.[0]?.uri)setCoverUri(result.assets[0].uri)};
+
   const createClub=async()=>{
     const title=clean(name,80);
     if(title.length<2)return Alert.alert('Podaj nazwę grupy','Wpisz przynajmniej 2 znaki.');
     if(sessionUserId){
       try{
-        const created=await createGroup(sessionUserId,{name:title,description:clean(description,500)||'Nowa grupa w Polce',city,category});
+        const created=await createGroup(sessionUserId,{name:title,description:clean(description,500)||'Nowa grupa w Polce',city,category,coverUri});
         const rows=await loadGroups(city,sessionUserId);
         setClubs(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
         resetForm();
@@ -175,6 +180,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
         <View style={s.createSheet}>
           <View style={s.handle}/>
           <View style={s.createHeader}><Typography style={s.createTitle}>Nowa grupa</Typography><Pressable onPress={resetForm}><Ionicons name="close" size={24} color={c.ink}/></Pressable></View>
+          <Pressable onPress={pickCover} style={s.coverPicker}>{coverUri?<Image source={{uri:coverUri}} style={s.coverPreview}/>:<><Ionicons name="camera-outline" size={25} color={c.pink}/><Typography style={s.coverPickerText}>Dodaj zdjęcie grupy</Typography></>}</Pressable>
           <Field label="Nazwa grupy" value={name} onChangeText={value=>setName(value.slice(0,80))} placeholder="Np. Matcha Girls Warszawa"/>
           <Field label="Opis" value={description} onChangeText={value=>setDescription(value.slice(0,500))} placeholder="Dla kogo jest ta grupa?" multiline/>
           <View style={s.cityPill}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.cityPillText}>{city}</Typography></View>
@@ -230,6 +236,7 @@ const s=StyleSheet.create({
   infoText:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,marginTop:3},
   createSheet:{backgroundColor:c.white,borderTopLeftRadius:30,borderTopRightRadius:30,padding:sp.lg,paddingBottom:34,maxHeight:'86%'},
   createHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:sp.base},
+  coverPicker:{width:92,height:92,borderRadius:24,backgroundColor:c.blush,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',alignSelf:'center',marginBottom:14,overflow:'hidden'},coverPreview:{width:'100%',height:'100%'},coverPickerText:{fontFamily:f.semibold,fontSize:10,color:c.pink,textAlign:'center',marginTop:4},
   createTitle:{fontFamily:f.bold,fontSize:22,letterSpacing:-.7,color:c.ink},
   cityPill:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:11,paddingVertical:8,marginBottom:sp.md},
   cityPillText:{fontFamily:f.bold,fontSize:12,color:c.pink},
