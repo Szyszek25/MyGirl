@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
-import {createMeetup,loadMeetups,setMeetupRsvp} from './services/meetupsApi';
+import {createMeetup,deleteMeetup,loadMeetups,setMeetupRsvp,updateMeetup} from './services/meetupsApi';
 import {createPlan} from './services/plansApi';
 import {loadCycleCloud} from './services/cycleApi';
 import {loadBusinessAccount} from './services/businessApi';
@@ -81,6 +81,8 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [businessAccount,setBusinessAccount]=useState(null);
   const [createAsBusiness,setCreateAsBusiness]=useState(false);
   const [participantsOpen,setParticipantsOpen]=useState(false);
+  const [meetupMenuOpen,setMeetupMenuOpen]=useState(false);
+  const [editingMeetup,setEditingMeetup]=useState(false);
   const sourceMeetings=sessionUserId ? remoteMeetups : starterMeetings;
   useEffect(()=>{if(!openMeetupId)return;const target=remoteMeetups.find(item=>item.id===openMeetupId);if(target){setSelected(target);onMeetupOpened?.();}},[openMeetupId,remoteMeetups,onMeetupOpened]);
     useEffect(()=>{let alive=true;if(!sessionUserId){setBusinessAccount(null);return;}loadBusinessAccount(sessionUserId).then(value=>{if(alive)setBusinessAccount(value)}).catch(()=>{if(alive)setBusinessAccount(null)});return()=>{alive=false}},[sessionUserId]);
@@ -130,6 +132,25 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
     setRemoteMeetups(rows);
     setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
   };
+  const submitMeetupEdit=async form=>{
+    if(!selected?.remote||selected.hostId!==sessionUserId)return;
+    if(!form.date||!form.time){Alert.alert('Dodaj termin','Wybierz datę i godzinę.');return;}
+    const startsAt=new Date(`${form.date}T${form.time}:00`);
+    if(Number.isNaN(startsAt.getTime())){Alert.alert('Nieprawidłowy termin','Sprawdź datę i godzinę.');return;}
+    setCreateBusy(true);
+    try{
+      await updateMeetup(selected.id,sessionUserId,{title:form.title,description:form.description,city:selected.city,venueName:form.place,startsAt:startsAt.toISOString(),capacity:form.capacity});
+      const rows=await loadMeetups(city,sessionUserId);
+      setRemoteMeetups(rows);
+      setSelected(rows.find(row=>row.id===selected.id)||null);
+      setEditingMeetup(false);
+    }catch(error){Alert.alert('Nie zapisano zmian',error.message||'Spróbuj ponownie.');}
+    finally{setCreateBusy(false);}
+  };
+  const confirmDeleteMeetup=()=>Alert.alert('Usuń spotkanie','Usunąć to spotkanie?',[
+    {text:'Anuluj',style:'cancel'},
+    {text:'Usuń',style:'destructive',onPress:async()=>{try{await deleteMeetup(selected.id,sessionUserId);setSelected(null);setMeetupMenuOpen(false);await reloadMeetups();}catch(error){Alert.alert('Nie usunięto',error.message||'Spróbuj ponownie.');}}}
+  ]);
   const submitActivity=async form=>{
     if(!sessionUserId){Alert.alert('Zaloguj się','Tworzenie wymaga konta.');return;}
     if(form.title.length<4){Alert.alert('Dodaj nazwę','Np. „Matcha + spacer”.');return;}
@@ -200,7 +221,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
         <View style={s.detailTop}>
           <Pressable onPress={()=>setSelected(null)} style={s.iconButton}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
           <Typography style={s.detailTopTitle}>Szczegóły spotkania</Typography>
-          <Pressable onPress={()=>onReport?.({kind:'meetup',id:selected.id,label:selected.title})} style={s.iconButton}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
+          <Pressable onPress={()=>setMeetupMenuOpen(true)} style={s.iconButton}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
         </View>
         <ScrollView contentContainerStyle={s.detailScroll} showsVerticalScrollIndicator={false}>
           {(selected.photo||selected.hostPhoto)?<Image source={{uri:selected.photo||selected.hostPhoto}} style={s.hero}/>:<View style={[s.hero,s.heroFallback]}><Ionicons name={selected.isBusiness?"storefront-outline":"person-outline"} size={54} color={c.pink}/></View>}
@@ -245,11 +266,19 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
             <Pressable onPress={()=>toggle(selected.id)} style={[s.compactPrimary,s.detailActionsEqual,joined.includes(selected.id)&&s.compactSecondary]}>
               <Typography style={[s.compactPrimaryText,joined.includes(selected.id)&&s.compactSecondaryText]}>{joined.includes(selected.id)?'Wycofaj udział':'Dołącz'}</Typography>
             </Pressable>
-            {selected.remote&&sessionUserId&&joined.includes(selected.id)&&onOpenChat&&<Pressable onPress={()=>onOpenChat(selected.id)} style={[s.compactChat,s.detailActionsEqual]}><Ionicons name="chatbubbles-outline" size={18} color={c.white}/><Typography style={s.compactChatText}>Dołącz do czatu</Typography></Pressable>}
+            {selected.remote&&sessionUserId&&joined.includes(selected.id)&&onOpenChat&&<Pressable onPress={()=>onOpenChat(selected.id)} style={[s.compactChat,s.detailActionsEqual]}><Ionicons name="chatbubbles-outline" size={18} color={c.white}/><Typography style={s.compactChatText}>Czat</Typography></Pressable>}
           </View>
           <Pressable onPress={()=>Share.share({message:`${selected.title} · ${selected.place}, ${selected.city} · ${new Date(selected.when).toLocaleString('pl-PL')}`})} style={s.shareRow}><Ionicons name="share-social-outline" size={20} color={c.ink}/><Typography style={s.shareText}>Udostępnij spotkanie</Typography></Pressable>
         </ScrollView>
       </View>}
+    </Modal>
+    <CreateActivityModal visible={editingMeetup&&!!selected} onClose={()=>setEditingMeetup(false)} initialType="meeting" city={selected?.city||city} busy={createBusy} initialValues={selected?{title:selected.title,description:selected.description,place:selected.place,date:new Date(selected.when).toISOString().slice(0,10),time:new Date(selected.when).toTimeString().slice(0,5),capacity:String(selected.spots||6)}:null} onSubmit={submitMeetupEdit}/>
+    <Modal visible={meetupMenuOpen&&!!selected} transparent animationType="fade" onRequestClose={()=>setMeetupMenuOpen(false)}>
+      <View style={s.menuBackdrop}><Pressable style={StyleSheet.absoluteFill} onPress={()=>setMeetupMenuOpen(false)}/><View style={s.menuSheet}>
+        {selected?.remote&&selected?.hostId===sessionUserId&&<Pressable style={s.menuRow} onPress={()=>{setMeetupMenuOpen(false);setEditingMeetup(true)}}><Ionicons name="create-outline" size={21} color={c.ink}/><Typography style={s.menuText}>Edytuj spotkanie</Typography></Pressable>}
+        {selected?.remote&&selected?.hostId===sessionUserId&&<Pressable style={s.menuRow} onPress={()=>{setMeetupMenuOpen(false);confirmDeleteMeetup()}}><Ionicons name="trash-outline" size={21} color="#B42318"/><Typography style={[s.menuText,{color:'#B42318'}]}>Usuń spotkanie</Typography></Pressable>}
+        {selected?.hostId!==sessionUserId&&<Pressable style={s.menuRow} onPress={()=>{setMeetupMenuOpen(false);onReport?.({kind:'meetup',id:selected.id,label:selected.title})}}><Ionicons name="flag-outline" size={21} color={c.ink}/><Typography style={s.menuText}>Zgłoś spotkanie</Typography></Pressable>}
+      </View></View>
     </Modal>
     <Modal visible={participantsOpen&&!!selected} transparent animationType="slide" onRequestClose={()=>setParticipantsOpen(false)}>
       <View style={s.participantsModalBackdrop}><Pressable style={StyleSheet.absoluteFill} onPress={()=>setParticipantsOpen(false)}/><View style={s.participantsSheet}><View style={s.participantsSheetHeader}><Typography style={s.participantsSheetTitle}>Uczestniczki</Typography><Pressable onPress={()=>setParticipantsOpen(false)}><Ionicons name="close" size={25} color={c.ink}/></Pressable></View>{(selected?.participants||[]).map(p=><Pressable key={p.id} onPress={()=>{setParticipantsOpen(false);onOpenProfile?.(p.id)}} style={s.participantRow}>{p.photo?<Image source={{uri:p.photo}} style={s.participantRowPhoto}/>:<View style={[s.participantRowPhoto,s.thumbFallback]}><Ionicons name="person-outline" size={19} color={c.pink}/></View>}<Typography style={s.participantRowName}>{p.name}</Typography><Ionicons name="chevron-forward" size={18} color={c.muted}/></Pressable>)}</View></View>
@@ -353,7 +382,8 @@ const s=StyleSheet.create({
   participantMore:{width:50,height:50,borderRadius:25,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
   participantMoreText:{fontFamily:f.bold,fontSize:13,color:c.pink},
   detailAvatar:{width:34,height:34,borderRadius:17,borderWidth:2,borderColor:c.white,marginRight:-7},
-  detailActions:{marginHorizontal:sp.lg,marginTop:8,flexDirection:'row',flexWrap:'wrap',gap:10,alignItems:'center'},
+  detailActions:{marginHorizontal:sp.lg,marginTop:8,flexDirection:'row',gap:10,alignItems:'center'},
+  detailActionsEqual:{flex:1},
   compactPrimary:{minHeight:46,borderRadius:14,backgroundColor:c.pink,paddingHorizontal:20,alignItems:'center',justifyContent:'center'},
   compactPrimaryText:{fontFamily:f.bold,fontSize:14,color:c.white},
   compactSecondary:{backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
@@ -361,5 +391,6 @@ const s=StyleSheet.create({
   compactChat:{minHeight:46,borderRadius:14,backgroundColor:c.ink,paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},
   compactChatText:{fontFamily:f.bold,fontSize:14,color:c.white},
   shareRow:{height:52,marginHorizontal:sp.lg,marginTop:10,borderRadius:16,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},
-  shareText:{fontFamily:f.semibold,fontSize:14,color:c.ink}
+  shareText:{fontFamily:f.semibold,fontSize:14,color:c.ink},
+  menuBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.24)'},menuSheet:{backgroundColor:c.white,borderTopLeftRadius:24,borderTopRightRadius:24,padding:sp.lg,paddingBottom:34},menuRow:{minHeight:54,flexDirection:'row',alignItems:'center',gap:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},menuText:{fontFamily:f.semibold,fontSize:16,color:c.ink}
 });
