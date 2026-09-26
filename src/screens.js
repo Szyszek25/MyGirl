@@ -14,7 +14,7 @@ function formatPostTime(createdAt) {
 }
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
@@ -32,6 +32,71 @@ import PublicProfileModal from './PublicProfileModal';
 const W = Dimensions.get('window').width;
 const avatar = (photo, size = 48) => <Image source={{ uri: photo || people[0]?.photo }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.blush }} />;
 const authorId = post => post.authorId || people.find(p => p.name === post.author)?.id;
+function ImagePreviewModal({uri,onClose}) {
+  const scale=useRef(new Animated.Value(1)).current;
+  const scaleValue=useRef(1);
+  const pinchStart=useRef(null);
+  const pinchBase=useRef(1);
+  const lastTap=useRef(0);
+
+  useEffect(()=>{
+    if(!uri)return;
+    scale.setValue(1);
+    scaleValue.current=1;
+    pinchStart.current=null;
+  },[uri,scale]);
+
+  const clamp=v=>Math.max(1,Math.min(4,v));
+  const responder=useMemo(()=>PanResponder.create({
+    onStartShouldSetPanResponder:()=>true,
+    onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dx)>2||Math.abs(g.dy)>2,
+    onPanResponderGrant:(evt)=>{
+      const touches=evt.nativeEvent.touches||[];
+      if(touches.length>=2){
+        const [a,b]=touches;
+        pinchStart.current=Math.hypot(a.pageX-b.pageX,a.pageY-b.pageY);
+        pinchBase.current=scaleValue.current;
+      }
+    },
+    onPanResponderMove:(evt)=>{
+      const touches=evt.nativeEvent.touches||[];
+      if(touches.length>=2){
+        const [a,b]=touches;
+        const dist=Math.hypot(a.pageX-b.pageX,a.pageY-b.pageY);
+        if(!pinchStart.current)pinchStart.current=dist;
+        const next=clamp(pinchBase.current*(dist/Math.max(1,pinchStart.current)));
+        scale.setValue(next);
+        scaleValue.current=next;
+      }
+    },
+    onPanResponderRelease:(_,g)=>{
+      pinchStart.current=null;
+      pinchBase.current=scaleValue.current;
+      if(Math.abs(g.dx)<8&&Math.abs(g.dy)<8){
+        const now=Date.now();
+        if(now-lastTap.current<280){
+          const next=scaleValue.current>1.2?1:2.5;
+          Animated.spring(scale,{toValue:next,useNativeDriver:true,friction:8}).start();
+          scaleValue.current=next;
+          pinchBase.current=next;
+          lastTap.current=0;
+        }else lastTap.current=now;
+      }
+    },
+    onPanResponderTerminate:()=>{pinchStart.current=null;}
+  }),[scale]);
+
+  return <Modal visible={!!uri} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <View style={s.imagePreviewRoot} {...responder.panHandlers}>
+      <Pressable onPress={onClose} style={s.imagePreviewClose} hitSlop={10} accessibilityLabel="Zamknij podgląd">
+        <Ionicons name="close" size={28} color={c.white}/>
+      </Pressable>
+      <Animated.Image source={{uri}} resizeMode="contain" style={[s.imagePreviewImage,{transform:[{scale}]}]}/>
+      <View pointerEvents="none" style={s.imagePreviewHint}><Typography style={s.imagePreviewHintText}>Uszczypnij lub stuknij 2×, aby powiększyć</Typography></View>
+    </View>
+  </Modal>;
+}
+
 function Section({ title, children }) { return <Surface><Typography variant="subtitle" style={{ marginBottom: sp.sm }}>{title}</Typography>{children}</Surface> }
 function TextAction({ icon, title, onPress, danger = false }) { return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger ? c.pink : c.muted} /><Typography style={{ color: danger ? c.pink : c.muted, fontFamily: f.semibold, fontSize: 13 }}>{title}</Typography></Pressable> }
 
@@ -48,6 +113,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   const [searching, setSearching] = useState(false);
   const [profileOpen, setProfileOpen] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
+  const [previewImage, setPreviewImage] = useState(null);
   const [incomingRequests, setIncomingRequests] = useState({});
   const [matchedProfile, setMatchedProfile] = useState(null);
   const [dismissedIds, setDismissedIds] = useState([]);
@@ -865,14 +931,14 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         </View>
         <Typography style={s.postBody}>{item.body}</Typography>
         {!!item.image && (
-          <View style={[
+          <Pressable onPress={()=>setPreviewImage(item.image)} style={[
             s.postImageWrap,
             (item.aspectRatio === '4:5' || item.aspectRatio === 'vertical' || item.image?.includes('pinimg.com'))
               ? s.postImageVertical
               : s.postImageHorizontal
           ]}>
             <Image source={{ uri: item.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          </View>
+          </Pressable>
         )}
         {!!item.spotifyUrl && <View style={s.spotifyCard}><Ionicons name="musical-notes" size={20} color={c.pink} /><View style={{ flex: 1 }}><Typography style={s.spotifyTitle}>Spotify</Typography><Typography numberOfLines={1} style={s.spotifyUrl}>{item.spotifyUrl}</Typography></View></View>}
         {item.moderationStatus === 'pending' && <View style={s.pendingBadge}><Typography style={s.pendingText}>Czeka na publikację</Typography></View>}
@@ -939,7 +1005,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
               <View style={{ flex: 1 }}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{ color: c.muted }}>{commentPost.city}</Typography></View>
             </View>
             <Typography style={s.postBody}>{commentPost.body}</Typography>
-            {!!commentPost.image && <Image source={{ uri: commentPost.image }} style={s.commentPostImage} resizeMode="cover" />}
+            {!!commentPost.image && <Pressable onPress={()=>setPreviewImage(commentPost.image)}><Image source={{ uri: commentPost.image }} style={s.commentPostImage} resizeMode="cover" /></Pressable>}
           </View>
           {seededComments(commentPost).map(comment => <View key={comment.id} style={s.commentRow}>
             {comment.photo ? avatar(comment.photo, 38) : <View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink} /></View>}
@@ -954,6 +1020,8 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
       </KeyboardAvoidingView>}
     </Modal>
 
+    <ImagePreviewModal uri={previewImage} onClose={()=>setPreviewImage(null)}/>
+
     <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={() => setComposerOpen(false)}>
       <KeyboardAvoidingView style={s.postModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => setComposerOpen(false)} />
@@ -967,7 +1035,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
           <View style={s.postAudience}><Ionicons name="location-outline" size={16} color={c.pink} /><Typography style={s.postAudienceText}>{city}</Typography></View>
           <TextInput autoFocus multiline value={draft} onChangeText={value => setDraft(value.slice(0, 1200))} placeholder={`Co dzieje się w ${city}?`} placeholderTextColor={c.muted} style={s.postInput} />
           {!!postMedia?.uri && <View style={s.postComposerPreviewWrap}>
-            <Image source={{ uri: postMedia.uri }} style={s.postComposerPreview} resizeMode="cover" />
+            <Pressable onPress={()=>setPreviewImage(postMedia.uri)}><Image source={{ uri: postMedia.uri }} style={s.postComposerPreview} resizeMode="cover" /></Pressable>
             <Pressable onPress={() => setPostMedia(null)} style={s.postComposerRemoveMedia} hitSlop={8}><Ionicons name="close" size={17} color={c.white} /></Pressable>
           </View>}
           {showSpotifyInput && <View style={s.spotifyInputRow}>
@@ -1031,9 +1099,17 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const [remoteRooms, setRemoteRooms] = useState([]);
   const [remoteMessages, setRemoteMessages] = useState([]);
   const [sending, setSending] = useState(false);
+  const [keyboardOpen,setKeyboardOpen]=useState(false);
+  const [previewImage,setPreviewImage]=useState(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
+
+  useEffect(()=>{
+    const show=Keyboard.addListener('keyboardDidShow',()=>setKeyboardOpen(true));
+    const hide=Keyboard.addListener('keyboardDidHide',()=>setKeyboardOpen(false));
+    return ()=>{show.remove();hide.remove();};
+  },[]);
 
   useEffect(() => {
 
@@ -1272,7 +1348,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             {message.messageType === 'voice'
               ? <VoiceMessageBubble message={message} outgoing />
               : message.messageType === 'image' && message.mediaUrl
-                ? <Image source={{uri:message.mediaUrl}} style={s.chatImageOutgoing} resizeMode="cover"/>
+                ? <Pressable onPress={()=>setPreviewImage(message.mediaUrl)}><Image source={{uri:message.mediaUrl}} style={s.chatImageOutgoing} resizeMode="cover"/></Pressable>
                 : <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}
             {!visibleMessages.slice(messageIndex + 1).some(next => next.side === 'out') && <View style={s.deliveryStatusRow}>
               <Ionicons name="checkmark-done" size={13} color={c.pink} />
@@ -1286,7 +1362,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
               {message.messageType === 'voice'
                 ? <VoiceMessageBubble message={message} />
                 : message.messageType === 'image' && message.mediaUrl
-                  ? <Image source={{uri:message.mediaUrl}} style={s.chatImageIncoming} resizeMode="cover"/>
+                  ? <Pressable onPress={()=>setPreviewImage(message.mediaUrl)}><Image source={{uri:message.mediaUrl}} style={s.chatImageIncoming} resizeMode="cover"/></Pressable>
                   : <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>}
             </View>
           </View>)}
@@ -1307,7 +1383,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
         </View>}
       </ScrollView>
 
-      <View style={s.fullComposer}>
+      <View style={[s.fullComposer,keyboardOpen&&s.fullComposerKeyboard]}>
         {!recorderState.isRecording && active.remote && <Pressable onPress={pickChatImage} disabled={sending} style={s.chatMediaButton} accessibilityLabel="Wyślij zdjęcie"><Ionicons name="image-outline" color={c.pink} size={22}/></Pressable>}
         {recorderState.isRecording
           ? <View style={s.recordingState}><View style={s.recordingDot} /><Typography style={s.recordingText}>Nagrywanie {Math.max(1, Math.round((recorderState.durationMillis || 0) / 1000))}s</Typography></View>
@@ -1316,6 +1392,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
           ? <Pressable accessibilityRole="button" accessibilityLabel={recorderState.isRecording ? 'Zatrzymaj i wyślij głosówkę' : 'Nagraj głosówkę'} disabled={sending} onPress={recorderState.isRecording ? stopVoice : startVoice} style={[s.voiceRecordButton, recorderState.isRecording && s.voiceRecordButtonActive, sending && { opacity: .4 }]}><Ionicons name={recorderState.isRecording ? 'stop' : 'mic'} color={c.white} size={20} /></Pressable>
           : <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim() || sending} onPress={send} style={[s.fullSend, (!draft.trim() || sending) && { opacity: .35 }]}><Ionicons name="arrow-up" color={c.white} size={21} /></Pressable>}
       </View>
+      <ImagePreviewModal uri={previewImage} onClose={()=>setPreviewImage(null)}/>
     </KeyboardAvoidingView>;
   }
 
@@ -1352,6 +1429,11 @@ export function ProfileScreen({ account, onSafety }) {
   </ScrollView>;
 }
 const s = StyleSheet.create({
+  imagePreviewRoot:{flex:1,backgroundColor:'rgba(0,0,0,.96)',alignItems:'center',justifyContent:'center',overflow:'hidden'},
+  imagePreviewImage:{width:W,height:'82%'},
+  imagePreviewClose:{position:'absolute',top:Platform.OS==='ios'?58:30,right:18,width:44,height:44,borderRadius:22,backgroundColor:'rgba(255,255,255,.12)',alignItems:'center',justifyContent:'center',zIndex:10},
+  imagePreviewHint:{position:'absolute',bottom:Platform.OS==='ios'?42:24,left:20,right:20,alignItems:'center'},
+  imagePreviewHintText:{fontFamily:f.semibold,fontSize:12,color:'rgba(255,255,255,.72)',backgroundColor:'rgba(0,0,0,.35)',paddingHorizontal:12,paddingVertical:7,borderRadius:999},
   page: { padding: sp.lg, paddingBottom: sp.xxl, backgroundColor: c.canvas, flexGrow: 1 },
   feedPage: { paddingBottom: 110, backgroundColor: '#F7F3F5' },
   feedLoading: { position: 'absolute', top: 6, alignSelf: 'center', zIndex: 30, flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: c.white, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: c.line },
@@ -1578,6 +1660,7 @@ const s = StyleSheet.create({
   bubbleText: { fontFamily: f.regular, fontSize: 15, lineHeight: 20, color: c.ink },
   outgoingText: { fontFamily: f.regular, fontSize: 15, lineHeight: 20, color: c.white },
   fullComposer: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: Platform.OS === 'ios' ? 10 : 8, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line, backgroundColor: c.white, zIndex: 20 },
+  fullComposerKeyboard: { minHeight: 76, paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 18 : 22, alignItems: 'center' },
   attachButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.blush, alignItems: 'center', justifyContent: 'center' },
   fullMessageInput: { flex: 1, maxHeight: 120, minHeight: 42, borderRadius: 21, backgroundColor: c.canvas, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, fontFamily: f.regular, fontSize: 15, color: c.ink, textAlignVertical: 'center' },
   fullSend: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center' },
