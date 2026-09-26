@@ -53,7 +53,8 @@ function PolkaApp(){
   const [partnerOpen,setPartnerOpen]=useState(false);
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [messagesOpen,setMessagesOpen]=useState(false);
-  const [chatBackRequest,setChatBackRequest]=useState(0);
+  const [conversationOpen,setConversationOpen]=useState(false);
+  const chatBackRef=React.useRef(null);
   const [pendingConversationId,setPendingConversationId]=useState(null);
   const [pendingMeetupId,setPendingMeetupId]=useState(null);
   const [openMeetupDetailId,setOpenMeetupDetailId]=useState(null);
@@ -266,6 +267,7 @@ function PolkaApp(){
       if(partnerOpen){setPartnerOpen(false);return true;}
       if(settingsOpen){setSettingsOpen(false);return true;}
       if(resetPasswordOpen){setResetPasswordOpen(false);setSettingsOpen(true);return true;}
+      if(messagesOpen&&conversationOpen){chatBackRef.current?.();return true;}
       if(messagesOpen){setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);return true;}
       if(cycleOpen){setCycleOpen(false);return true;}
       if(careOpen){setCareOpen(false);return true;}
@@ -276,7 +278,7 @@ function PolkaApp(){
     };
     const sub=BackHandler.addEventListener('hardwareBackPress',onHardwareBack);
     return ()=>sub.remove();
-  },[account,reportTarget,safetyOpen,partnerOpen,settingsOpen,resetPasswordOpen,messagesOpen,cycleOpen,careOpen,moreOpen,cityPickerOpen,tab]);
+  },[account,reportTarget,safetyOpen,partnerOpen,settingsOpen,resetPasswordOpen,messagesOpen,conversationOpen,cycleOpen,careOpen,moreOpen,cityPickerOpen,tab]);
 
   useEffect(()=>{
     if(!account)return;
@@ -342,7 +344,7 @@ function PolkaApp(){
     cycleOpen?<CycleScreen userId={authSession?.user?.id||null} cloudSync={!!featurePreferences.cycleCloudSync} onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenProfile={userId=>setPublicProfileTarget({id:userId})} onOpenGroup={groupId=>{setMessagesOpen(false);setPendingConversationId(null);setOpenGroupDetailId(groupId);setTab('Grupy')}} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
+    messagesOpen?<View style={s.fill}><ChatsScreen conversationBackRef={chatBackRef} onConversationStateChange={setConversationOpen} sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenProfile={userId=>setPublicProfileTarget({id:userId})} onOpenGroup={groupId=>{setMessagesOpen(false);setPendingConversationId(null);setOpenGroupDetailId(groupId);setTab('Grupy')}} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setConversationOpen(false);setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
     null;
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
