@@ -243,9 +243,6 @@ export default function PublicProfileModal({
 
             <View style={s.nameRow}>
               <Typography style={s.name}>{profileData.name}</Typography>
-              <Pressable disabled={friendBusy || !sessionUserId} onPress={friendSent ? handleCancelFriend : handleAddFriend} style={[s.addFriendBtn, friendSent && s.addFriendBtnSent]}>
-                <Typography style={[s.addFriendText, friendSent && s.addFriendTextSent]}>{friendBusy ? (friendSent ? 'Wycofuję…' : 'Wysyłam…') : friendSent ? 'Wycofaj zaproszenie' : 'Dodaj do znajomego'}</Typography>
-              </Pressable>
             </View>
 
             <View style={s.metaRow}>
@@ -262,11 +259,17 @@ export default function PublicProfileModal({
               </View>
             </View>
 
-            {/* Quick Action Button */}
-            <Pressable onPress={handleMessage} style={s.primaryMsgBtn}>
-              <Ionicons name="chatbubble-ellipses" size={18} color={c.white} />
-              <Typography style={s.primaryMsgText}>{existingConversationId ? 'Otwórz czat' : `Napisz do ${profileData.name}`}</Typography>
-            </Pressable>
+            {/* Quick Actions */}
+            <View style={s.quickActionsRow}>
+              <Pressable onPress={handleMessage} style={[s.primaryMsgBtn, s.quickActionBtn]}>
+                <Ionicons name="chatbubble-ellipses" size={18} color={c.white} />
+                <Typography style={s.primaryMsgText}>{existingConversationId ? 'Otwórz czat' : 'Napisz'}</Typography>
+              </Pressable>
+              <Pressable disabled={friendBusy || !sessionUserId} onPress={friendSent ? handleCancelFriend : handleAddFriend} style={[s.friendActionBtn, s.quickActionBtn, friendSent && s.addFriendBtnSent]}>
+                <Ionicons name={friendSent ? 'person-remove-outline' : 'person-add-outline'} size={18} color={c.pink} />
+                <Typography style={[s.friendActionText, friendSent && s.addFriendTextSent]}>{friendBusy ? 'Chwila…' : friendSent ? 'Wycofaj' : 'Zaproś'}</Typography>
+              </Pressable>
+            </View>
           </View>
 
           {/* Bio Section */}
@@ -475,6 +478,10 @@ const s = StyleSheet.create({
     color: '#92400E'
   },
   primaryMsgBtn: {
+  quickActionsRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  quickActionBtn: { flex: 1 },
+  friendActionBtn: { minHeight: 48, borderRadius: 999, borderWidth: 1.5, borderColor: c.pink, backgroundColor: c.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  friendActionText: { fontFamily: f.semi, fontSize: 15, color: c.pink },
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
