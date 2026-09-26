@@ -81,10 +81,14 @@ export default function PublicProfileModal({
           if (!alive || error || !data) return;
           let avatarUrl = null;
           if (data.avatar_path) {
-            const { data: signed } = await supabase.storage
-              .from('polka-avatars')
-              .createSignedUrl(data.avatar_path, 3600);
-            avatarUrl = signed?.signedUrl;
+            if (/^https?:\/\//i.test(data.avatar_path)) {
+              avatarUrl = data.avatar_path;
+            } else {
+              const { data: signed } = await supabase.storage
+                .from('polka-avatars')
+                .createSignedUrl(data.avatar_path, 3600);
+              avatarUrl = signed?.signedUrl || null;
+            }
           }
 
           const [{ data: interests }, { data: photoRows }] = await Promise.all([
