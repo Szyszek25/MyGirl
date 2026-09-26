@@ -1197,6 +1197,19 @@ export function ChatsScreen({ backRequest = 0, sessionUserId = null, initialConv
   const [remoteMessages, setRemoteMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const activeRef = React.useRef(null);
+  useEffect(() => { activeRef.current = active; }, [active]);
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!activeRef.current) return false;
+      setActive(null);
+      setChatProfileOpen(false);
+      setPreviewImage(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
   const [previewImage, setPreviewImage] = useState(null);
   const [chatProfileOpen, setChatProfileOpen] = useState(false);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
