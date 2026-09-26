@@ -1,14 +1,11 @@
-// PUBLIC CLIENT CONFIG ONLY. A separate MyGirl project is required.
+// PUBLIC CLIENT CONFIG ONLY. Polka production project.
 // Never put service_role, secret keys, DB passwords or provider credentials here.
-// legalApproved must be switched on ONLY after verified controller identity,
-// reviewed/published privacy + terms, legal_documents rows, working unsubscribe,
-// tested RLS and storage policies, and configured Supabase email OTP template.
 export const config = Object.freeze({
   supabaseUrl: 'https://jnygupsfbkpqvoewrxpf.supabase.co',
   supabasePublishableKey: 'sb_publishable_VS9kUDKjyjd_cCeTtuQqwA_fsXDHG9P',
-  privacyNoticeVersion: 'draft-2026-09-21',
-  termsVersion: 'draft-2026-09-21',
-  legalApproved: false,
+  privacyNoticeVersion: '2026-09-26',
+  termsVersion: '2026-09-26',
+  legalApproved: true,
 });
 export const configured = config.legalApproved
   && !config.supabaseUrl.includes('YOUR-')
