@@ -11,7 +11,7 @@ export async function loadRemoteProfile(userId){
 
   const [{data:interestRows,error:interestError},{data:photoRows,error:photoError}]=await Promise.all([
     supabase.from('profile_interests').select('interest').eq('profile_id',userId),
-    supabase.from('profile_photos').select('storage_path,position').eq('user_id',userId).order('position',{ascending:true})
+    supabase.from('profile_photos').select('storage_path,source_url,position').eq('user_id',userId).order('position',{ascending:true})
   ]);
   if(interestError)throw interestError;
   if(photoError)throw photoError;
@@ -23,9 +23,10 @@ export async function loadRemoteProfile(userId){
   }
 
   const galleryPhotos=(await Promise.all((photoRows||[]).map(async row=>{
+    if(row.source_url)return {path:row.storage_path,url:row.source_url,sourceUrl:row.source_url};
     const {data:signed,error:signedError}=await supabase.storage.from('polka-profile-photos').createSignedUrl(row.storage_path,60*60);
     if(signedError||!signed?.signedUrl)return null;
-    return {path:row.storage_path,url:signed.signedUrl};
+    return {path:row.storage_path,url:signed.signedUrl,sourceUrl:null};
   }))).filter(Boolean);
 
   return {
@@ -92,7 +93,7 @@ export async function saveRemoteProfile(userId,profile){
   const {error}=await supabase.from('profiles').upsert(payload,{onConflict:'id'});
   if(error)throw error;
 
-  const currentGallery=Array.isArray(profile.galleryPhotos)?profile.galleryPhotos.slice(0,6):[];
+  const currentGallery=Array.isArray(profile.galleryPhotos)?profile.galleryPhotos.slice(0,9):[];
   const {data:oldPhotoRows,error:oldPhotoError}=await supabase.from('profile_photos')
     .select('storage_path').eq('user_id',userId);
   if(oldPhotoError)throw oldPhotoError;
@@ -100,19 +101,19 @@ export async function saveRemoteProfile(userId,profile){
   for(let i=0;i<currentGallery.length;i+=1){
     const item=currentGallery[i];
     if(item?.path&&item?.url?.startsWith('http')){
-      resolvedGallery.push({path:item.path,url:item.url});
+      resolvedGallery.push({path:item.path,url:item.url,sourceUrl:item.sourceUrl||null});
       continue;
     }
     const uri=typeof item==='string'?item:item?.url;
     if(!uri)continue;
     const path=await uploadProfilePhoto(userId,uri,i);
-    resolvedGallery.push({path,url:uri});
+    resolvedGallery.push({path,url:uri,sourceUrl:null});
   }
   const {error:deletePhotosError}=await supabase.from('profile_photos').delete().eq('user_id',userId);
   if(deletePhotosError)throw deletePhotosError;
   if(resolvedGallery.length){
     const {error:insertPhotosError}=await supabase.from('profile_photos').insert(
-      resolvedGallery.map((item,position)=>({user_id:userId,storage_path:item.path,position}))
+      resolvedGallery.map((item,position)=>({user_id:userId,storage_path:item.path,source_url:item.sourceUrl||null,position}))
     );
     if(insertPhotosError)throw insertPhotosError;
   }
