@@ -17,6 +17,8 @@ export async function loadMeetups(city,userId){
   const {data:rsvps,error:rError}=await supabase.from('meetup_rsvps').select('meetup_id,user_id,status').in('meetup_id',rows.map(r=>r.id));
   if(rError)throw rError;
   const pmap=new Map((profiles||[]).map(p=>[p.id,p]));
+  const signedAvatars=new Map();
+  await Promise.all((profiles||[]).filter(p=>p.avatar_path).map(async p=>{const {data}=await supabase.storage.from('polka-avatars').createSignedUrl(p.avatar_path,3600);if(data?.signedUrl)signedAvatars.set(p.id,data.signedUrl);}));
   return rows.map(row=>{
     const host=pmap.get(row.host_id)||{};
     const business=row.business_id?bmap.get(row.business_id):null;
@@ -25,7 +27,7 @@ export async function loadMeetups(city,userId){
       id:row.id,category:'Spotkanie',title:row.title,city:row.city,when:row.starts_at,
       place:row.venue_name||row.city,description:row.description,spots:row.capacity,
       joined:rs.filter(r=>r.status==='going').length,host:business?.name||host.display_name||'Polka',
-      hostPhoto:host.avatar_path||null,businessId:business?.id||null,isBusiness:!!business,
+      hostPhoto:signedAvatars.get(row.host_id)||null,businessId:business?.id||null,isBusiness:!!business,
       mapsUrl:row.maps_url||null,hostId:row.host_id,remote:true,
       joinedByMe:!!userId&&rs.some(r=>r.user_id===userId&&r.status==='going')
     };
