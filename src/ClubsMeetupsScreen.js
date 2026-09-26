@@ -11,7 +11,7 @@ const categories=['Kawa','Sport','Książki','Podróże','Jedzenie','Muzyka','Sa
 const clean=(value,max)=>String(value||'').trim().slice(0,max);
 const localId=()=>`group-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
-export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat}){
+export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,openGroupId=null,onGroupOpened}){
   const [clubs,setClubs]=useState(()=>sessionUserId?[]:seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
   const [remoteLoaded,setRemoteLoaded]=useState(false);
   const [joined,setJoined]=useState(['coffee-waw']);
@@ -22,6 +22,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
   const [category,setCategory]=useState('Kawa');
   const [groupFilter,setGroupFilter]=useState('Wszystkie');
   const [coverUri,setCoverUri]=useState(null);
+  useEffect(()=>{if(!openGroupId||!clubs.length)return;const target=clubs.find(item=>item.id===openGroupId);if(target){setActiveClub(target);onGroupOpened?.();}},[openGroupId,clubs,onGroupOpened]);
   useEffect(()=>{
     if(!sessionUserId){
       setClubs(seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
