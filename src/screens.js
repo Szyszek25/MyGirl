@@ -1,4 +1,19 @@
 
+function formatActivityStatus(lastActiveAt) {
+  if (!lastActiveAt) return 'ostatnio aktywna niedawno';
+  const ts = new Date(lastActiveAt).getTime();
+  if (Number.isNaN(ts)) return 'ostatnio aktywna niedawno';
+  const diff = Math.max(0, Date.now() - ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2) return 'aktywna teraz';
+  if (mins < 60) return `aktywna ${mins} min temu`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `aktywna ${hours} godz. temu`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'aktywna wczoraj';
+  return `aktywna ${days} dni temu`;
+}
+
 function formatPostTime(createdAt) {
   if (!createdAt) return 'przed chwilą';
   if (typeof createdAt === 'string' && (createdAt.includes('min') || createdAt.includes('godz') || createdAt.includes('wczoraj'))) {
@@ -1050,6 +1065,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     unread: 0,
     group: room.kind === 'group',
     otherUserId: room.otherUserId || null,
+    lastActiveAt: room.lastActiveAt || null,
     remote: true
   }));
   const chats = sessionUserId
@@ -1101,7 +1117,8 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             initialOpened.current = true;
             setActive({
               id: room.id, name: room.name, photo: people[0]?.photo, last: room.last,
-              time: formatPostTime(room.time), unread: 0, group: room.kind === 'group', remote: true
+              time: formatPostTime(room.time), unread: 0, group: room.kind === 'group', remote: true,
+              otherUserId: room.otherUserId || null, lastActiveAt: room.lastActiveAt || null
             });
           }
         }
@@ -1109,6 +1126,21 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
       .catch(() => { if (alive) setRemoteRooms([]) });
     return () => { alive = false; void chatApi.stop(); };
   }, [chatApi, sessionUserId, initialConversationId]);
+
+  useEffect(() => {
+    if (!active?.remote || !active?.otherUserId) return;
+    let alive = true;
+    let timer = null;
+    const refresh = async () => {
+      const { data } = await supabase.from('profiles').select('last_active_at').eq('id', active.otherUserId).maybeSingle();
+      if (alive && data?.last_active_at) {
+        setActive(prev => prev?.id === active.id ? { ...prev, lastActiveAt: data.last_active_at } : prev);
+      }
+    };
+    void refresh();
+    timer = setInterval(refresh, 30000);
+    return () => { alive = false; if (timer) clearInterval(timer); };
+  }, [active?.id, active?.remote, active?.otherUserId]);
 
   useEffect(() => {
     if (!active?.remote || !chatApi) { setRemoteMessages([]); return; }
@@ -1227,7 +1259,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   if (active) {
     return <KeyboardAvoidingView
       style={s.fullChat}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 44 : 0}
     >
       <View style={s.fullChatHeader}>
