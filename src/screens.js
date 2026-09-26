@@ -1172,7 +1172,7 @@ function VoiceMessageBubble({ message, outgoing = false }) {
   </Pressable>;
 }
 
-export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat, onOpenMeetup, onOpenProfile }) {
+export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat, onOpenMeetup, onOpenProfile, onOpenGroup }) {
   const formatActivityStatus = lastActiveAt => {
     if (!lastActiveAt) return 'ostatnio aktywna niedawno';
     const ts = new Date(lastActiveAt).getTime();
@@ -1437,7 +1437,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     >
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
-        <Pressable disabled={!active.otherUserId && !(active.meetupId||initialMeetupId)} onPress={() => active.otherUserId ? setChatProfileOpen(true) : (active.meetupId||initialMeetupId)&&onOpenMeetup?.(active.meetupId||initialMeetupId)} style={s.chatProfileHeader}>
+        <Pressable disabled={!active.otherUserId && !active.groupId && !(active.meetupId||initialMeetupId)} onPress={() => active.otherUserId ? setChatProfileOpen(true) : active.groupId ? onOpenGroup?.(active.groupId) : (active.meetupId||initialMeetupId)&&onOpenMeetup?.(active.meetupId||initialMeetupId)} style={s.chatProfileHeader}>
           {active.photo ? avatar(active.photo,42) : <View style={[s.chatGroupFallback,{width:42,height:42,borderRadius:21}]}><Ionicons name="people-outline" size={23} color={c.pink}/></View>}
           <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
         </Pressable>
