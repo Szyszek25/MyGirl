@@ -6,6 +6,8 @@ import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
 import {createMeetup,loadMeetups,setMeetupRsvp} from './services/meetupsApi';
+import {createPlan} from './services/plansApi';
+import CreateActivityModal from './CreateActivityModal';
 
 const starterMeetings=[
   {id:'m1',category:'Kawa',title:'Matcha + spacer po centrum',city:'Warszawa',when:'2026-09-27T17:30:00',place:'Śródmieście',description:'Najpierw matcha, potem luźny spacer po centrum. Bez spiny — poznajemy się na żywo.',spots:6,joined:4,host:'Maja',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88'},
@@ -117,35 +119,24 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
     setRemoteMeetups(rows);
     setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
   };
-  const submitMeeting=async()=>{
-    if(!sessionUserId){Alert.alert('Zaloguj się','Spotkania online wymagają konta.');return;}
-    const title=createTitle.trim();
-    const place=createPlace.trim();
-    if(title.length<4){Alert.alert('Dodaj nazwę','Np. „Matcha + spacer”.');return;}
-    if(!place){Alert.alert('Dodaj miejsce','Np. „Rynek” albo nazwa kawiarni.');return;}
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(createDate)||!/^\d{2}:\d{2}$/.test(createTime)){
-      Alert.alert('Dodaj termin','Wpisz datę jako RRRR-MM-DD i godzinę jako GG:MM.');
-      return;
-    }
-    const startsAt=new Date(`${createDate}T${createTime}:00`);
-    if(Number.isNaN(startsAt.getTime())||startsAt.getTime()<Date.now()+5*60*1000){
-      Alert.alert('Nieprawidłowy termin','Wybierz przyszłą datę i godzinę.');
-      return;
-    }
+  const submitActivity=async form=>{
+    if(!sessionUserId){Alert.alert('Zaloguj się','Tworzenie wymaga konta.');return;}
+    if(form.title.length<4){Alert.alert('Dodaj nazwę','Np. „Matcha + spacer”.');return;}
+    if(!form.place){Alert.alert('Dodaj lokalizację','Wpisz miejsce albo dzielnicę.');return;}
     setCreateBusy(true);
     try{
-      await createMeetup(sessionUserId,{
-        title,
-        description:createDescription,
-        city,
-        venueName:place,
-        startsAt:startsAt.toISOString(),
-        capacity:createCapacity
-      });
-      await reloadMeetups();
+      if(form.type==='meeting'){
+        if(!form.date||!form.time){Alert.alert('Dodaj termin','Wybierz datę i godzinę.');return;}
+        const startsAt=new Date(`${form.date}T${form.time}:00`);
+        if(Number.isNaN(startsAt.getTime())||startsAt.getTime()<Date.now()){Alert.alert('Nieprawidłowy termin','Wybierz przyszły termin.');return;}
+        await createMeetup(sessionUserId,{title:form.title,description:form.description,city,venueName:form.place,startsAt:startsAt.toISOString(),capacity:form.capacity});
+        await reloadMeetups();
+      }else{
+        const timing=form.date?(form.time?`${form.date} · ${form.time}`:form.date):'Termin do ustalenia';
+        await createPlan(sessionUserId,{title:form.title,city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:timing,details:[form.place,form.description].filter(Boolean).join(' · '),capacity:6});
+      }
       setCreating(false);
-      setCreateTitle('');setCreatePlace('');setCreateDate('');setCreateTime('');setCreateDescription('');setCreateCapacity('6');
-    }catch(error){Alert.alert('Nie utworzono spotkania',error.message||'Spróbuj ponownie.');}
+    }catch(error){Alert.alert('Nie utworzono',error.message||'Spróbuj ponownie.');}
     finally{setCreateBusy(false);}
   };
 
@@ -190,31 +181,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       {!data.length&&<View style={s.empty}><Typography style={s.emptyTitle}>Brak spotkań w {city}</Typography><Typography style={s.emptyText}>Zmień miasto u góry albo wróć później.</Typography></View>}
     </ScrollView>
 
-    <Modal visible={creating} transparent animationType="slide" onRequestClose={()=>setCreating(false)}>
-      <KeyboardAvoidingView style={s.createBackdrop} behavior={Platform.OS==='ios'?'padding':'height'}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setCreating(false)}/>
-        <View style={s.createSheet}>
-          <View style={s.createHandle}/>
-          <View style={s.createHeader}><View><Typography style={s.createTitle}>Nowe spotkanie</Typography><Typography style={s.createSubtitle}>Konkretny termin, miejsce i liczba miejsc</Typography></View><Pressable onPress={()=>setCreating(false)} style={s.iconButton}><Ionicons name="close" size={23} color={c.ink}/></Pressable></View>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Typography style={s.fieldLabel}>Co robicie?</Typography>
-            <TextInput value={createTitle} onChangeText={setCreateTitle} maxLength={120} placeholder="Np. Matcha + spacer" placeholderTextColor={c.muted} style={s.input}/>
-            <Typography style={s.fieldLabel}>Miejsce</Typography>
-            <TextInput value={createPlace} onChangeText={setCreatePlace} maxLength={160} placeholder="Np. Rynek / nazwa kawiarni" placeholderTextColor={c.muted} style={s.input}/>
-            <View style={s.dateRow}>
-              <View style={{flex:1}}><Typography style={s.fieldLabel}>Data</Typography><TextInput value={createDate} onChangeText={setCreateDate} keyboardType="numbers-and-punctuation" placeholder="2026-09-30" placeholderTextColor={c.muted} style={s.input}/></View>
-              <View style={{width:120}}><Typography style={s.fieldLabel}>Godzina</Typography><TextInput value={createTime} onChangeText={setCreateTime} keyboardType="numbers-and-punctuation" placeholder="18:00" placeholderTextColor={c.muted} style={s.input}/></View>
-            </View>
-            <Typography style={s.fieldLabel}>Liczba miejsc</Typography>
-            <TextInput value={createCapacity} onChangeText={setCreateCapacity} keyboardType="number-pad" maxLength={2} placeholder="6" placeholderTextColor={c.muted} style={s.input}/>
-            <Typography style={s.fieldLabel}>Opis</Typography>
-            <TextInput value={createDescription} onChangeText={setCreateDescription} multiline maxLength={1200} placeholder="Jaki klimat, dla kogo, co warto wiedzieć?" placeholderTextColor={c.muted} style={[s.input,s.descriptionInput]}/>
-            <View style={s.cityPill}><Ionicons name="location-outline" size={15} color={c.pink}/><Typography style={s.cityPillText}>{city}</Typography></View>
-            <Button title={createBusy?'Tworzę…':'Utwórz spotkanie'} disabled={createBusy} onPress={submitMeeting} style={{marginTop:sp.md}}/>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="meeting" city={city} busy={createBusy} onSubmit={submitActivity}/>
 
     <Modal visible={!!selected} animationType="slide" onRequestClose={()=>setSelected(null)}>
       {!!selected&&<View style={s.detailRoot}>
