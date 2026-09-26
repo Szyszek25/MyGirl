@@ -218,7 +218,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     { text: 'Anuluj', style: 'cancel' }, { text: 'Zablokuj', style: 'destructive', onPress: () => onBlock(person.id) }
   ]);
 
-  const stack = [0, 1, 2].map(offset => filtered.length ? filtered[(index + offset) % filtered.length] : null).filter(Boolean);
+  const stack = Array.from({length:Math.min(3,filtered.length)},(_,offset)=>filtered[(index+offset)%filtered.length]);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingBottom: 80 }]}>
     <View style={s.discoverControls}><View style={{ flex: 1 }}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography>{selectedTags.length > 0 && <Typography style={s.activeFilterHint}>{selectedTags.length} aktywne filtry</Typography>}</View><Pressable onPress={() => setSearchOpen(true)} style={s.filterButton} accessibilityLabel="Szukaj koleżanki"><Ionicons name="search-outline" size={22} color={c.ink} /></Pressable><Pressable onPress={() => setFiltersOpen(true)} style={s.filterButton} accessibilityLabel="Filtry"><Ionicons name="options-outline" size={22} color={selectedTags.length ? c.pink : c.ink} /></Pressable></View>
     {person ? <>
