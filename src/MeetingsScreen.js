@@ -190,7 +190,8 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       {!data.length&&<View style={s.empty}><Typography style={s.emptyTitle}>Brak spotkań w {city}</Typography><Typography style={s.emptyText}>Zmień miasto u góry albo wróć później.</Typography></View>}
     </ScrollView>
 
-    {creating&&businessAccount&&<View style={s.businessCreatorBar}><Typography style={s.businessCreatorLabel}>Publikujesz jako</Typography><Pressable onPress={()=>setCreateAsBusiness(v=>!v)} style={s.businessCreatorSwitch}><Ionicons name={createAsBusiness?"storefront":"person"} size={16} color={c.pink}/><Typography style={s.businessCreatorText}>{createAsBusiness?businessAccount.name:"Profil prywatny"}</Typography><Ionicons name="swap-horizontal" size={16} color={c.muted}/></Pressable></View>}\n    <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="meeting" city={city} busy={createBusy} onSubmit={submitActivity}/>
+    {creating&&businessAccount&&<View style={s.businessCreatorBar}><Typography style={s.businessCreatorLabel}>Publikujesz jako</Typography><Pressable onPress={()=>setCreateAsBusiness(v=>!v)} style={s.businessCreatorSwitch}><Ionicons name={createAsBusiness?"storefront":"person"} size={16} color={c.pink}/><Typography style={s.businessCreatorText}>{createAsBusiness?businessAccount.name:"Profil prywatny"}</Typography><Ionicons name="swap-horizontal" size={16} color={c.muted}/></Pressable></View>}
+    <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="meeting" city={city} busy={createBusy} onSubmit={submitActivity}/>
 
     <Modal visible={!!selected} animationType="slide" onRequestClose={()=>setSelected(null)}>
       {!!selected&&<View style={s.detailRoot}>
