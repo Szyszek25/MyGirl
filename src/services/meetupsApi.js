@@ -2,7 +2,7 @@ import {supabase} from '../lib/supabase';
 
 export async function loadMeetups(city,userId){
   const {data:rows,error}=await supabase.from('meetups')
-    .select('id,host_id,business_id,group_id,title,description,city,venue_name,maps_url,starts_at,capacity,created_at')
+    .select('id,host_id,business_id,group_id,title,description,city,venue_name,maps_url,cover_photo_url,starts_at,capacity,created_at')
     .eq('city',city).gte('starts_at',new Date(Date.now()-86400000).toISOString())
     .order('starts_at',{ascending:true}).limit(80);
   if(error)throw error;
@@ -31,7 +31,7 @@ export async function loadMeetups(city,userId){
       place:row.venue_name||row.city,description:row.description,spots:row.capacity,
       joined:rs.length,participants,host:business?.name||host.display_name||'Polka',
       hostPhoto:signedAvatars.get(row.host_id)||null,businessId:business?.id||null,isBusiness:!!business,
-      mapsUrl:row.maps_url||null,hostId:row.host_id,remote:true,
+      mapsUrl:row.maps_url||null,coverPhotoUrl:row.cover_photo_url||null,hostId:row.host_id,remote:true,
       joinedByMe:!!userId&&rs.some(r=>r.user_id===userId&&r.status==='going')
     };
   });
