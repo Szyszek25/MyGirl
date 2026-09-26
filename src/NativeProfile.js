@@ -56,15 +56,15 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
   };
   const selectGalleryPhotos=async()=>{
     try{
-      const remaining=Math.max(0,6-(draft.galleryPhotos||[]).length);
-      if(!remaining){setNotice('Możesz dodać maksymalnie 6 zdjęć.');return;}
+      const remaining=Math.max(0,9-(draft.galleryPhotos||[]).length);
+      if(!remaining){setNotice('Możesz dodać maksymalnie 9 zdjęć.');return;}
       const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();
       if(perm.status!=='granted'){Alert.alert('Brak uprawnień','Zezwól Polce na dostęp do galerii w ustawieniach telefonu.');return;}
       const selection=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsMultipleSelection:true,selectionLimit:remaining,quality:0.85});
       if(selection.canceled)return;
       const picked=(selection.assets||[]).filter(item=>item?.uri).slice(0,remaining);
       if(picked.some(item=>item.fileSize&&item.fileSize>8*1024*1024))throw new Error('Jedno ze zdjęć jest za duże. Maksymalny rozmiar to 8 MB.');
-      edit('galleryPhotos',[...(draft.galleryPhotos||[]),...picked.map(item=>({path:null,url:item.uri}))].slice(0,6));
+      edit('galleryPhotos',[...(draft.galleryPhotos||[]),...picked.map(item=>({path:null,url:item.uri}))].slice(0,9));
       setNotice('Zdjęcia zapiszą się po naciśnięciu „Zapisz”.');
     }catch(error){Alert.alert('Nie udało się dodać zdjęć',error.message||'Spróbuj ponownie.');}
   };
@@ -168,14 +168,14 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
               <View style={s.wrap}>{availableInterests.map(interest=><Chip key={interest} label={interest} selected={draft.interests.includes(interest)} onPress={()=>edit('interests',draft.interests.includes(interest)?draft.interests.filter(item=>item!==interest):[...draft.interests,interest])}/>)}</View>
             </Surface>
             <Surface>
-              <View style={s.galleryHeader}><Typography variant="subtitle" style={s.title}>Zdjęcia profilu</Typography><Typography style={s.galleryCount}>{(draft.galleryPhotos||[]).length}/6</Typography></View>
+              <View style={s.galleryHeader}><Typography variant="subtitle" style={s.title}>Zdjęcia profilu</Typography><Typography style={s.galleryCount}>{(draft.galleryPhotos||[]).length}/9</Typography></View>
               <Typography style={s.galleryHelp}>Pojawią się na dole profilu w Poznaj jako duże kafelki.</Typography>
               <View style={s.galleryGrid}>
                 {(draft.galleryPhotos||[]).map((item,index)=><View key={item.path||item.url||index} style={s.galleryEditItem}>
                   <Image source={{uri:item.url||item}} style={[s.galleryThumb,s.galleryEditPhoto]}/>
                   <Pressable accessibilityLabel="Usuń zdjęcie" onPress={()=>edit('galleryPhotos',(draft.galleryPhotos||[]).filter((_,i)=>i!==index))} style={s.galleryRemove}><Ionicons name="close" size={18} color={c.white}/></Pressable>
                 </View>)}
-                {(draft.galleryPhotos||[]).length<6&&<Pressable onPress={selectGalleryPhotos} style={s.galleryAdd}><Ionicons name="add" size={28} color={c.pink}/><Typography style={s.galleryAddText}>Dodaj</Typography></Pressable>}
+                {(draft.galleryPhotos||[]).length<9&&<Pressable onPress={selectGalleryPhotos} style={s.galleryAdd}><Ionicons name="add" size={28} color={c.pink}/><Typography style={s.galleryAddText}>Dodaj</Typography></Pressable>}
               </View>
             </Surface>
             <Surface>
