@@ -8,8 +8,8 @@ import { resendVerificationOtp, signInApple, signInEmail, signInGoogle, signUpEm
 
 const HERO = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
 const HERO_VIDEO = 'https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
-const PRIVACY_URL = 'https://polka.app/privacy.html';
-const TERMS_URL = 'https://polka.app/terms.html';
+const PRIVACY_URL = 'https://polka-red.vercel.app/privacy.html';
+const TERMS_URL = 'https://polka-red.vercel.app/terms.html';
 
 export default function WelcomeScreen({ onContinue, onBusiness }) {
   const [emailMode, setEmailMode] = useState(false);
