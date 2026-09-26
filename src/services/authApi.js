@@ -123,6 +123,9 @@ export async function resetPassword(email){
 export async function deleteAccount(){
   const {data,error}=await supabase.functions.invoke('delete-account',{body:{confirm:'DELETE_MY_ACCOUNT'}});
   if(error)throw error;
+  // The server removes auth.users and cascaded app data. Clear the persisted
+  // client session locally as well so a deleted account cannot reappear after restart.
+  await supabase.auth.signOut({scope:'local'}).catch(()=>{});
   return data;
 }
 
