@@ -34,7 +34,7 @@ export async function loadPlans(city,userId){
       joinedCount:joined.length,
       capacity:row.capacity,
       category:row.category,
-      photo:row.cover_photo_url||'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80',
+      photo:row.cover_photo_url||photo,
       hostPhoto:photo,
       host:p.display_name||'Polka',
       hostId:row.host_id,
