@@ -1175,7 +1175,7 @@ function VoiceMessageBubble({ message, outgoing = false }) {
   </Pressable>;
 }
 
-export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onConversationStateChange, onOpenChat, onOpenMeetup, onOpenProfile, onOpenGroup }) {
+export function ChatsScreen({ conversationBackRef = null, sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onConversationStateChange, onOpenChat, onOpenMeetup, onOpenProfile, onOpenGroup }) {
   const formatActivityStatus = lastActiveAt => {
     if (!lastActiveAt) return 'ostatnio aktywna niedawno';
     const ts = new Date(lastActiveAt).getTime();
@@ -1200,6 +1200,15 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const [previewImage, setPreviewImage] = useState(null);
   const [chatProfileOpen, setChatProfileOpen] = useState(false);
   useEffect(() => { onConversationStateChange?.(!!active); }, [active, onConversationStateChange]);
+  useEffect(() => {
+    if (!conversationBackRef) return undefined;
+    conversationBackRef.current = () => {
+      setActive(null);
+      setChatProfileOpen(false);
+      setPreviewImage(null);
+    };
+    return () => { conversationBackRef.current = null; };
+  }, [conversationBackRef]);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
