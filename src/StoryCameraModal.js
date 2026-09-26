@@ -216,14 +216,7 @@ export default function StoryCameraModal({ visible, city = 'Warszawa', onClose, 
     setPublishing(true);
     try {
       const fullCaption = [mood, caption.trim()].filter(Boolean).join(' · ');
-      // Extract tags from mood and caption
-      const tagWords = [mood, caption.trim()]
-        .filter(Boolean)
-        .flatMap(s => s.split(/[\s·,]+/))
-        .map(w => w.trim())
-        .filter(w => w.length > 1)
-        .slice(0, 5);
-      await onPublish({ uri: capturedMedia.uri, caption: fullCaption, tags: tagWords });
+      await onPublish({ uri: capturedMedia.uri, caption: fullCaption });
       resetAll();
       onClose();
     } catch (err) {
