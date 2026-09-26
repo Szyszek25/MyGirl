@@ -28,7 +28,7 @@ export async function loadFeed(city,userId){
   if(error)throw error;
   const ids=[...new Set((rows||[]).map(r=>r.author_id))];
   const {data:profiles,error:profilesError}=ids.length
-    ? await supabase.from('profiles').select('id,display_name,city,avatar_path').in('id',ids)
+    ? await supabase.from('profiles').select('id,display_name,city,avatar_path,avatar_thumb_path').in('id',ids)
     : {data:[],error:null};
   if(profilesError)throw profilesError;
   const profileMap=new Map((profiles||[]).map(p=>[p.id,p]));
@@ -66,7 +66,7 @@ export async function loadFeed(city,userId){
       commentsCount:comments.filter(c=>c.post_id===row.id).length,
       reactions:reactions.filter(r=>r.post_id===row.id).reduce((acc,r)=>({...acc,[r.reaction]:(acc[r.reaction]||0)+1}),{}),
       myReaction:reactions.find(r=>r.post_id===row.id&&r.user_id===userId)?.reaction||null,
-      avatar:profile.avatar_path?await signed('polka-avatars',profile.avatar_path):null,
+      avatar:(profile.avatar_thumb_path||profile.avatar_path)?await signed('polka-avatars',profile.avatar_thumb_path||profile.avatar_path):null,
       aspectRatio: (/matcha|pilates|spacer|vintage|second hand/i.test(row.body || '') || (row.media_path || '').includes('matcha')) ? '4:5' : '16:9',
       remote:true
     };
@@ -135,7 +135,7 @@ export async function loadComments(postId){
   if(error)throw error;
   const ids=[...new Set((rows||[]).map(r=>r.author_id))];
   const {data:profiles,error:pError}=ids.length
-    ? await supabase.from('profiles').select('id,display_name,avatar_path').in('id',ids)
+    ? await supabase.from('profiles').select('id,display_name,avatar_path,avatar_thumb_path').in('id',ids)
     : {data:[],error:null};
   if(pError)throw pError;
   const profileMap=new Map((profiles||[]).map(p=>[p.id,p]));
@@ -144,7 +144,7 @@ export async function loadComments(postId){
     return {
       id:row.id,authorId:row.author_id,author:p.display_name||'Polka',body:row.body,
       parentId:row.parent_id,createdAt:row.created_at,editedAt:row.edited_at,
-      photo:p.avatar_path?await signed('polka-avatars',p.avatar_path):null
+      photo:(p.avatar_thumb_path||p.avatar_path)?await signed('polka-avatars',p.avatar_thumb_path||p.avatar_path):null
     };
   }));
 }
@@ -166,7 +166,7 @@ export async function loadStories(userId,city){
   if(error)throw error;
   const ids=[...new Set((rows||[]).map(r=>r.author_id))];
   const {data:profiles,error:pError}=ids.length
-    ? await supabase.from('profiles').select('id,display_name,city,avatar_path').in('id',ids)
+    ? await supabase.from('profiles').select('id,display_name,city,avatar_path,avatar_thumb_path').in('id',ids)
     : {data:[],error:null};
   if(pError)throw pError;
   const pmap=new Map((profiles||[]).map(p=>[p.id,p]));
@@ -187,7 +187,7 @@ export async function loadStories(userId,city){
       id:row.id,authorId:row.author_id,name:p.display_name||'Polka',caption:row.caption,
       mediaType:row.media_type,createdAt:row.created_at,viewed:viewedIds.has(row.id),
       mediaUrl:await signed('polka-story-media',row.media_path),
-      avatar:p.avatar_path?await signed('polka-avatars',p.avatar_path):null
+      avatar:(p.avatar_thumb_path||p.avatar_path)?await signed('polka-avatars',p.avatar_thumb_path||p.avatar_path):null
     };
   }));
   return mapped.filter(Boolean);
