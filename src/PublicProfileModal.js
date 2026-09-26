@@ -74,7 +74,7 @@ export default function PublicProfileModal({
       setLoading(true);
       supabase
         .from('profiles')
-        .select('id, display_name, city, bio, avatar_path, created_at')
+        .select('id, display_name, city, bio, avatar_path, created_at, profile_prompt, profile_answer')
         .eq('id', authorId)
         .single()
         .then(async ({ data, error }) => {
@@ -109,6 +109,8 @@ export default function PublicProfileModal({
             bio: data.bio || prev.bio,
             photo: avatarUrl || prev.photo,
             createdAt: data.created_at || prev.createdAt,
+            prompt: data.profile_prompt || prev.prompt,
+            answer: data.profile_answer || prev.answer,
             tags: interests?.length ? interests.map(i => i.interest) : prev.tags,
             galleryPhotos
           }));
