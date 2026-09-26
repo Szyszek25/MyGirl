@@ -2,7 +2,7 @@ import {supabase} from '../lib/supabase';
 
 export async function loadPlans(city,userId){
   const {data:rows,error}=await supabase.from('plans')
-    .select('id,host_id,title,city,category,timing_label,details,capacity,created_at,expires_at')
+    .select('id,host_id,title,city,category,timing_label,details,capacity,cover_photo_url,created_at,expires_at')
     .eq('city',city)
     .gt('expires_at',new Date().toISOString())
     .order('created_at',{ascending:false})
@@ -33,7 +33,8 @@ export async function loadPlans(city,userId){
       joinedCount:joined.length,
       capacity:row.capacity,
       category:row.category,
-      photo:photo||'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80',
+      photo:row.cover_photo_url||'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80',
+      hostPhoto:photo,
       host:p.display_name||'Polka',
       hostId:row.host_id,
       details:row.details||'',
