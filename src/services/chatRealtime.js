@@ -86,6 +86,7 @@ export function createChatRealtime(client){
         avatarUrl:room.group_id?groupMap.get(room.group_id)||null:(other?.avatar_url||null),
         meetupId:room.meetup_id||null,
         groupId:room.group_id||null,
+        memberProfiles:room.kind==='group'?roomMembers.filter(row=>row.user_id!==userId).map(row=>profileMap.get(row.user_id)).filter(Boolean):[],
         lastActiveAt:other?.last_active_at||null,
         last:last?.body||'Nowa rozmowa',
         time:last?.created_at||room.updated_at||room.created_at
