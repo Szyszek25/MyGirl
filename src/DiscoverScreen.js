@@ -1,10 +1,10 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {Alert,Image,KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,Image,Modal,Pressable,ScrollView,Share,StyleSheet,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {cities,people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Chip,Typography} from './ui';
-import {createPlan,loadPlans,setPlanJoined} from './services/plansApi';
+import {createPlan,deletePlan,loadPlans,setPlanJoined,updatePlan} from './services/plansApi';
 import {createMeetup} from './services/meetupsApi';
 import CreateActivityModal from './CreateActivityModal';
 
@@ -35,6 +35,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
   const [title,setTitle]=useState('');
   const [joined,setJoined]=useState([]);
   const [selected,setSelected]=useState(null);
+  const [editing,setEditing]=useState(null);
   useEffect(()=>{
     if(!sessionUserId){setPlans(starterPlans);setRemoteLoaded(false);return;}
     let alive=true;
@@ -62,12 +63,21 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
         await createMeetup(sessionUserId,{title:form.title,description:form.description,city,venueName:form.place,startsAt:startsAt.toISOString(),capacity:form.capacity});
       }else{
         const timing=form.date?(form.time?`${form.date} · ${form.time}`:form.date):'Termin do ustalenia';
-        await createPlan(sessionUserId,{title:form.title,city:city==='Wszystkie'?'Warszawa':city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:timing,details:[form.place,form.description].filter(Boolean).join(' · '),capacity:6});
+        await createPlan(sessionUserId,{title:form.title,city:city==='Wszystkie'?'Warszawa':city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:timing,details:[form.place,form.description].filter(Boolean).join(' · '),capacity:6,coverUri:form.coverUri});
         const rows=await loadPlans(city,sessionUserId);setPlans(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
       }
       setCreating(false);
     }catch(error){Alert.alert('Nie utworzono',error.message||'Spróbuj ponownie.');}
   };
+
+  const editSelected=async form=>{
+    if(!editing||editing.hostId!==sessionUserId)return;
+    const timing=form.date?(form.time?`${form.date} · ${form.time}`:form.date):editing.when;
+    await updatePlan(editing.id,sessionUserId,{title:form.title,timingLabel:timing,details:[form.place,form.description].filter(Boolean).join(' · '),capacity:form.capacity,coverUri:form.coverUri&&form.coverUri!==editing.coverPhotoUrl?form.coverUri:null});
+    const rows=await loadPlans(city,sessionUserId);setPlans(rows);setEditing(null);setSelected(rows.find(x=>x.id===editing.id)||null);
+  };
+  const removeSelected=plan=>Alert.alert('Usunąć plan?',plan.title,[{text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:async()=>{await deletePlan(plan.id,sessionUserId);setSelected(null);const rows=await loadPlans(city,sessionUserId);setPlans(rows);}}]);
+  const sharePlan=plan=>Share.share({message:`${plan.title} · ${plan.when} · ${plan.city}\nhttps://polka-red.vercel.app/plan/${plan.id}`});
 
   const toggleJoined=async plan=>{
     const currently=joined.includes(plan.id);
@@ -121,7 +131,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
         <View style={s.detailHeader}>
           <Pressable onPress={()=>setSelected(null)} style={s.detailIcon}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
           <Typography style={s.detailHeaderTitle}>Plan</Typography>
-          <View style={s.detailIcon}/>
+          <Pressable onPress={()=>sharePlan(selected)} style={s.detailIcon}><Ionicons name="share-outline" size={22} color={c.ink}/></Pressable>
         </View>
         <ScrollView contentContainerStyle={s.detailContent} showsVerticalScrollIndicator={false}>
           <Image source={{uri:selected.photo}} style={s.detailHero}/>
@@ -133,6 +143,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
             {(selected.remote?selected.hostPhoto:(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo))?<Image source={{uri:selected.remote?selected.hostPhoto:(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo)}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
             <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
           </View>
+          {selected.remote&&selected.hostId===sessionUserId&&<View style={s.hostActions}><Pressable onPress={()=>setEditing(selected)} style={s.hostAction}><Ionicons name="create-outline" size={18} color={c.ink}/><Typography style={s.hostActionText}>Edytuj</Typography></Pressable><Pressable onPress={()=>removeSelected(selected)} style={s.hostAction}><Ionicons name="trash-outline" size={18} color={c.pink}/><Typography style={[s.hostActionText,{color:c.pink}]}>Usuń</Typography></Pressable></View>}
           <View style={s.detailActionRow}>
             <Pressable onPress={()=>toggleJoined(selected)} style={[s.detailJoinBtn,joined.includes(selected.id)&&s.detailJoinBtnActive]}>
               <Typography style={[s.detailJoinText,joined.includes(selected.id)&&s.detailJoinTextActive]}>{joined.includes(selected.id)?'Wycofaj udział':'Dołącz do planu'}</Typography>
@@ -143,6 +154,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
     </Modal>
 
     <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="plan" city={city} onSubmit={addActivity}/>
+    <CreateActivityModal visible={!!editing} onClose={()=>setEditing(null)} initialType="plan" city={editing?.city||city} initialValues={editing?{title:editing.title,description:editing.details,capacity:editing.capacity,coverPhotoUrl:editing.coverPhotoUrl}:null} onSubmit={editSelected}/>
   </View>;
 }
 
@@ -196,7 +208,7 @@ const s=StyleSheet.create({
   detailHostAvatar:{width:46,height:46,borderRadius:23,backgroundColor:c.blush},
   detailHostLabel:{fontFamily:f.regular,fontSize:11,color:c.muted},
   detailHostName:{fontFamily:f.bold,fontSize:16,color:c.ink,marginTop:2},
-  detailActionRow:{paddingHorizontal:sp.lg,marginTop:4,alignItems:'flex-start'},
+  hostActions:{paddingHorizontal:sp.lg,flexDirection:'row',gap:10,marginBottom:8},hostAction:{height:42,borderWidth:1,borderColor:c.line,borderRadius:13,paddingHorizontal:14,flexDirection:'row',alignItems:'center',gap:7},hostActionText:{fontFamily:f.bold,fontSize:13,color:c.ink},detailActionRow:{paddingHorizontal:sp.lg,marginTop:4,alignItems:'flex-start'},
   detailJoinBtn:{minHeight:46,borderRadius:14,backgroundColor:c.pink,paddingHorizontal:20,alignItems:'center',justifyContent:'center'},
   detailJoinBtnActive:{backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
   detailJoinText:{fontFamily:f.bold,fontSize:14,color:c.white},
