@@ -14,7 +14,7 @@ function formatPostTime(createdAt) {
 }
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
@@ -1175,7 +1175,7 @@ function VoiceMessageBubble({ message, outgoing = false }) {
   </Pressable>;
 }
 
-export function ChatsScreen({ backRequest = 0, sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat, onOpenMeetup, onOpenProfile, onOpenGroup }) {
+export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onConversationStateChange, onOpenChat, onOpenMeetup, onOpenProfile, onOpenGroup }) {
   const formatActivityStatus = lastActiveAt => {
     if (!lastActiveAt) return 'ostatnio aktywna niedawno';
     const ts = new Date(lastActiveAt).getTime();
@@ -1197,35 +1197,12 @@ export function ChatsScreen({ backRequest = 0, sessionUserId = null, initialConv
   const [remoteMessages, setRemoteMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const activeRef = React.useRef(null);
-  useEffect(() => { activeRef.current = active; }, [active]);
-  useEffect(() => {
-    if (Platform.OS !== 'android') return undefined;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!activeRef.current) return false;
-      setActive(null);
-      setChatProfileOpen(false);
-      setPreviewImage(null);
-      return true;
-    });
-    return () => sub.remove();
-  }, []);
   const [previewImage, setPreviewImage] = useState(null);
   const [chatProfileOpen, setChatProfileOpen] = useState(false);
+  useEffect(() => { onConversationStateChange?.(!!active); }, [active, onConversationStateChange]);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
-
-  useEffect(() => {
-    if (!backRequest) return;
-    if (active) {
-      setActive(null);
-      setChatProfileOpen(false);
-      setPreviewImage(null);
-      return;
-    }
-    onClose?.();
-  }, [backRequest]);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
