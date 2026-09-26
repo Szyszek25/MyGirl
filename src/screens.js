@@ -479,6 +479,9 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   const [commentPost, setCommentPost] = useState(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [comments, setComments] = useState({});
+  const [replyingTo, setReplyingTo] = useState(null);
+  const commentInputRef = useRef(null);
+  const focusCommentOnOpenRef = useRef(false);
   const [remotePosts, setRemotePosts] = useState([]);
   const [stories, setStories] = useState([]);
   const [storyOpen, setStoryOpen] = useState(null);
@@ -689,7 +692,9 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     { id: `${post.id}-c2`, author: 'Ola', body: 'Brzmi super, o której dokładnie?', photo: people[1].photo }
   ];
 
-  const openComments = async post => {
+  const openComments = async (post, focusInput = false) => {
+    focusCommentOnOpenRef.current = focusInput;
+    setReplyingTo(null);
     setCommentPost(post);
     if (sessionUserId && post.remote) {
       try {
@@ -699,20 +704,38 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     }
   };
 
+  useEffect(() => {
+    if (!commentPost || !focusCommentOnOpenRef.current) return;
+    const timer = setTimeout(() => {
+      commentInputRef.current?.focus?.();
+      focusCommentOnOpenRef.current = false;
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [commentPost]);
+
+  const startReply = comment => {
+    setReplyingTo(comment);
+    const mention = '@' + String(comment.author || 'polka').replace(/\\s+/g, '');
+    setCommentDraft(prev => prev.trim() ? prev : mention + ' ');
+    setTimeout(() => commentInputRef.current?.focus?.(), 40);
+  };
+
   const addCommentLocalOrRemote = async () => {
     if (!commentPost || !commentDraft.trim()) return;
     const body = commentDraft.trim();
+    const parentId = replyingTo?.id || null;
     setCommentDraft('');
+    setReplyingTo(null);
     if (sessionUserId && commentPost.remote) {
       try {
-        await addComment(commentPost.id, sessionUserId, body);
+        await addComment(commentPost.id, sessionUserId, body, parentId);
         const rows = await loadComments(commentPost.id);
         setComments(prev => ({ ...prev, [commentPost.id]: rows }));
         setRemotePosts(prev => prev.map(p => p.id === commentPost.id ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p));
       } catch (error) { setCommentDraft(body); Alert.alert('Nie dodano komentarza', error.message || 'Spróbuj ponownie.'); }
       return;
     }
-    const next = { id: `${commentPost.id}-${Date.now()}`, author: 'Ty', body, photo: null, createdAt: new Date().toISOString() };
+    const next = { id: `${commentPost.id}-${Date.now()}`, author: 'Ty', body, photo: null, parentId, createdAt: new Date().toISOString() };
     setComments(prev => ({ ...prev, [commentPost.id]: [...seededComments(commentPost), next] }));
   };
 
@@ -951,8 +974,8 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             ? <View style={{ flexDirection: 'row' }}><TextAction icon="create-outline" title={isAdmin && item.authorId !== sessionUserId ? 'Edytuj jako admin' : 'Edytuj'} onPress={() => startEdit(item)} /><TextAction icon="trash-outline" title="Usuń" danger onPress={() => deleteOwnPost(item)} /></View>
             : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'post', id: item.id, label: `Wpis: ${item.author}` })} />}
         </View>
-        <Pressable onPress={() => openComments(item)} style={s.commentComposerPreview}>
-          <Image source={{ uri: item.authorId === sessionUserId ? (item.avatar || people[0]?.photo) : (people[0]?.photo || item.avatar) }} style={s.commentComposerAvatar} />
+        <Pressable onPress={() => openComments(item, true)} style={s.commentComposerPreview}>
+          <Image source={{ uri: remotePosts.find(post => post.authorId === sessionUserId)?.avatar || people[0]?.photo }} style={s.commentComposerAvatar} />
           <Typography numberOfLines={1} style={s.commentComposerPlaceholder}>Napisz komentarz...</Typography>
         </Pressable>
       </View>}
@@ -1010,14 +1033,31 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             <Typography style={s.postBody}>{commentPost.body}</Typography>
             {!!commentPost.image && <Pressable onPress={()=>setPreviewImage(commentPost.image)}><Image source={{ uri: commentPost.image }} style={s.commentPostImage} resizeMode="cover" /></Pressable>}
           </View>
-          {seededComments(commentPost).map(comment => <View key={comment.id} style={s.commentRow}>
-            {comment.photo ? avatar(comment.photo, 38) : <View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink} /></View>}
-            <View style={s.commentBubble}><Typography style={s.commentAuthor}>{comment.author}</Typography><Typography style={s.commentBody}>{comment.body}</Typography><View style={s.commentMetaRow}><Typography style={s.commentMeta}>{formatPostTime(comment.createdAt || Date.now())}</Typography><Typography style={s.commentMeta}>Odpowiedz</Typography></View></View>
-          </View>)}
+          {(() => {
+            const all = seededComments(commentPost);
+            const roots = all.filter(comment => !comment.parentId);
+            const renderComment = (comment, nested = false) => <View key={comment.id} style={[s.commentRow, nested && s.commentReplyRow]}>
+              <Pressable onPress={() => comment.authorId && setSelectedProfile({ name: comment.author, authorId: comment.authorId, avatar: comment.photo })}>
+                {comment.photo ? avatar(comment.photo, nested ? 30 : 38) : <View style={[s.commentAvatar, nested && s.commentReplyAvatar]}><Ionicons name="person" size={nested ? 14 : 17} color={c.pink} /></View>}
+              </Pressable>
+              <View style={s.commentBubble}>
+                <Pressable onPress={() => comment.authorId && setSelectedProfile({ name: comment.author, authorId: comment.authorId, avatar: comment.photo })}>
+                  <Typography style={s.commentAuthor}>{comment.author}</Typography>
+                </Pressable>
+                <Typography style={s.commentBody}>{comment.body}</Typography>
+                <View style={s.commentMetaRow}>
+                  <Typography style={s.commentMeta}>{formatPostTime(comment.createdAt || Date.now())}</Typography>
+                  <Pressable onPress={() => startReply(comment)}><Typography style={s.commentReplyAction}>Odpowiedz</Typography></Pressable>
+                </View>
+              </View>
+            </View>;
+            return roots.flatMap(root => [renderComment(root), ...all.filter(reply => reply.parentId === root.id).map(reply => renderComment(reply, true))]);
+          })()}
         </ScrollView>
+        {!!replyingTo && <View style={s.replyingBar}><Typography numberOfLines={1} style={s.replyingText}>{'Odpowiadasz ' + replyingTo.author}</Typography><Pressable onPress={() => setReplyingTo(null)}><Ionicons name="close" size={18} color={c.muted} /></Pressable></View>}
         <View style={s.commentComposer}>
           <View style={s.commentAvatar}><Ionicons name="person" size={17} color={c.pink} /></View>
-          <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Napisz komentarz…" placeholderTextColor={c.muted} multiline maxLength={800} style={s.commentInput} />
+          <TextInput ref={commentInputRef} value={commentDraft} onChangeText={setCommentDraft} placeholder="Napisz komentarz…" placeholderTextColor={c.muted} multiline maxLength={800} style={s.commentInput} />
           <Pressable onPress={addCommentLocalOrRemote} disabled={!commentDraft.trim()} style={[s.commentSend, !commentDraft.trim() && { opacity: .35 }]}><Ionicons name="arrow-up" size={19} color={c.white} /></Pressable>
         </View>
       </KeyboardAvoidingView>}
@@ -1617,7 +1657,7 @@ const s = StyleSheet.create({
   postActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   postActionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   commentComposerPreview: { marginTop: 8, marginBottom: 2, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.white },
-  commentComposerAvatar: { width: 32, height: 32, borderRadius: 999, backgroundColor: c.soft },
+  commentComposerAvatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.soft, borderWidth: 1, borderColor: c.line, overflow: 'hidden' },
   commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, color: c.muted },
   commentsRoot: { flex: 1, backgroundColor: c.white },
   commentsHeader: { height: 60, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
@@ -1627,12 +1667,17 @@ const s = StyleSheet.create({
   commentsContent: { paddingBottom: 24 },
   commentPostBox: { paddingHorizontal: sp.lg, paddingVertical: 16, backgroundColor: c.white, borderBottomWidth: 1, borderBottomColor: c.line },
   commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: sp.lg, paddingTop: 14 },
+  commentReplyRow: { marginLeft: 42, paddingTop: 8 },
+  commentReplyAvatar: { width: 30, height: 30, borderRadius: 15 },
   commentAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: c.blush, alignItems: 'center', justifyContent: 'center' },
   commentBubble: { flex: 1, backgroundColor: c.white, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.line },
   commentAuthor: { fontFamily: f.bold, fontSize: 13, color: c.ink },
   commentBody: { fontFamily: f.regular, fontSize: 14, lineHeight: 20, color: c.ink, marginTop: 2 },
   commentMetaRow: { flexDirection: 'row', gap: 14, marginTop: 8 },
   commentMeta: { fontFamily: f.semibold, fontSize: 11, color: c.muted },
+  commentReplyAction: { fontFamily: f.semibold, fontSize: 11, color: c.pink },
+  replyingBar: { minHeight: 34, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.canvas, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
+  replyingText: { flex: 1, fontFamily: f.semibold, fontSize: 12, color: c.muted },
   commentComposer: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line, backgroundColor: c.white },
   commentInput: { flex: 1, maxHeight: 110, minHeight: 42, borderRadius: 21, backgroundColor: c.canvas, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, fontFamily: f.regular, fontSize: 14, color: c.ink, textAlignVertical: 'center' },
   commentSend: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center' },
