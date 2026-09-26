@@ -40,6 +40,7 @@ function TextAction({ icon, title, onPress, danger = false }) { return <Pressabl
 export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, onReport, onMessage, sessionUserId = null, zodiacEnabled = true, userZodiac = null, styleEnabled = true, userStyle = null }) {
   const [index, setIndex] = useState(0), [saved, setSaved] = useState([]);
   const [remotePeople, setRemotePeople] = useState([]);
+  const [peopleLoading, setPeopleLoading] = useState(!!sessionUserId);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -52,8 +53,11 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   const [matchedProfile, setMatchedProfile] = useState(null);
   const [dismissedIds, setDismissedIds] = useState([]);
   useEffect(() => {
-    if (!sessionUserId) { setRemotePeople([]); setDismissedIds([]); return; }
+    if (!sessionUserId) { setRemotePeople([]); setDismissedIds([]); setPeopleLoading(false); return; }
     let alive = true;
+    setPeopleLoading(true);
+    setRemotePeople([]);
+    setIndex(0);
     (async () => {
       const [profilesResult, dismissalsResult, requests] = await Promise.all([
         supabase.from('profiles')
@@ -119,8 +123,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           remote: true
         };
       }));
-      if (alive) { setRemotePeople(rows); setDismissedIds(activeDismissedIds); setIndex(0); }
-    })().catch(() => { if (alive) setRemotePeople([]) });
+      if (alive) { setRemotePeople(rows); setDismissedIds(activeDismissedIds); setIndex(0); setPeopleLoading(false); }
+    })().catch(() => { if (alive) { setRemotePeople([]); setPeopleLoading(false); } });
     return () => { alive = false };
   }, [sessionUserId, city]);
 
@@ -164,7 +168,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     if (trickyPairs.has(key)) return { theirs, label: 'może iskrzyć', icon: 'flash', copy: 'Różne tempo i podejście — może być ciekawie, ale nie zawsze bez tarcia.' };
     return { theirs, label: 'neutralnie', icon: 'moon', copy: 'Ani wielki „match”, ani red flag — reszta zależy od Was, nie od znaków.' };
   };
-  const sourcePeople = sessionUserId && remotePeople.length ? remotePeople : people;
+  const sourcePeople = sessionUserId ? remotePeople : people;
   const availableTags = useMemo(() => Array.from(new Set(sourcePeople.filter(p => p.city === city).flatMap(p => p.tags || []))).sort(), [city, sourcePeople]);
   const filtered = sourcePeople.filter(p => !blockedIds.includes(p.id) && !dismissedIds.includes(p.id) && p.city === city && (selectedTags.length === 0 || selectedTags.some(tag => (p.tags || []).includes(tag))));
   const person = filtered.length ? filtered[index % filtered.length] : null;
@@ -264,7 +268,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   const stack = Array.from({length:Math.min(3,filtered.length)},(_,offset)=>filtered[(index+offset)%filtered.length]);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: 8, paddingBottom: 80 }]}>
     <View style={s.discoverControls}><View style={{ flex: 1 }}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography>{selectedTags.length > 0 && <Typography style={s.activeFilterHint}>{selectedTags.length} aktywne filtry</Typography>}</View><Pressable onPress={() => setSearchOpen(true)} style={s.filterButton} accessibilityLabel="Szukaj koleżanki"><Ionicons name="search-outline" size={22} color={c.ink} /></Pressable><Pressable onPress={() => setFiltersOpen(true)} style={s.filterButton} accessibilityLabel="Filtry"><Ionicons name="options-outline" size={22} color={selectedTags.length ? c.pink : c.ink} /></Pressable></View>
-    {person ? <>
+    {peopleLoading ? <View style={s.discoverLoading}><ActivityIndicator size="small" color={c.pink}/><Typography style={s.discoverLoadingText}>Szukam dziewczyn w ${city}…</Typography></View> : person ? <>
       <View style={s.stackWrap}>
         {stack.slice().reverse().map((p, revIndex) => {
           const realOffset = stack.length - 1 - revIndex;
@@ -279,8 +283,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
             <Image source={{ uri: p.photo }} style={s.swipePhoto} resizeMode="cover" />
             <View style={s.cardScrim} />
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
-            <View style={s.cardTapHint} pointerEvents="none"><Ionicons name="expand-outline" size={15} color={c.white}/><Typography style={s.cardTapHintText}>Profil</Typography></View>
-            <Pressable onPress={() => isTop && setProfileOpen(p)} style={s.cardOpenArea} />
+            {isTop && <Pressable onPress={() => setProfileOpen(p)} style={s.cardTapHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`}><Ionicons name="person-circle-outline" size={16} color={c.white}/><Typography style={s.cardTapHintText}>Profil</Typography></Pressable>}
+            <Pressable onPress={() => isTop && setProfileOpen(p)} style={s.cardOpenArea} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`} />
             <View pointerEvents="none" style={s.cardIdentity}>
               <Typography style={s.cardName}>{p.name}{p.age ? `, ${p.age}` : ''}</Typography>
               <Typography style={s.cardMeta}>{p.city} · {(p.tags || []).slice(0, 2).join(' · ')}</Typography>
@@ -961,7 +965,9 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
 
   useEffect(() => {
-    if (active) {
+    const lastOutgoingId = [...visibleMessages].reverse().find(message => message.side === 'out')?.id || null;
+
+  if (active) {
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 120);
     }
   }, [active, remoteMessages.length, messages]);
@@ -1130,7 +1136,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     ]);
 
   if (active) {
-    return <KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 44 : 0}>
+    return <KeyboardAvoidingView style={s.fullChat} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 44 : 0}>
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
         {avatar(active.photo || people[0]?.photo, 42)}
@@ -1139,14 +1145,14 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
       </View>
 
       <ScrollView ref={chatScrollRef} onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: true })} style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
-        <View style={s.dayPill}><Typography style={s.dayText}>{active.remote ? 'Realtime' : 'Dzisiaj'}</Typography></View>
+        {!active.remote && <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>}
         {visibleMessages.map(message => message.side === 'out'
           ? <View key={message.id} style={s.outgoingWrap}>
             {message.messageType === 'voice' ? <VoiceMessageBubble message={message} outgoing /> : <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}
-            <View style={s.deliveryStatusRow}>
+            {message.id === lastOutgoingId && <View style={s.deliveryStatusRow}>
               <Ionicons name="checkmark-done" size={13} color={c.pink} />
               <Typography style={s.deliveryStatusText}>Dostarczono</Typography>
-            </View>
+            </View>}
           </View>
           : <View key={message.id} style={s.incomingMessageRow}>
             {active.group && <Image source={{ uri: supportAuthorPhoto(message.author) }} style={s.groupMessageAvatar} />}
@@ -1155,12 +1161,12 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
               {message.messageType === 'voice' ? <VoiceMessageBubble message={message} /> : <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>}
             </View>
           </View>)}
-        {!active.remote && (messages[active.id] || []).map((message, i) => <View key={'local-' + i} style={s.outgoingWrap}>
+        {!active.remote && (messages[active.id] || []).map((message, i, arr) => <View key={'local-' + i} style={s.outgoingWrap}>
           <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message}</Typography></View>
-          <View style={s.deliveryStatusRow}>
+          {i === arr.length - 1 && <View style={s.deliveryStatusRow}>
             <Ionicons name="checkmark-done" size={13} color={c.pink} />
             <Typography style={s.deliveryStatusText}>Dostarczono</Typography>
-          </View>
+          </View>}
         </View>)}
         {sending && <View style={s.outgoingWrap}>
           <View style={[s.outgoingBubble, { opacity: 0.7 }]}>
@@ -1324,6 +1330,8 @@ const s = StyleSheet.create({
   filterResetText: { fontFamily: f.bold, fontSize: 14, color: c.ink },
   filterApply: { height: 50, flex: 1, borderRadius: 16, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center' },
   filterApplyText: { fontFamily: f.bold, fontSize: 14, color: c.white },
+  discoverLoading: { minHeight: 505, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  discoverLoadingText: { fontFamily: f.semibold, fontSize: 13, color: c.muted },
   stackWrap: { height: 505, marginTop: 8, marginBottom: 0, position: 'relative' },
   swipeCard: { position: 'absolute', left: 0, right: 0, top: 0, height: 490, borderRadius: 28, overflow: 'hidden', backgroundColor: c.white, borderWidth: 1, borderColor: c.line, shadowColor: '#27151D', shadowOpacity: .12, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
   stackCard: { pointerEvents: 'none' },
