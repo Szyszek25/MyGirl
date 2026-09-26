@@ -11,7 +11,7 @@ const HERO_VIDEO = 'https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf56
 const PRIVACY_URL = 'https://polka-red.vercel.app/privacy.html';
 const TERMS_URL = 'https://polka-red.vercel.app/terms.html';
 
-export default function WelcomeScreen({ onContinue, onBusiness }) {
+export default function WelcomeScreen({ onContinue, onBusiness, authFlags = { auth_google: false, auth_apple: false } }) {
   const [emailMode, setEmailMode] = useState(false);
   const [otpStep, setOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState('');
@@ -167,9 +167,9 @@ export default function WelcomeScreen({ onContinue, onBusiness }) {
             <Pressable onPress={() => setEmailMode(false)} style={s.textButton}><Typography style={s.textButtonText}>Wróć</Typography></Pressable>
           </View>
         ) : <>
-          <Pressable disabled={busy} onPress={googleAuth} style={[s.google, busy && { opacity: .5 }]}><Ionicons name="logo-google" size={20} color={c.ink} /><Typography style={s.googleText}>Kontynuuj z Google</Typography></Pressable>
-          <Pressable disabled={busy} onPress={appleAuth} style={[s.apple, busy && { opacity: .5 }]}><Ionicons name="logo-apple" size={20} color={c.white} /><Typography style={s.appleText}>Kontynuuj z Apple</Typography></Pressable>
-          <Pressable onPress={() => setEmailMode(true)} style={[s.primary, { marginBottom: 12 }]}><Ionicons name="mail-outline" size={20} color={c.white} /><Typography style={s.primaryText}>Zaloguj się e-mailem</Typography></Pressable>
+          {authFlags.auth_google&&<Pressable disabled={busy} onPress={googleAuth} style={[s.google, busy && { opacity: .5 }]}><Ionicons name="logo-google" size={20} color={c.ink} /><Typography style={s.googleText}>Kontynuuj z Google</Typography></Pressable>}
+          {authFlags.auth_apple&&<Pressable disabled={busy} onPress={appleAuth} style={[s.apple, busy && { opacity: .5 }, !authFlags.auth_google && { marginTop: 0 }]}><Ionicons name="logo-apple" size={20} color={c.white} /><Typography style={s.appleText}>Kontynuuj z Apple</Typography></Pressable>}
+          <Pressable onPress={() => setEmailMode(true)} style={[s.primary, { marginTop: authFlags.auth_google||authFlags.auth_apple ? 10 : 0, marginBottom: 12 }]}><Ionicons name="mail-outline" size={20} color={c.white} /><Typography style={s.primaryText}>Zaloguj się e-mailem</Typography></Pressable>
           {/* <Pressable onPress={() => onContinue?.({ method: 'skip' })} style={s.textButton}><Typography style={s.textButtonText}>Pomiń na razie</Typography></Pressable> */}
           <View style={s.divider}><View style={s.line} /><Typography variant="caption" style={{ color: c.muted }}>albo</Typography><View style={s.line} /></View>
           <Pressable onPress={onBusiness} style={s.business}><Ionicons name="storefront-outline" size={19} color={c.ink} /><View style={{ flex: 1 }}><Typography style={s.businessTitle}>Dla firm i organizacji</Typography><Typography variant="caption" style={{ color: c.muted }}>Miejsce, oferta, wydarzenie lub partnerstwo</Typography></View><Ionicons name="chevron-forward" size={19} color={c.muted} /></Pressable>
