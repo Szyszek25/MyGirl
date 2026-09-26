@@ -1126,6 +1126,36 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     return () => { alive = false; unsubscribe?.(); };
   }, [active?.id, active?.remote, chatApi]);
 
+  const pickChatImage = async () => {
+    if (!active?.remote || !chatApi || !sessionUserId || sending) return;
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Brak uprawnień', 'Zezwól Polce na dostęp do galerii, aby wysłać zdjęcie.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.85
+      });
+      const uri = result.assets?.[0]?.uri;
+      if (result.canceled || !uri) return;
+      setSending(true);
+      const sent = await chatApi.sendImage({
+        roomId: active.id,
+        senderId: sessionUserId,
+        uri,
+        clientMessageId: newClientMessageId()
+      });
+      setRemoteMessages(prev => prev.some(item => item.id === sent.id) ? prev : [...prev, sent]);
+    } catch (error) {
+      Alert.alert('Nie wysłano zdjęcia', error.message || 'Spróbuj ponownie.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const startVoice = async () => {
     if (!active?.remote || !chatApi || !sessionUserId || sending) return;
     try {
@@ -1203,7 +1233,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
         {avatar(active.photo || people[0]?.photo, 42)}
-        <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? 'wiadomości online' : 'rozmowa demonstracyjna'}</Typography></View>
+        <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
         <Pressable onPress={() => onReport?.({ kind: 'chat', id: active.id, label: `Rozmowa: ${active.name}` })} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink} /></Pressable>
       </View>
 
@@ -1211,7 +1241,11 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
         {!active.remote && <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>}
         {visibleMessages.map((message, messageIndex) => message.side === 'out'
           ? <View key={message.id} style={s.outgoingWrap}>
-            {message.messageType === 'voice' ? <VoiceMessageBubble message={message} outgoing /> : <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}
+            {message.messageType === 'voice'
+              ? <VoiceMessageBubble message={message} outgoing />
+              : message.messageType === 'image' && message.mediaUrl
+                ? <Image source={{uri:message.mediaUrl}} style={s.chatImageOutgoing} resizeMode="cover"/>
+                : <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}
             {!visibleMessages.slice(messageIndex + 1).some(next => next.side === 'out') && <View style={s.deliveryStatusRow}>
               <Ionicons name="checkmark-done" size={13} color={c.pink} />
               <Typography style={s.deliveryStatusText}>Dostarczono</Typography>
@@ -1221,7 +1255,11 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             {active.group && <Image source={{ uri: supportAuthorPhoto(message.author) }} style={s.groupMessageAvatar} />}
             <View style={s.incomingMessageBody}>
               {active.group && <Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
-              {message.messageType === 'voice' ? <VoiceMessageBubble message={message} /> : <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>}
+              {message.messageType === 'voice'
+                ? <VoiceMessageBubble message={message} />
+                : message.messageType === 'image' && message.mediaUrl
+                  ? <Image source={{uri:message.mediaUrl}} style={s.chatImageIncoming} resizeMode="cover"/>
+                  : <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>}
             </View>
           </View>)}
         {!active.remote && (messages[active.id] || []).map((message, i, arr) => <View key={'local-' + i} style={s.outgoingWrap}>
@@ -1242,6 +1280,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
       </ScrollView>
 
       <View style={s.fullComposer}>
+        {!recorderState.isRecording && active.remote && <Pressable onPress={pickChatImage} disabled={sending} style={s.chatMediaButton} accessibilityLabel="Wyślij zdjęcie"><Ionicons name="image-outline" color={c.pink} size={22}/></Pressable>}
         {recorderState.isRecording
           ? <View style={s.recordingState}><View style={s.recordingDot} /><Typography style={s.recordingText}>Nagrywanie {Math.max(1, Math.round((recorderState.durationMillis || 0) / 1000))}s</Typography></View>
           : <TextInput value={draft} onChangeText={setDraft} placeholder="Napisz wiadomość…" placeholderTextColor={c.muted} accessibilityLabel="Wiadomość" multiline maxLength={1200} style={s.fullMessageInput} />}
@@ -1489,6 +1528,9 @@ const s = StyleSheet.create({
   unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   unreadText: { fontFamily: f.bold, fontSize: 10, color: c.white },
   fullChat: { flex: 1, backgroundColor: c.white },
+  chatMediaButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.blush, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  chatImageOutgoing: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-end' },
+  chatImageIncoming: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-start' },
   fullChatHeader: { minHeight: 64, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   fullChatIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   fullChatName: { fontFamily: f.bold, fontSize: 15, color: c.ink },
