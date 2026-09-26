@@ -1233,6 +1233,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     group: room.kind === 'group',
     otherUserId: room.otherUserId || null,
     lastActiveAt: room.lastActiveAt || null,
+    memberProfiles: room.memberProfiles || [],
     remote: true
   }));
   const chats = sessionUserId
@@ -1285,7 +1286,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             setActive({
               id: room.id, name: room.name, photo: room.avatarUrl || null, last: room.last,
               time: formatPostTime(room.time), unread: 0, group: room.kind === 'group', remote: true,
-              otherUserId: room.otherUserId || null, lastActiveAt: room.lastActiveAt || null
+              otherUserId: room.otherUserId || null, lastActiveAt: room.lastActiveAt || null, memberProfiles: room.memberProfiles || []
             });
           }
         }
@@ -1409,15 +1410,19 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   };
 
   const visibleMessages = active?.remote
-    ? remoteMessages.map(message => ({
-      id: message.id,
-      side: message.sender_id === sessionUserId ? 'out' : 'in',
-      author: message.sender_id === sessionUserId ? 'Ty' : active.name,
-      body: message.body,
-      messageType: message.message_type || 'text',
-      mediaUrl: message.media_url || null,
-      durationMs: message.duration_ms || null
-    }))
+    ? remoteMessages.map(message => {
+      const senderProfile = active.group ? (active.memberProfiles || []).find(profile => profile.id === message.sender_id) : null;
+      return {
+        id: message.id,
+        side: message.sender_id === sessionUserId ? 'out' : 'in',
+        author: message.sender_id === sessionUserId ? 'Ty' : (senderProfile?.display_name || active.name),
+        authorPhoto: senderProfile?.avatar_url || null,
+        body: message.body,
+        messageType: message.message_type || 'text',
+        mediaUrl: message.media_url || null,
+        durationMs: message.duration_ms || null
+      };
+    })
     : (seededChatMessages[active?.id] || [
       { id: 'demo-1', side: 'in', author: active?.name || 'Polka', body: 'Hej! Miło Cię poznać 🌸' },
       { id: 'demo-2', side: 'in', author: active?.name || 'Polka', body: 'Masz już jakiś plan na weekend?' }
@@ -1453,7 +1458,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             </View>}
           </View>
           : <View key={message.id} style={s.incomingMessageRow}>
-            {active.group && <Image source={{ uri: supportAuthorPhoto(message.author) }} style={s.groupMessageAvatar} />}
+            {active.group && (message.authorPhoto ? <Image source={{ uri: message.authorPhoto }} style={s.groupMessageAvatar} /> : <View style={[s.groupMessageAvatar,{alignItems:'center',justifyContent:'center',backgroundColor:c.blush}]}><Ionicons name="person" size={16} color={c.pink}/></View>)}
             <View style={s.incomingMessageBody}>
               {active.group && <Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
               {message.messageType === 'voice'
