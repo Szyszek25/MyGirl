@@ -478,6 +478,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   const [likes, setLikes] = useState([]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [commentPost, setCommentPost] = useState(null);
+  const [postMenu, setPostMenu] = useState(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [comments, setComments] = useState({});
   const [replyingTo, setReplyingTo] = useState(null);
