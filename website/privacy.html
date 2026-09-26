@@ -1,1 +1,72 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prywatność — Polka (projekt)</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>body{margin:0;background:#FFF7FA;color:#241C20;font:16px/1.65 'DM Sans',sans-serif}main{max-width:780px;margin:auto;padding:32px 22px 100px}a{color:#C84F7A}h1{font-size:clamp(40px,7vw,65px);letter-spacing:-.06em;line-height:1.1}h2{font-size:24px;margin-top:40px}p,li{color:#51414b}.flag{padding:16px 20px;background:#F8DCE6;border:1px solid #C84F7A;border-radius:16px;font-weight:700}.brand{font-weight:800;font-size:26px;text-decoration:none}strong{color:#241C20}</style></head><body><main><a class="brand" href="index.html">Polka.</a><p class="flag">PROJEKT — dokument NIE jest zatwierdzoną ani opublikowaną polityką prywatności. Nie zbieraj zgłoszeń przed uzupełnieniem informacji, weryfikacją i zatwierdzeniem.</p><h1>Twoje dane.<br>Jasne zasady.</h1><h2>1. Administrator</h2><p>[UZUPEŁNIJ: pełna nazwa prawna administratora, adres do korespondencji, zweryfikowany adres e-mail do spraw prywatności; IOD, jeśli powołany].</p><h2>2. Jakie dane i skąd?</h2><p>Planowana lista oczekujących: adres e-mail pobrany przy uwierzytelnieniu Supabase Auth, identyfikator konta, wybrane miasto, opcjonalna preferencja celu, wersja informacji o prywatności i regulaminu, odrębny wybór marketingowy, znaczniki czasu i status zapisu. Potwierdzenie wieku to obecnie deklaracja, nie weryfikacja tożsamości. Dostawca hostingu, Auth i bazy: Supabase. Trzeba zweryfikować rzeczywisty region, podwykonawców, logi techniczne i transfery danych.</p><h2>3. Cele i podstawy prawne</h2><p>[UZUPEŁNIJ i zweryfikuj z prawnikiem]: obsługa zgłoszenia na listę i wiadomość o uruchomieniu usługi; zabezpieczenie formularza i dokumentacja zgód; osobno i dobrowolnie wiadomości marketingowe. Dobór odpowiednich podstaw z art. 6 RODO musi odzwierciedlać rzeczywiste procesy. Brak zgody marketingowej nie może blokować zapisu.</p><h2>4. Odbiorcy i transfery</h2><p>[UZUPEŁNIJ: dostawcy Supabase, hostingu, poczty i analityki; rzeczywiste regiony i mechanizmy transferów poza EOG. Nie deklaruj przechowywania wyłącznie w UE bez potwierdzenia].</p><h2>5. Jak długo?</h2><p>[USTAL KONKRETNY OKRES albo jasne kryterium usuwania danych listy po starcie projektu i okresy logów]. Dane nie powinny być przechowywane bezterminowo. Usuwanie konta wymaga osobnego procesu obejmującego dane w Storage i Auth.</p><h2>6. Twoje prawa</h2><p>W zależności od sytuacji: dostęp, sprostowanie, usunięcie, ograniczenie, sprzeciw, przenoszenie, cofnięcie zgody bez wpływu na wcześniejszą zgodność z prawem. Można złożyć skargę do Prezesa UODO. [UZUPEŁNIJ prostą procedurę rezygnacji i kontakt].</p><h2>7. Wiadomości i cookies</h2><p>Planowany kod e-mail służy do potwierdzenia adresu. Inne wiadomości promocyjne wymagają osobnej decyzji użytkowniczki. [SPRAWDŹ: lokalne przechowywanie sesji Supabase, analityka, cookies oraz właściwe obowiązki informacyjne i zgody].</p><h2>8. Bezpieczeństwo i decyzje automatyczne</h2><p>Przewidziane środki: potwierdzenie e-mail, ograniczone uprawnienia i RLS, prywatne pliki, dostęp serwerowy dla moderatora. Są to założenia architektoniczne, a nie poświadczenie wdrożenia. [POTWIERDŹ czy występuje profilowanie lub automatyczne decyzje i opisz je zgodnie z faktami].</p><p><a href="index.html">← Wróć do strony</a></p></main></body></html>
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#C84F7A">
+<title>Polityka prywatności — Polka</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFF7FA;color:#241C20;font:16px/1.65 'DM Sans',sans-serif}
+main{max-width:820px;margin:auto;padding:34px 22px 100px}
+a{color:#C84F7A}.brand{font-weight:800;font-size:28px;text-decoration:none}
+h1{font-size:clamp(40px,7vw,66px);letter-spacing:-.06em;line-height:1.05;margin:42px 0 10px}
+h2{font-size:23px;margin-top:38px}p,li{color:#5D4C54}.meta{font-size:13px;color:#7A6971}.card{background:#fff;border:1px solid #E9D9E0;border-radius:18px;padding:18px;margin:18px 0}
+strong{color:#241C20}
+</style>
+</head>
+<body><main>
+<a class="brand" href="index.html">Polka</a>
+<h1>Polityka prywatności</h1>
+<p class="meta">Wersja 1.0 · obowiązuje od 26 września 2026 r.</p>
+
+<h2>1. Administrator i kontakt</h2>
+<p>Administratorem danych przetwarzanych w ramach aplikacji i serwisu Polka jest operator marki Polka. W sprawach dotyczących prywatności, danych oraz realizacji praw użytkownika skontaktuj się z nami pod adresem <a href="mailto:mycampus.kontakt@gmail.com">mycampus.kontakt@gmail.com</a>.</p>
+
+<h2>2. Jakie dane przetwarzamy</h2>
+<p>W zależności od używanych funkcji możemy przetwarzać: adres e-mail i identyfikator konta; dane profilu takie jak imię wyświetlane, miasto, opis, zainteresowania i zdjęcia; treści tworzone w aplikacji, w tym posty, komentarze, Stories, wiadomości, grupy, plany i spotkania; informacje o relacjach społecznościowych i uczestnictwie; zgłoszenia, blokady i dane bezpieczeństwa; token powiadomień push i podstawowe dane techniczne potrzebne do działania usługi.</p>
+<p>Jeżeli użytkowniczka dobrowolnie włączy synchronizację Polka Care, możemy także przetwarzać wrażliwe dane dotyczące cyklu i samopoczucia, które sama wprowadzi. Dane te nie są wykorzystywane do reklamy ani udostępniane innym użytkownikom.</p>
+
+<h2>3. Źródło danych</h2>
+<p>Większość danych podajesz bezpośrednio Ty. Dane techniczne mogą powstawać podczas korzystania z aplikacji. Logowanie może być obsługiwane przez e-mail oraz — gdy dana metoda jest aktywna — przez Google lub Apple.</p>
+
+<h2>4. Cele i podstawy przetwarzania</h2>
+<ul>
+<li><strong>świadczenie usługi Polka</strong> — utworzenie i obsługa konta, profilu, feedu, wiadomości, planów, grup i spotkań;</li>
+<li><strong>bezpieczeństwo i moderacja</strong> — blokady, zgłoszenia, przeciwdziałanie nadużyciom, spamowi i naruszeniom regulaminu;</li>
+<li><strong>powiadomienia</strong> — wysyłane po uzyskaniu odpowiedniego uprawnienia systemowego;</li>
+<li><strong>opcjonalne funkcje Polka Care</strong> — wyłącznie po świadomym włączeniu funkcji i podaniu danych przez użytkowniczkę;</li>
+<li><strong>obowiązki prawne i obrona roszczeń</strong> — gdy jest to wymagane przez prawo.</li>
+</ul>
+<p>Podstawy prawne obejmują wykonanie umowy o świadczenie usługi, prawnie uzasadniony interes związany z bezpieczeństwem i ochroną usługi, zgodę tam, gdzie jest wymagana, oraz obowiązki prawne.</p>
+
+<h2>5. Dostawcy i odbiorcy</h2>
+<p>Do działania Polki korzystamy z usług infrastrukturalnych i technicznych, w szczególności Supabase (uwierzytelnianie, baza danych, Storage i funkcje serwerowe), usług Expo potrzebnych do działania aplikacji i powiadomień oraz dostawców logowania Google i Apple, jeśli użytkowniczka wybierze daną metodę. Dane są udostępniane wyłącznie w zakresie koniecznym do świadczenia danej usługi.</p>
+<p>Główny projekt danych Polki jest obecnie utrzymywany w regionie Supabase <strong>eu-central-1</strong>. Dostawcy mogą korzystać z własnych podwykonawców i mechanizmów transferu danych zgodnie z ich warunkami i obowiązującym prawem.</p>
+
+<h2>6. Widoczność w społeczności</h2>
+<p>Elementy profilu i treści przeznaczone do publikacji mogą być widoczne dla innych użytkowniczek zgodnie z ustawieniami i charakterem funkcji. Dokładne dane logowania, prywatne ustawienia konta, dane Polka Care i prywatne pliki nie są publikowane jako część profilu.</p>
+
+<h2>7. Okres przechowywania</h2>
+<p>Dane konta i treści powiązane z kontem przechowujemy zasadniczo przez czas korzystania z usługi. Po usunięciu konta dane przypisane do konta są usuwane z aktywnych systemów, z wyjątkiem informacji, które muszą zostać zachowane przez ograniczony czas z powodów prawnych, bezpieczeństwa, przeciwdziałania nadużyciom lub w kopiach zapasowych zgodnie z cyklem retencji dostawcy. Tymczasowe treści mogą mieć krótszy czas życia wynikający z funkcji.</p>
+
+<h2>8. Usunięcie konta i danych</h2>
+<p>Usunięcie konta można rozpocząć bezpośrednio w aplikacji: Profil → Ustawienia → Usuń konto. Dodatkowa ścieżka jest dostępna na stronie <a href="delete-account.html">Usunięcie konta i danych</a>. Usunięcie konta jest trwałe.</p>
+
+<h2>9. Twoje prawa</h2>
+<p>W granicach przewidzianych prawem możesz żądać dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przeniesienia danych, wnieść sprzeciw lub cofnąć zgodę. Cofnięcie zgody nie wpływa na zgodność wcześniejszego przetwarzania. Masz także prawo złożyć skargę do właściwego organu nadzorczego, w Polsce do Prezesa Urzędu Ochrony Danych Osobowych.</p>
+
+<h2>10. Uprawnienia urządzenia</h2>
+<p>Aplikacja może prosić o dostęp do aparatu, zdjęć, mikrofonu lub powiadomień tylko wtedy, gdy dana funkcja tego wymaga. Odmowa dostępu nie powinna blokować niezwiązanych funkcji aplikacji.</p>
+
+<h2>11. Polka Care</h2>
+<p>Polka Care ma charakter informacyjny i wspierający. Nie stawia diagnoz i nie zastępuje konsultacji z lekarzem. Dane o cyklu i samopoczuciu są traktowane jako dane szczególnie wrażliwe i nie są wykorzystywane do targetowania reklam.</p>
+
+<h2>12. Bezpieczeństwo</h2>
+<p>Stosujemy mechanizmy autoryzacji, RLS w bazie danych, prywatne zasobniki plików, kontrolę dostępu, szyfrowane połączenia oraz mechanizmy zgłaszania i blokowania. Żaden system nie daje jednak absolutnej gwarancji bezpieczeństwa.</p>
+
+<h2>13. Zmiany polityki</h2>
+<p>Jeżeli zakres przetwarzania istotnie się zmieni, zaktualizujemy tę politykę i datę jej obowiązywania. W razie potrzeby poprosimy o ponowną zgodę.</p>
+
+<p><a href="terms.html">Regulamin</a> · <a href="delete-account.html">Usunięcie konta</a> · <a href="index.html">Strona główna</a></p>
+</main></body></html>
