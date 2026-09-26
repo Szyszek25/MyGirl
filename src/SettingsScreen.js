@@ -11,6 +11,7 @@ const SHARE_URL='https://polka.app';
 const PRIVACY_URL='https://polka.app/privacy.html';
 const TERMS_URL='https://polka.app/terms.html';
 const DELETE_ACCOUNT_URL='https://polka.app/delete-account.html';
+const SUPPORT_EMAIL='mycampus.kontakt@gmail.com';
 
 function Row({icon,title,subtitle,onPress,right,danger=false}){
   return <Pressable accessibilityRole="button" onPress={onPress} style={s.row}>
@@ -116,7 +117,7 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
       <Row icon="document-text-outline" title="Regulamin" onPress={()=>Linking.openURL(TERMS_URL)}/>
       <Row icon="finger-print-outline" title="Polityka prywatności" onPress={()=>Linking.openURL(PRIVACY_URL)}/>
       <Row icon="person-remove-outline" title="Usunięcie konta i danych" subtitle="Instrukcja dostępna także poza aplikacją" onPress={()=>Linking.openURL(DELETE_ACCOUNT_URL)}/>
-      <Row icon="mail-outline" title="Kontakt"/>
+      <Row icon="mail-outline" title="Kontakt" subtitle={SUPPORT_EMAIL} onPress={()=>Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Polka — pomoc')}`)}/>
     </View>
 
     <View style={[s.group,{marginTop:sp.lg}]}>
