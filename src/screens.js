@@ -101,7 +101,7 @@ function Section({ title, children }) { return <Surface><Typography variant="sub
 function TextAction({ icon, title, onPress, danger = false }) { return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={s.textAction}><Ionicons name={icon} size={19} color={danger ? c.pink : c.muted} /><Typography style={{ color: danger ? c.pink : c.muted, fontFamily: f.semibold, fontSize: 13 }}>{title}</Typography></Pressable> }
 
 
-export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, onReport, onMessage, sessionUserId = null, zodiacEnabled = true, userZodiac = null, styleEnabled = true, userStyle = null }) {
+export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, onReport, onMessage, onOpenProfile, sessionUserId = null, zodiacEnabled = true, userZodiac = null, styleEnabled = true, userStyle = null }) {
   const [index, setIndex] = useState(0), [saved, setSaved] = useState([]);
   const [remotePeople, setRemotePeople] = useState([]);
   const [peopleLoading, setPeopleLoading] = useState(!!sessionUserId);
@@ -357,8 +357,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
             <Image source={{ uri: p.photo }} style={s.swipePhoto} resizeMode="cover" />
             <View style={s.cardScrim} />
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
-            {isTop && <Pressable onPress={() => setProfileOpen(p)} style={s.cardTapHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`}><Ionicons name="person-circle-outline" size={16} color={c.white} /><Typography style={s.cardTapHintText}>Profil</Typography></Pressable>}
-            <Pressable onPress={() => isTop && setProfileOpen(p)} style={s.cardOpenArea} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`} />
+            {isTop && <Pressable onPress={() => onOpenProfile ? onOpenProfile(p) : setProfileOpen(p)} style={s.cardTapHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`}><Ionicons name="person-circle-outline" size={16} color={c.white} /><Typography style={s.cardTapHintText}>Profil</Typography></Pressable>}
+            <Pressable onPress={() => isTop && (onOpenProfile ? onOpenProfile(p) : setProfileOpen(p))} style={s.cardOpenArea} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`} />
             <View pointerEvents="none" style={s.cardIdentity}>
               <Typography style={s.cardName}>{p.name}{p.age ? `, ${p.age}` : ''}</Typography>
               <Typography style={s.cardMeta}>{p.city} · {(p.tags || []).slice(0, 2).join(' · ')}</Typography>
@@ -410,7 +410,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       <View style={s.searchRoot}>
         <View style={s.searchHeader}><Pressable onPress={() => setSearchOpen(false)} style={s.fullChatIcon}><Ionicons name="close" size={24} color={c.ink} /></Pressable><Typography style={s.searchTitle}>Znajdź koleżankę</Typography><View style={s.fullChatIcon} /></View>
         <View style={s.searchBox}><Ionicons name="search-outline" size={20} color={c.muted} /><TextInput autoFocus value={searchText} onChangeText={runSearch} placeholder="Wpisz imię…" placeholderTextColor={c.muted} style={s.searchInput} />{searching && <ActivityIndicator size="small" color={c.pink} />}</View>
-        <FlatList data={searchResults} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }} ListEmptyComponent={searchText.trim().length >= 2 && !searching ? <Typography style={s.searchEmpty}>Nie znalazłam nikogo o tym imieniu w {city}.</Typography> : null} renderItem={({ item }) => <Pressable onPress={() => setProfileOpen(item)} style={s.searchResult}>
+        <FlatList data={searchResults} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }} ListEmptyComponent={searchText.trim().length >= 2 && !searching ? <Typography style={s.searchEmpty}>Nie znalazłam nikogo o tym imieniu w {city}.</Typography> : null} renderItem={({ item }) => <Pressable onPress={() => { setSearchOpen(false); onOpenProfile ? onOpenProfile(item) : setProfileOpen(item); }} style={s.searchResult}>
           {item.photo ? avatar(item.photo, 48) : <View style={[s.commentAvatar, { width: 48, height: 48, borderRadius: 24 }]}><Ionicons name="person" size={20} color={c.pink} /></View>}
           <View style={{ flex: 1 }}><Typography style={s.searchName}>{item.name}</Typography><Typography style={s.searchMeta}>{item.city}{item.headline ? ' · ' + item.headline : ''}</Typography></View>
           <Ionicons name="chevron-forward" size={19} color={c.muted} />
