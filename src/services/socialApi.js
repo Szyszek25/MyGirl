@@ -33,14 +33,15 @@ export async function loadFeed(city,userId){
   const profileMap=new Map((profiles||[]).map(p=>[p.id,p]));
 
   const postIds=(rows||[]).map(r=>r.id);
-  let likes=[],comments=[];
+  let likes=[],comments=[],reactions=[];
   if(postIds.length){
-    const [l,c]=await Promise.all([
+    const [l,c,rx]=await Promise.all([
       supabase.from('post_likes').select('post_id,user_id').in('post_id',postIds),
-      supabase.from('comments').select('id,post_id').in('post_id',postIds)
+      supabase.from('comments').select('id,post_id').in('post_id',postIds),
+      supabase.from('post_reactions').select('post_id,user_id,reaction').in('post_id',postIds)
     ]);
-    if(l.error)throw l.error;if(c.error)throw c.error;
-    likes=l.data||[];comments=c.data||[];
+    if(l.error)throw l.error;if(c.error)throw c.error;if(rx.error)throw rx.error;
+    likes=l.data||[];comments=c.data||[];reactions=rx.data||[];
   }
 
   const mapped=await Promise.all((rows||[]).map(async row=>{
@@ -62,6 +63,8 @@ export async function loadFeed(city,userId){
       likes:likes.filter(l=>l.post_id===row.id).length,
       likedByMe:likes.some(l=>l.post_id===row.id&&l.user_id===userId),
       commentsCount:comments.filter(c=>c.post_id===row.id).length,
+      reactions:reactions.filter(r=>r.post_id===row.id).reduce((acc,r)=>({...acc,[r.reaction]:(acc[r.reaction]||0)+1}),{}),
+      myReaction:reactions.find(r=>r.post_id===row.id&&r.user_id===userId)?.reaction||null,
       avatar:profile.avatar_path?await signed('polka-avatars',profile.avatar_path):null,
       aspectRatio: (/matcha|pilates|spacer|vintage|second hand/i.test(row.body || '') || (row.media_path || '').includes('matcha')) ? '4:5' : '16:9',
       remote:true
@@ -207,4 +210,15 @@ export async function markStoryViewed(storyId,userId){
 export async function deleteStory(storyId,userId){
   const {error}=await supabase.from('stories').delete().eq('id',storyId).eq('author_id',userId);
   if(error)throw error;
+}
+
+export async function setPostReaction(postId,userId,reaction,currentReaction=null){
+  if(currentReaction===reaction){
+    const {error}=await supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',userId);
+    if(error)throw error;
+    return null;
+  }
+  const {error}=await supabase.from('post_reactions').upsert({post_id:postId,user_id:userId,reaction},{onConflict:'post_id,user_id'});
+  if(error)throw error;
+  return reaction;
 }
