@@ -215,14 +215,14 @@ export default function StoryViewerModal({
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, g) =>
-      Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.05,
+      Math.abs(g.dx) > 5 && Math.abs(g.dx) > Math.abs(g.dy),
     onMoveShouldSetPanResponderCapture: (_, g) =>
-      Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.05,
+      Math.abs(g.dx) > 5 && Math.abs(g.dx) > Math.abs(g.dy),
     onPanResponderTerminationRequest: () => false,
     onShouldBlockNativeResponder: () => true,
     onPanResponderRelease: (_, g) => {
-      if (g.dx < -44) trigger3DCube(senderIndex + 1, 'forward');
-      else if (g.dx > 44) trigger3DCube(senderIndex - 1, 'backward');
+      if (g.dx < -34) trigger3DCube(senderIndex + 1, 'forward');
+      else if (g.dx > 34) trigger3DCube(senderIndex - 1, 'backward');
     }
   }), [senderIndex, slideIndex, resolvedSenders.length]);
 
@@ -314,9 +314,6 @@ export default function StoryViewerModal({
           </View>
         ) : null}
 
-        <View style={s.topVignette} />
-        <View style={s.bottomVignette} />
-
         {/* Top Header Overlay with progress segments */}
         <View style={s.topHeader} pointerEvents="box-none">
           <View style={s.progressRow}>
@@ -380,14 +377,6 @@ export default function StoryViewerModal({
             <View style={s.captionPill}>
               <Typography style={s.captionText}>{slideObj.caption}</Typography>
             </View>
-          </View>
-        )}
-
-        {!isTarget && (
-          <View style={s.tapZones} pointerEvents="box-none">
-            <Pressable onPress={handlePrev} style={s.tapZoneLeft} accessibilityRole="button" accessibilityLabel="Poprzednia relacja" />
-            <View style={s.tapZoneMiddle} pointerEvents="none" />
-            <Pressable onPress={handleNext} style={s.tapZoneRight} accessibilityRole="button" accessibilityLabel="Następna relacja" />
           </View>
         )}
 
@@ -499,6 +488,13 @@ export default function StoryViewerModal({
           </Animated.View>
         )}
 
+        {/* Fixed IG-style navigation zones above the animated faces. */}
+        <View style={s.fixedStoryNav} pointerEvents="box-none">
+          <Pressable onPress={handlePrev} style={s.fixedStoryNavLeft} accessibilityRole="button" accessibilityLabel="Poprzednia relacja" />
+          <View style={s.fixedStoryNavMiddle} pointerEvents="none" />
+          <Pressable onPress={handleNext} style={s.fixedStoryNavRight} accessibilityRole="button" accessibilityLabel="Następna relacja" />
+        </View>
+
         {/* Fixed top bar (close button) - NOT in 3D cube, on top */}
         <View style={s.fixedTopBar} pointerEvents="box-none">
           <Pressable onPress={onClose} style={s.closeBtn} hitSlop={14} accessibilityLabel="Zamknij">
@@ -546,32 +542,18 @@ const s = StyleSheet.create({
     backgroundColor: '#000',
     justifyContent: 'space-between'
   },
-  topVignette: {
+  fixedStoryNav: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    height: 140,
-    backgroundColor: 'rgba(0,0,0,0.45)'
-  },
-  bottomVignette: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 180,
-    backgroundColor: 'rgba(0,0,0,0.5)'
-  },
-  tapZones: {
-    ...StyleSheet.absoluteFillObject,
-    top: Platform.OS === 'ios' ? 92 : 78,
-    bottom: 92,
-    zIndex: 8,
+    top: Platform.OS === 'ios' ? 96 : 82,
+    bottom: 96,
+    zIndex: 80,
     flexDirection: 'row'
   },
-  tapZoneLeft: { width: '30%', height: '100%' },
-  tapZoneMiddle: { width: '40%', height: '100%' },
-  tapZoneRight: { width: '30%', height: '100%' },
+  fixedStoryNavLeft: { width: '32%', height: '100%' },
+  fixedStoryNavMiddle: { width: '36%', height: '100%' },
+  fixedStoryNavRight: { width: '32%', height: '100%' },
   heartPopCenter: {
     position: 'absolute',
     top: 0,
