@@ -915,6 +915,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
       onClose={() => setSelectedProfile(null)}
       onOpenChat={onOpenChat}
       onReport={onReport}
+      sessionUserId={sessionUserId}
     />
 
     <Modal visible={!!commentPost} animationType="slide" onRequestClose={() => setCommentPost(null)}>
