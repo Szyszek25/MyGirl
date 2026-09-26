@@ -29,7 +29,8 @@ export default function StoryViewerModal({
   initialSenderIndex = 0,
   initialStory = null,
   onClose,
-  sessionUserId = null
+  sessionUserId = null,
+  onStoryViewed
 }) {
   // Normalize senders prop or group stories prop so each sender has their own slides
   const resolvedSenders = React.useMemo(() => {
@@ -130,6 +131,11 @@ export default function StoryViewerModal({
     p.play();
   });
 
+  useEffect(() => {
+    if (!visible || !currentSlide?.id) return;
+    onStoryViewed?.(currentSlide.id);
+  }, [visible, senderIndex, slideIndex, currentSlide?.id, onStoryViewed]);
+
   // Slide progress timer
   useEffect(() => {
     if (!visible || paused || isCubeAnimating.current || !currentSlide) {
@@ -215,15 +221,22 @@ export default function StoryViewerModal({
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, g) =>
-      Math.abs(g.dx) > 5 && Math.abs(g.dx) > Math.abs(g.dy),
+      Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy) * 0.85,
     onMoveShouldSetPanResponderCapture: (_, g) =>
-      Math.abs(g.dx) > 5 && Math.abs(g.dx) > Math.abs(g.dy),
+      Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy) * 0.85,
+    onPanResponderGrant: () => {
+      setPaused(true);
+      progressAnim.stopAnimation();
+    },
     onPanResponderTerminationRequest: () => false,
     onShouldBlockNativeResponder: () => true,
     onPanResponderRelease: (_, g) => {
-      if (g.dx < -34) trigger3DCube(senderIndex + 1, 'forward');
-      else if (g.dx > 34) trigger3DCube(senderIndex - 1, 'backward');
-    }
+      const horizontal = Math.abs(g.dx) > 28 || Math.abs(g.vx) > 0.35;
+      if (horizontal && g.dx < 0) trigger3DCube(senderIndex + 1, 'forward');
+      else if (horizontal && g.dx > 0) trigger3DCube(senderIndex - 1, 'backward');
+      setPaused(false);
+    },
+    onPanResponderTerminate: () => setPaused(false)
   }), [senderIndex, slideIndex, resolvedSenders.length]);
 
   const toggleLike = () => {
@@ -489,7 +502,7 @@ export default function StoryViewerModal({
         )}
 
         {/* Fixed IG-style navigation zones above the animated faces. */}
-        <View style={s.fixedStoryNav} pointerEvents="box-none">
+        <View style={s.fixedStoryNav} pointerEvents="box-none" {...panResponder.panHandlers}>
           <Pressable onPress={handlePrev} style={s.fixedStoryNavLeft} accessibilityRole="button" accessibilityLabel="Poprzednia relacja" />
           <View style={s.fixedStoryNavMiddle} pointerEvents="none" />
           <Pressable onPress={handleNext} style={s.fixedStoryNavRight} accessibilityRole="button" accessibilityLabel="Następna relacja" />
@@ -531,7 +544,8 @@ const s = StyleSheet.create({
   },
   cubeViewport: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#000'
+    backgroundColor: '#000',
+    backfaceVisibility: 'hidden'
   },
   cubeFace: {
     ...StyleSheet.absoluteFill,
