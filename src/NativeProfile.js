@@ -10,7 +10,7 @@ import {cities,interests as availableInterests} from './data';
 export const ZODIAC_SIGNS=['Baran','Byk','Bliźnięta','Rak','Lew','Panna','Waga','Skorpion','Strzelec','Koziorożec','Wodnik','Ryby'];
 export const STYLE_OPTIONS=['Minimal','Vintage','Casual','Streetwear','Classy','Sporty','Artsy'];
 
-const copy=account=>({...account,interests:[...(account.interests||[])],answers:{...(account.answers||{})},zodiac:account?.zodiac||null,style:account?.style||null});
+const copy=account=>({...account,interests:[...(account.interests||[])],answers:{...(account.answers||{})},galleryPhotos:[...(account.galleryPhotos||[])],zodiac:account?.zodiac||null,style:account?.style||null});
 export default function NativeProfile({account,showCare=true,onSafety,onPartner,onSettings,onCycle,onCare,onMore,onSave,onSignOut}){
   const [editing,setEditing]=useState(false);
   const [shareOpen,setShareOpen]=useState(false);
@@ -53,6 +53,20 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
       edit('photo',image.uri);
       setNotice('Nowe zdjęcie zapisze się po naciśnięciu „Zapisz zmiany”.');
     }catch(error){Alert.alert('Nie udało się wybrać zdjęcia',error.message||'Spróbuj ponownie.');}
+  };
+  const selectGalleryPhotos=async()=>{
+    try{
+      const remaining=Math.max(0,6-(draft.galleryPhotos||[]).length);
+      if(!remaining){setNotice('Możesz dodać maksymalnie 6 zdjęć.');return;}
+      const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if(perm.status!=='granted'){Alert.alert('Brak uprawnień','Zezwól Polce na dostęp do galerii w ustawieniach telefonu.');return;}
+      const selection=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsMultipleSelection:true,selectionLimit:remaining,quality:0.85});
+      if(selection.canceled)return;
+      const picked=(selection.assets||[]).filter(item=>item?.uri).slice(0,remaining);
+      if(picked.some(item=>item.fileSize&&item.fileSize>8*1024*1024))throw new Error('Jedno ze zdjęć jest za duże. Maksymalny rozmiar to 8 MB.');
+      edit('galleryPhotos',[...(draft.galleryPhotos||[]),...picked.map(item=>({path:null,url:item.uri}))].slice(0,6));
+      setNotice('Zdjęcia zapiszą się po naciśnięciu „Zapisz”.');
+    }catch(error){Alert.alert('Nie udało się dodać zdjęć',error.message||'Spróbuj ponownie.');}
   };
   const selectPhoto=()=>{
     Alert.alert(
@@ -111,7 +125,10 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
             {!!account?.style&&<Chip label={`👗 ${account.style}`}/>}
           </View>
         </Surface>}
-        <Surface><Typography variant="subtitle" style={s.title}>Moje zainteresowania</Typography><View style={s.wrap}>{(account.interests||[]).map(interest=><Chip key={interest} label={interest}/>)}</View></Surface>
+        <Surface><Typography variant="subtitle" style={s.title}>Moje zainteresowania</Typography><View style={s.wrap}>{(account.interests||[]).map(interest=><Chip key={interest} label={interest}/>)}</View></Surface>{(account.galleryPhotos||[]).length>0&&<Surface>
+          <Typography variant="subtitle" style={s.title}>Moje zdjęcia</Typography>
+          <View style={s.galleryGrid}>{account.galleryPhotos.map((item,index)=><Image key={item.path||item.url||index} source={{uri:item.url||item}} style={s.galleryThumb}/>)}</View>
+        </Surface>}
         {Object.entries(account.answers||{}).filter(([,answer])=>typeof answer==='string'&&answer.trim()).map(([key,answer])=><Surface key={key}><Typography variant="subtitle" style={s.title}>{PROFILE_PROMPTS[Number(key)]||'Moja odpowiedź'}</Typography><Typography>{answer}</Typography></Surface>)}
         <View style={s.profileActions}>
           <Button title="Edytuj profil" onPress={()=>{setDraft(copy(account));setEditing(true);}} icon="create-outline" style={{flex:1}}/>
@@ -151,6 +168,17 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
               <View style={s.wrap}>{availableInterests.map(interest=><Chip key={interest} label={interest} selected={draft.interests.includes(interest)} onPress={()=>edit('interests',draft.interests.includes(interest)?draft.interests.filter(item=>item!==interest):[...draft.interests,interest])}/>)}</View>
             </Surface>
             <Surface>
+              <View style={s.galleryHeader}><Typography variant="subtitle" style={s.title}>Zdjęcia profilu</Typography><Typography style={s.galleryCount}>{(draft.galleryPhotos||[]).length}/6</Typography></View>
+              <Typography style={s.galleryHelp}>Pojawią się na dole profilu w Poznaj jako duże kafelki.</Typography>
+              <View style={s.galleryGrid}>
+                {(draft.galleryPhotos||[]).map((item,index)=><View key={item.path||item.url||index} style={s.galleryEditItem}>
+                  <Image source={{uri:item.url||item}} style={[s.galleryThumb,s.galleryEditPhoto]}/>
+                  <Pressable accessibilityLabel="Usuń zdjęcie" onPress={()=>edit('galleryPhotos',(draft.galleryPhotos||[]).filter((_,i)=>i!==index))} style={s.galleryRemove}><Ionicons name="close" size={18} color={c.white}/></Pressable>
+                </View>)}
+                {(draft.galleryPhotos||[]).length<6&&<Pressable onPress={selectGalleryPhotos} style={s.galleryAdd}><Ionicons name="add" size={28} color={c.pink}/><Typography style={s.galleryAddText}>Dodaj</Typography></Pressable>}
+              </View>
+            </Surface>
+            <Surface>
               <Typography variant="subtitle" style={s.title}>Sociale (opcjonalnie)</Typography>
               <Field label="Instagram" value={draft.instagramHandle||''} onChangeText={value=>edit('instagramHandle',value.slice(0,50))} placeholder="@twojprofil"/>
               <Field label="TikTok" value={draft.tiktokHandle||''} onChangeText={value=>edit('tiktokHandle',value.slice(0,50))} placeholder="@twojprofil"/>
@@ -186,4 +214,4 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
     </ScrollView>
   </KeyboardAvoidingView>;
 }
-const s=StyleSheet.create({logoutButton:{minHeight:54,borderRadius:r.md,backgroundColor:'#FFF5F5',borderWidth:1,borderColor:'#FFC9C9',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:sp.sm,marginTop:sp.lg,marginBottom:sp.base},logoutText:{color:'#E03131',fontFamily:f.bold,fontSize:15},profileHeadline:{fontFamily:f.bold,fontSize:23,lineHeight:28,color:c.ink,textAlign:'center'},profileSubtitle:{fontFamily:f.regular,fontSize:14,lineHeight:20,color:c.muted,textAlign:'center',marginTop:6},socialRow:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:7,marginTop:12},socialChip:{flexDirection:'row',alignItems:'center',gap:5,borderWidth:1,borderColor:c.line,borderRadius:999,paddingHorizontal:10,paddingVertical:6},socialText:{fontFamily:f.semibold,fontSize:11,color:c.ink},profileActions:{flexDirection:'row',gap:10,alignItems:'center'},shareButton:{width:52,height:52,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.white,alignItems:'center',justifyContent:'center'},modalHeader:{height:60,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},modalIcon:{width:40,height:40,alignItems:'center',justifyContent:'center'},modalTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},modalSave:{minWidth:62,alignItems:'flex-end'},modalSaveText:{fontFamily:f.bold,fontSize:14,color:c.pink},modalContent:{padding:sp.lg,paddingBottom:60},shareBackdrop:{flex:1,backgroundColor:'rgba(24,11,18,.55)',alignItems:'center',justifyContent:'center',padding:24},shareCard:{width:'100%',maxWidth:340,backgroundColor:c.white,borderRadius:30,padding:24,alignItems:'center'},shareEmoji:{fontSize:28,marginBottom:8},shareAvatar:{width:104,height:104,borderRadius:52,backgroundColor:c.blush},shareName:{fontFamily:f.bold,fontSize:30,color:c.ink,marginTop:14},shareCity:{fontFamily:f.semibold,fontSize:13,color:c.muted,marginTop:3},shareTagline:{fontFamily:f.semibold,fontSize:15,lineHeight:21,color:c.pink,textAlign:'center',marginVertical:18},page:{flexGrow:1,padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas},profileTop:{flexDirection:'row',alignItems:'flex-start',gap:12},settingsButton:{width:44,height:44,borderRadius:22,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',marginTop:6},head:{alignItems:'center',paddingVertical:sp.xl},avatar:{height:124,width:124,borderRadius:62,backgroundColor:c.blush},placeholder:{alignItems:'center',justifyContent:'center'},title:{marginBottom:sp.sm},wrap:{flexDirection:'row',flexWrap:'wrap'},note:{color:c.muted,marginTop:sp.base,lineHeight:20,textAlign:'center'},muted:{color:c.muted},photoAction:{marginTop:sp.md,width:'100%'},secondary:{marginTop:sp.md},prompt:{paddingVertical:sp.md,borderBottomWidth:1,borderColor:c.line},answer:{fontFamily:f.regular,color:c.ink,minHeight:56,textAlignVertical:'top'},notice:{color:c.pink,marginTop:sp.md}});
+const s=StyleSheet.create({galleryHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},galleryCount:{fontFamily:f.bold,fontSize:12,color:c.muted},galleryHelp:{fontFamily:f.regular,fontSize:12,lineHeight:18,color:c.muted,marginBottom:12},galleryGrid:{flexDirection:'row',flexWrap:'wrap',gap:10},galleryThumb:{width:'48%',aspectRatio:0.82,borderRadius:18,backgroundColor:c.blush},galleryEditItem:{width:'48%',position:'relative'},galleryEditPhoto:{width:'100%'},galleryRemove:{position:'absolute',top:8,right:8,width:30,height:30,borderRadius:15,backgroundColor:'rgba(25,14,20,.72)',alignItems:'center',justifyContent:'center'},galleryAdd:{width:'48%',aspectRatio:0.82,borderRadius:18,borderWidth:1.5,borderStyle:'dashed',borderColor:c.pink,backgroundColor:c.blush,alignItems:'center',justifyContent:'center',gap:4},galleryAddText:{fontFamily:f.bold,fontSize:12,color:c.pink},logoutButton:{minHeight:54,borderRadius:r.md,backgroundColor:'#FFF5F5',borderWidth:1,borderColor:'#FFC9C9',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:sp.sm,marginTop:sp.lg,marginBottom:sp.base},logoutText:{color:'#E03131',fontFamily:f.bold,fontSize:15},profileHeadline:{fontFamily:f.bold,fontSize:23,lineHeight:28,color:c.ink,textAlign:'center'},profileSubtitle:{fontFamily:f.regular,fontSize:14,lineHeight:20,color:c.muted,textAlign:'center',marginTop:6},socialRow:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:7,marginTop:12},socialChip:{flexDirection:'row',alignItems:'center',gap:5,borderWidth:1,borderColor:c.line,borderRadius:999,paddingHorizontal:10,paddingVertical:6},socialText:{fontFamily:f.semibold,fontSize:11,color:c.ink},profileActions:{flexDirection:'row',gap:10,alignItems:'center'},shareButton:{width:52,height:52,borderRadius:16,borderWidth:1,borderColor:c.line,backgroundColor:c.white,alignItems:'center',justifyContent:'center'},modalHeader:{height:60,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:c.white,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:c.line},modalIcon:{width:40,height:40,alignItems:'center',justifyContent:'center'},modalTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},modalSave:{minWidth:62,alignItems:'flex-end'},modalSaveText:{fontFamily:f.bold,fontSize:14,color:c.pink},modalContent:{padding:sp.lg,paddingBottom:60},shareBackdrop:{flex:1,backgroundColor:'rgba(24,11,18,.55)',alignItems:'center',justifyContent:'center',padding:24},shareCard:{width:'100%',maxWidth:340,backgroundColor:c.white,borderRadius:30,padding:24,alignItems:'center'},shareEmoji:{fontSize:28,marginBottom:8},shareAvatar:{width:104,height:104,borderRadius:52,backgroundColor:c.blush},shareName:{fontFamily:f.bold,fontSize:30,color:c.ink,marginTop:14},shareCity:{fontFamily:f.semibold,fontSize:13,color:c.muted,marginTop:3},shareTagline:{fontFamily:f.semibold,fontSize:15,lineHeight:21,color:c.pink,textAlign:'center',marginVertical:18},page:{flexGrow:1,padding:sp.lg,paddingBottom:sp.xxl,backgroundColor:c.canvas},profileTop:{flexDirection:'row',alignItems:'flex-start',gap:12},settingsButton:{width:44,height:44,borderRadius:22,backgroundColor:c.white,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',marginTop:6},head:{alignItems:'center',paddingVertical:sp.xl},avatar:{height:124,width:124,borderRadius:62,backgroundColor:c.blush},placeholder:{alignItems:'center',justifyContent:'center'},title:{marginBottom:sp.sm},wrap:{flexDirection:'row',flexWrap:'wrap'},note:{color:c.muted,marginTop:sp.base,lineHeight:20,textAlign:'center'},muted:{color:c.muted},photoAction:{marginTop:sp.md,width:'100%'},secondary:{marginTop:sp.md},prompt:{paddingVertical:sp.md,borderBottomWidth:1,borderColor:c.line},answer:{fontFamily:f.regular,color:c.ink,minHeight:56,textAlignVertical:'top'},notice:{color:c.pink,marginTop:sp.md}});
