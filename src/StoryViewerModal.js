@@ -233,25 +233,32 @@ export default function StoryViewerModal({
   // Horizontal swipe changes sender; taps on left/right zones move within
   // the current sender, matching the interaction users expect from Stories.
   const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_, g) =>
-      Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy) * 0.85,
-    onMoveShouldSetPanResponderCapture: (_, g) =>
-      Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy) * 0.85,
+    // This responder lives only on the media/navigation layer, not on the reply bar.
+    // Owning touch from START makes Android reliably detect the full-screen horizontal cube swipe.
+    onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponderCapture: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponderCapture: () => true,
     onPanResponderGrant: () => {
       setPaused(true);
       progressAnim.stopAnimation();
     },
     onPanResponderTerminationRequest: () => false,
     onShouldBlockNativeResponder: () => true,
-    onPanResponderRelease: (_, g) => {
-      const horizontal = Math.abs(g.dx) > 28 || Math.abs(g.vx) > 0.35;
-      if (horizontal && g.dx < 0) trigger3DCube(senderIndex + 1, 'forward');
-      else if (horizontal && g.dx > 0) trigger3DCube(senderIndex - 1, 'backward');
+    onPanResponderRelease: (evt, g) => {
+      const horizontal = Math.abs(g.dx) > 26 || Math.abs(g.vx) > 0.3;
+      if (horizontal) {
+        if (g.dx < 0) trigger3DCube(senderIndex + 1, 'forward');
+        else trigger3DCube(senderIndex - 1, 'backward');
+      } else if (Math.abs(g.dy) < 18) {
+        const x = evt.nativeEvent.locationX;
+        if (x < SCREEN_WIDTH * 0.36) handlePrev();
+        else if (x > SCREEN_WIDTH * 0.64) handleNext();
+      }
       setPaused(false);
     },
     onPanResponderTerminate: () => setPaused(false)
-  }), [senderIndex, slideIndex, resolvedSenders.length]);
+  }), [senderIndex, slideIndex, resolvedSenders.length, currentSlides.length]);
 
   const toggleLike = () => {
     setLiked(prev => {
@@ -375,6 +382,30 @@ export default function StoryViewerModal({
                   </Typography>
                 </View>
               </View>
+              <View style={s.storyTopActions}>
+                {!isTarget && sender.authorId === sessionUserId && (
+                  <Pressable onPress={() => {
+                    Alert.alert('Usuń relację?', 'Ta operacja jest nieodwracalna.', [
+                      { text: 'Anuluj', style: 'cancel' },
+                      {
+                        text: 'Usuń', style: 'destructive', onPress: async () => {
+                          try {
+                            await deleteStory(slideObj.id, sessionUserId);
+                            onClose();
+                          } catch (error) {
+                            Alert.alert('Nie usunięto relacji', error.message || 'Spróbuj ponownie.');
+                          }
+                        }
+                      }
+                    ]);
+                  }} style={s.storyTopBtn} hitSlop={8} accessibilityLabel="Usuń relację">
+                    <Ionicons name="trash-outline" size={22} color="#FF8A8A" />
+                  </Pressable>
+                )}
+                <Pressable onPress={onClose} style={s.storyTopBtn} hitSlop={8} accessibilityLabel="Zamknij">
+                  <Ionicons name="close" size={30} color={c.white} />
+                </Pressable>
+              </View>
             </View>
         </View>
 
@@ -388,12 +419,7 @@ export default function StoryViewerModal({
         )}
 
         {/* Bottom Reply Bar - part of the 3D face, anchored to bottom */}
-        <KeyboardAvoidingView
-          style={s.bottomArea}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          pointerEvents={isTarget ? 'none' : 'box-none'}
-          keyboardVerticalOffset={0}
-        >
+        <View style={s.bottomArea} pointerEvents={isTarget ? 'none' : 'box-none'}>
           <View style={s.replyRow} pointerEvents={isTarget ? 'none' : 'box-none'}>
             <View style={s.replyInputBox}>
               <TextInput
@@ -414,7 +440,7 @@ export default function StoryViewerModal({
               />
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </View>
     );
   };
@@ -444,7 +470,11 @@ export default function StoryViewerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={s.container} {...panResponder.panHandlers}>
+      <KeyboardAvoidingView
+        style={s.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         {/* Animated 3D Cube Viewport - entire screen rotates */}
         <Animated.View
           style={[
@@ -495,38 +525,8 @@ export default function StoryViewerModal({
           </Animated.View>
         )}
 
-        {/* Fixed IG-style navigation zones above the animated faces. */}
-        <View style={s.fixedStoryNav} pointerEvents="box-none" {...panResponder.panHandlers}>
-          <Pressable onPress={handlePrev} style={s.fixedStoryNavLeft} accessibilityRole="button" accessibilityLabel="Poprzednia relacja" />
-          <View style={s.fixedStoryNavMiddle} pointerEvents="none" />
-          <Pressable onPress={handleNext} style={s.fixedStoryNavRight} accessibilityRole="button" accessibilityLabel="Następna relacja" />
-        </View>
-
-        {/* Fixed top bar (close button) - NOT in 3D cube, on top */}
-        <View style={s.fixedTopBar} pointerEvents="box-none">
-          {currentSender?.authorId === sessionUserId && (
-            <Pressable onPress={() => {
-              Alert.alert('Usuń relację?', 'Ta operacja jest nieodwracalna.', [
-                { text: 'Anuluj', style: 'cancel' },
-                {
-                  text: 'Usuń', style: 'destructive', onPress: async () => {
-                    try {
-                      await deleteStory(currentSlide.id, sessionUserId);
-                      onClose();
-                    } catch (error) {
-                      Alert.alert('Nie usunięto relacji', error.message || 'Spróbuj ponownie.');
-                    }
-                  }
-                }
-              ]);
-            }} style={s.fixedDeleteBtn} hitSlop={10} accessibilityLabel="Usuń relację">
-              <Ionicons name="trash-outline" size={23} color="#FF8A8A" />
-            </Pressable>
-          )}
-          <Pressable onPress={onClose} style={s.closeBtn} hitSlop={12} accessibilityLabel="Zamknij">
-            <Ionicons name="close" size={28} color={c.white} />
-          </Pressable>
-        </View>
+        {/* One transparent media gesture surface: tap left/right, swipe whole photo to next/prev person. */}
+        <View style={s.fixedStoryNav} {...panResponder.panHandlers} />
 
         {/* Big Heart Pop */}
         {showHeartPop && (
@@ -534,7 +534,7 @@ export default function StoryViewerModal({
             <Ionicons name="heart" size={110} color="#FF1493" />
           </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -543,19 +543,6 @@ const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000'
-  },
-  fixedTopBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 52,
-    paddingHorizontal: 14,
-    zIndex: 100,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 6,
   },
   cubeViewport: {
     ...StyleSheet.absoluteFill,
@@ -575,14 +562,10 @@ const s = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: Platform.OS === 'ios' ? 96 : 82,
-    bottom: 96,
-    zIndex: 80,
-    flexDirection: 'row'
+    top: Platform.OS === 'ios' ? 104 : 92,
+    bottom: Platform.OS === 'ios' ? 104 : 92,
+    zIndex: 80
   },
-  fixedStoryNavLeft: { width: '32%', height: '100%' },
-  fixedStoryNavMiddle: { width: '36%', height: '100%' },
-  fixedStoryNavRight: { width: '32%', height: '100%' },
   heartPopCenter: {
     position: 'absolute',
     top: 0,
@@ -665,17 +648,15 @@ const s = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowRadius: 4
   },
-  fixedDeleteBtn: {
+  storyTopActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  storyTopBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,.28)',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  closeBtn: {
-    width: 40,
-    height: 40,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -691,11 +672,15 @@ const s = StyleSheet.create({
     zIndex: 15
   },
   captionWrapper: {
+    position: 'absolute',
+    top: 130,
+    left: 20,
+    right: 20,
     alignItems: 'center',
-    marginBottom: 16
+    zIndex: 14
   },
   captionPill: {
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(200,79,122,0.92)',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
