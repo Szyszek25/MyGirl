@@ -427,6 +427,35 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   const [isAdmin, setIsAdmin] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
 
+  const addFriend = async target => {
+    if (!target?.id) return;
+    if (!sessionUserId) {
+      Alert.alert('Zaloguj się', 'Znajomi online wymagają konta.');
+      return;
+    }
+    try {
+      await sendFriendRequest(sessionUserId, target.id);
+      setSentRequests(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
+    } catch (error) {
+      Alert.alert('Nie wysłano zaproszenia', error.message || 'Spróbuj ponownie.');
+    }
+  };
+
+  useEffect(() => {
+    if (!sessionUserId) {
+      setSentRequests([]);
+      return;
+    }
+    let alive = true;
+    loadFriendRequests(sessionUserId)
+      .then(rows => {
+        if (!alive) return;
+        setSentRequests((rows || []).filter(row => row.direction === 'outgoing').map(row => row.otherId));
+      })
+      .catch(() => { if (alive) setSentRequests([]); });
+    return () => { alive = false; };
+  }, [sessionUserId]);
+
   useEffect(() => {
     if (!sessionUserId) { setIsAdmin(false); return; }
     let alive = true;
