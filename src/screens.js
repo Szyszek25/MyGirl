@@ -170,7 +170,14 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   };
   const sourcePeople = sessionUserId ? remotePeople : people;
   const availableTags = useMemo(() => Array.from(new Set(sourcePeople.filter(p => p.city === city).flatMap(p => p.tags || []))).sort(), [city, sourcePeople]);
-  const filtered = sourcePeople.filter(p => !blockedIds.includes(p.id) && !dismissedIds.includes(p.id) && p.city === city && (selectedTags.length === 0 || selectedTags.some(tag => (p.tags || []).includes(tag))));
+  const filtered = sourcePeople.filter(p =>
+    !blockedIds.includes(p.id) &&
+    !dismissedIds.includes(p.id) &&
+    !saved.includes(p.id) &&
+    !sentRequests.includes(p.id) &&
+    p.city === city &&
+    (selectedTags.length === 0 || selectedTags.some(tag => (p.tags || []).includes(tag)))
+  );
   const person = filtered.length ? filtered[index % filtered.length] : null;
   const xy = useRef(new Animated.ValueXY()).current;
   const vibeFor = p => {
@@ -199,7 +206,6 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   };
   const likePerson = async target => {
     if (!target) return;
-    setSaved(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
     if (!sessionUserId || !target.remote) return;
     try {
       const incoming = incomingRequests[target.id];
@@ -225,8 +231,9 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     const target = person;
     Animated.timing(xy, { toValue: { x: dir * W, y: 0 }, duration: 190, useNativeDriver: true }).start(() => {
       if (dir > 0) {
+        setSaved(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
         void likePerson(target);
-        setIndex(v => v + 1);
+        setIndex(0);
       } else {
         dismissPerson(target);
       }
