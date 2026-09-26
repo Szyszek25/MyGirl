@@ -491,6 +491,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   const [editingPost, setEditingPost] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const addFriend = async target => {
     if (!target?.id) return;
