@@ -70,11 +70,16 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       const profiles = profilesResult.data || [];
       const activeDismissedIds = (dismissalsResult.data || []).map(row => row.dismissed_user_id);
       const ids = (profiles || []).map(item => item.id);
-      let interests = [];
+      let interests = [], profilePhotos = [];
       if (ids.length) {
-        const result = await supabase.from('profile_interests').select('profile_id,interest').in('profile_id', ids);
-        if (result.error) throw result.error;
-        interests = result.data || [];
+        const [interestResult,photoResult] = await Promise.all([
+          supabase.from('profile_interests').select('profile_id,interest').in('profile_id', ids),
+          supabase.from('profile_photos').select('user_id,storage_path,position').in('user_id', ids).order('position',{ascending:true})
+        ]);
+        if (interestResult.error) throw interestResult.error;
+        if (photoResult.error) throw photoResult.error;
+        interests = interestResult.data || [];
+        profilePhotos = photoResult.data || [];
       }
       const rows = await Promise.all((profiles || []).map(async profile => {
         let photo = null;
@@ -82,6 +87,10 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           const signed = await supabase.storage.from('polka-avatars').createSignedUrl(profile.avatar_path, 3600);
           photo = signed.data?.signedUrl || null;
         }
+        const galleryPhotos=(await Promise.all(profilePhotos.filter(row=>row.user_id===profile.id).map(async row=>{
+          const signed=await supabase.storage.from('polka-profile-photos').createSignedUrl(row.storage_path,3600);
+          return signed.data?.signedUrl||null;
+        }))).filter(Boolean);
         return {
           id: profile.id,
           name: profile.display_name || 'Polka',
@@ -90,6 +99,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           photo: photo || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=900&q=85',
           bio: profile.bio || 'Hej! Jestem w Polce i chętnie poznam nowe osoby.',
           tags: interests.filter(row => row.profile_id === profile.id).map(row => row.interest),
+          galleryPhotos,
           prompt: 'Napisz do mnie',
           answer: 'Najłatwiej zacząć od prostego hej 👋',
           remote: true
@@ -264,6 +274,11 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
         })()}
       </View> : null}
       <Section title="O mnie"><Typography>{person.bio}</Typography></Section>
+      {(person.galleryPhotos||[]).length>0&&<View style={s.profilePhotoBoard}>
+        {(person.galleryPhotos||[]).map((uri,photoIndex)=><View key={uri||photoIndex} style={s.profilePhotoTile}>
+          <Image source={{uri}} style={s.profilePhotoTileImage} resizeMode="cover"/>
+        </View>)}
+      </View>}
       <Section title="Lubię"><View style={s.wrap}>{person.tags.map(v => <Chip key={v} label={v} />)}</View></Section>
       <Section title={person.prompt}><Typography style={{ fontSize: 19, fontFamily: f.semibold }}>{person.answer}</Typography></Section>
       <View style={s.safetyRow}><TextAction icon="ban-outline" title="Zablokuj" danger onPress={confirmBlock} /><TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'profile', id: person.id, label: `Profil: ${person.name}` })} /></View>
@@ -289,7 +304,9 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           <Typography style={s.personProfileCity}>{profileOpen.city}</Typography>
           {!!profileOpen.headline && <Typography style={s.personProfileHeadline}>{profileOpen.headline}</Typography>}
           {!!profileOpen.subtitle && <Typography style={s.personProfileSubtitle}>{profileOpen.subtitle}</Typography>}
-          {!!profileOpen.bio && <Typography style={s.personProfileBio}>{profileOpen.bio}</Typography>}
+          {!!profileOpen.bio && <Typography style={s.personProfileBio}>{profileOpen.bio}</Typography>}{(profileOpen.galleryPhotos||[]).length>0&&<View style={s.personGalleryBoard}>
+            {(profileOpen.galleryPhotos||[]).map((uri,index)=><Image key={uri||index} source={{uri}} style={s.personGalleryPhoto} resizeMode="cover"/>)}
+          </View>}
           <View style={s.personProfileActions}>
             <Button title={sentRequests.includes(profileOpen.id) ? 'Zaproszenie wysłane' : 'Dodaj do znajomych'} disabled={sentRequests.includes(profileOpen.id)} onPress={() => addFriend(profileOpen)} icon="person-add-outline" style={{ flex: 1 }} />
             {onMessage && profileOpen.remote && <Pressable onPress={() => { setProfileOpen(null); setSearchOpen(false); onMessage(profileOpen.id) }} style={s.personMessage}><Ionicons name="chatbubble-ellipses" size={22} color={c.pink} /></Pressable>}
@@ -1225,6 +1242,11 @@ const s = StyleSheet.create({
   swipeCard: { position: 'absolute', left: 0, right: 0, top: 0, height: 490, borderRadius: 28, overflow: 'hidden', backgroundColor: c.white, borderWidth: 1, borderColor: c.line, shadowColor: '#27151D', shadowOpacity: .12, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
   stackCard: { pointerEvents: 'none' },
   swipePhoto: { width: '100%', height: '100%' },
+  profilePhotoBoard:{gap:14,marginBottom:sp.md},
+  profilePhotoTile:{width:'100%',aspectRatio:0.82,borderRadius:26,overflow:'hidden',backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
+  profilePhotoTileImage:{width:'100%',height:'100%'},
+  personGalleryBoard:{width:'100%',gap:12,marginTop:18},
+  personGalleryPhoto:{width:'100%',aspectRatio:0.82,borderRadius:24,backgroundColor:c.blush},
   cardScrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,.14)' },
   vibePill: { position: 'absolute', top: 16, left: 16, backgroundColor: 'rgba(255,255,255,.9)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
   vibeText: { fontFamily: f.bold, fontSize: 12, color: c.ink },
