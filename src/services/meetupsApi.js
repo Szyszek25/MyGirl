@@ -35,3 +35,25 @@ export async function setMeetupRsvp(meetupId,userId,going){
     if(error)throw error;
   }
 }
+
+
+export async function createMeetup(userId,{title,description='',city,venueName,startsAt,capacity=6}){
+  if(!userId)throw new Error('Zaloguj się, aby utworzyć spotkanie.');
+  const cleanTitle=String(title||'').trim();
+  const cleanVenue=String(venueName||'').trim();
+  if(cleanTitle.length<4)throw new Error('Dodaj nazwę spotkania.');
+  if(!cleanVenue)throw new Error('Dodaj miejsce spotkania.');
+  const iso=new Date(startsAt).toISOString();
+  const cap=Math.max(2,Math.min(50,Number(capacity)||6));
+  const {data,error}=await supabase.from('meetups').insert({
+    host_id:userId,
+    title:cleanTitle.slice(0,120),
+    description:String(description||'').trim().slice(0,1200),
+    city,
+    venue_name:cleanVenue.slice(0,160),
+    starts_at:iso,
+    capacity:cap
+  }).select('id').single();
+  if(error)throw error;
+  return data;
+}
