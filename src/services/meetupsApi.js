@@ -20,7 +20,7 @@ export async function loadMeetups(city,userId){
   const bmap=new Map((businesses||[]).map(b=>[b.id,b]));
   const pmap=new Map((profiles||[]).map(p=>[p.id,p]));
   const signedAvatars=new Map();
-  await Promise.all((profiles||[]).filter(p=>p.avatar_path).map(async p=>{const {data}=await supabase.storage.from('polka-avatars').createSignedUrl(p.avatar_path,3600);if(data?.signedUrl)signedAvatars.set(p.id,data.signedUrl);}));
+  await Promise.all((profiles||[]).filter(p=>p.avatar_path).map(async p=>{if(/^https?:\/\//i.test(p.avatar_path)){signedAvatars.set(p.id,p.avatar_path);return;}const {data}=await supabase.storage.from('polka-avatars').createSignedUrl(p.avatar_path,3600);if(data?.signedUrl)signedAvatars.set(p.id,data.signedUrl);}));
   return rows.map(row=>{
     const host=pmap.get(row.host_id)||{};
     const business=row.business_id?bmap.get(row.business_id):null;
