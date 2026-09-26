@@ -84,6 +84,16 @@ function PolkaApp(){
   },[authSession?.user?.id]);
 
   useEffect(()=>{
+    const userId=authSession?.user?.id;
+    if(!userId)return;
+    let timer=null;
+    const beat=()=>supabase.from('profiles').update({last_active_at:new Date().toISOString()}).eq('id',userId).then(()=>{}).catch(()=>{});
+    void beat();
+    timer=setInterval(beat,30000);
+    return ()=>{if(timer)clearInterval(timer);};
+  },[authSession?.user?.id]);
+
+  useEffect(()=>{
     let alive=true;
     const syncSession=async session=>{
       if(!alive)return;
