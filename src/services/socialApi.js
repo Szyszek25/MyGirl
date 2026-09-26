@@ -3,6 +3,7 @@ import {extensionForContentType,uriToUploadPayload} from './storageHelper';
 
 async function signed(bucket,path,seconds=3600){
   if(!path)return null;
+  if(/^https?:\/\//i.test(path))return path;
   const {data,error}=await supabase.storage.from(bucket).createSignedUrl(path,seconds);
   if(error)return null;
   return data?.signedUrl||null;
