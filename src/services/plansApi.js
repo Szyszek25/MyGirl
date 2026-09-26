@@ -1,4 +1,5 @@
 import {supabase} from '../lib/supabase';
+import {File} from 'expo-file-system';
 
 export async function loadPlans(city,userId){
   const {data:rows,error}=await supabase.from('plans')
@@ -38,16 +39,32 @@ export async function loadPlans(city,userId){
       host:p.display_name||'Polka',
       hostId:row.host_id,
       details:row.details||'',
+      coverPhotoUrl:row.cover_photo_url||null,
       remote:true,
       joinedByMe:!!userId&&joined.some(m=>m.user_id===userId)
     };
   }));
 }
 
-export async function createPlan(userId,{title,city,category,timingLabel,details,capacity=6}){
+async function uploadPlanCover(userId,uri){
+  if(!uri)return null;
+  const ext=(uri.split('.').pop()||'jpg').split('?')[0].toLowerCase();
+  const contentType=ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg';
+  const file=new File(uri);
+  const buffer=await file.arrayBuffer();
+  const path=`${userId}/cover-${Date.now()}.${ext}`;
+  const {error}=await supabase.storage.from('polka-plan-covers').upload(path,buffer,{contentType,upsert:false});
+  if(error)throw error;
+  const signed=await supabase.storage.from('polka-plan-covers').createSignedUrl(path,60*60*24*7);
+  if(signed.error)throw signed.error;
+  return signed.data?.signedUrl||null;
+}
+
+export async function createPlan(userId,{title,city,category,timingLabel,details,capacity=6,coverUri=null}){
+  const coverPhotoUrl=coverUri?await uploadPlanCover(userId,coverUri):null;
   const {data,error}=await supabase.from('plans').insert({
     host_id:userId,title:title.trim(),city,category,timing_label:timingLabel||'Termin do ustalenia',
-    details:details?.trim()||null,capacity
+    details:details?.trim()||null,capacity,cover_photo_url:coverPhotoUrl
   }).select('id').single();
   if(error)throw error;
   await supabase.from('plan_members').insert({plan_id:data.id,user_id:userId});
@@ -62,4 +79,22 @@ export async function setPlanJoined(planId,userId,joined){
     const {error}=await supabase.from('plan_members').delete().eq('plan_id',planId).eq('user_id',userId);
     if(error)throw error;
   }
+}
+
+export async function updatePlan(planId,userId,patch){
+  const payload={};
+  if(patch.title!=null)payload.title=patch.title.trim();
+  if(patch.city!=null)payload.city=patch.city;
+  if(patch.category!=null)payload.category=patch.category;
+  if(patch.timingLabel!=null)payload.timing_label=patch.timingLabel;
+  if(patch.details!=null)payload.details=patch.details.trim()||null;
+  if(patch.capacity!=null)payload.capacity=Math.max(2,Number(patch.capacity)||6);
+  if(patch.coverUri)payload.cover_photo_url=await uploadPlanCover(userId,patch.coverUri);
+  const {error}=await supabase.from('plans').update(payload).eq('id',planId).eq('host_id',userId);
+  if(error)throw error;
+}
+
+export async function deletePlan(planId,userId){
+  const {error}=await supabase.from('plans').delete().eq('id',planId).eq('host_id',userId);
+  if(error)throw error;
 }
