@@ -126,7 +126,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     (async () => {
       const [profilesResult, dismissalsResult, requests] = await Promise.all([
         supabase.from('profiles')
-          .select('id,display_name,city,bio,avatar_path')
+          .select('id,display_name,city,bio,avatar_path,headline')
           .neq('id', sessionUserId)
           .eq('city', city)
           .eq('onboarding_complete', true)
@@ -181,6 +181,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           city: profile.city,
           photo: photo || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=900&q=85',
           bio: profile.bio || 'Hej! Jestem w Polce i chętnie poznam nowe osoby.',
+          headline: profile.headline || '',
           tags: interests.filter(row => row.profile_id === profile.id).map(row => row.interest),
           galleryPhotos,
           prompt: 'Napisz do mnie',
@@ -424,9 +425,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           <Image source={{ uri: profileOpen.photo || people[0]?.photo }} style={s.personProfilePhoto} />
           <Typography style={s.personProfileName}>{profileOpen.name}</Typography>
           <Typography style={s.personProfileCity}>{profileOpen.city}</Typography>
-          {!!profileOpen.headline && <Typography style={s.personProfileHeadline}>{profileOpen.headline}</Typography>}
-          {!!profileOpen.subtitle && <Typography style={s.personProfileSubtitle}>{profileOpen.subtitle}</Typography>}
-          {!!profileOpen.bio && <Typography style={s.personProfileBio}>{profileOpen.bio}</Typography>}{(profileOpen.galleryPhotos||[]).length>0&&<View style={s.personGalleryBoard}>
+          {!!(profileOpen.headline||profileOpen.bio) && <Typography numberOfLines={3} style={s.personProfileBio}>{profileOpen.headline||profileOpen.bio}</Typography>}{(profileOpen.galleryPhotos||[]).length>0&&<View style={s.personGalleryBoard}>
             {(profileOpen.galleryPhotos||[]).map((uri,index)=><Image key={uri||index} source={{uri}} style={s.personGalleryPhoto} resizeMode="cover"/>)}
           </View>}
           <View style={s.personProfileActions}>
