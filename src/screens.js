@@ -433,16 +433,21 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   };
 
   const loadCached = async () => {
-    if (!sessionUserId) return;
+    if (!sessionUserId) return false;
     try {
       const keys = getCacheKeys();
       const [cachedFeed, cachedStories] = await Promise.all([
         readCached(keys.feed),
         readCached(keys.stories)
       ]);
-      if (cachedFeed?.length) setRemotePosts(cachedFeed);
-      if (cachedStories?.length) setStories(cachedStories);
-    } catch {}
+      const hasFeedCache = cachedFeed !== null;
+      const hasStoriesCache = cachedStories !== null;
+      if (hasFeedCache) setRemotePosts(Array.isArray(cachedFeed) ? cachedFeed : []);
+      if (hasStoriesCache) setStories(Array.isArray(cachedStories) ? cachedStories : []);
+      return hasFeedCache || hasStoriesCache;
+    } catch {
+      return false;
+    }
   };
 
   const refresh = async (force = false) => {
@@ -469,7 +474,19 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { loadCached(); void refresh() }, [city, sessionUserId]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const hasFreshCache = await loadCached();
+      if (!alive) return;
+      if (hasFreshCache) {
+        setLoading(false);
+        return;
+      }
+      await refresh(true);
+    })();
+    return () => { alive = false; };
+  }, [city, sessionUserId]);
 
   const sourcePosts = remotePosts.length
     ? [...remotePosts, ...posts.filter(p => !remotePosts.some(r => r.body === p.body))]
@@ -959,19 +976,24 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     { id: 'meet-books', name: 'Book club + kawa', photo: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80', last: 'Sara: wrzucam lokalizację kawiarni', time: 'wczoraj', unread: 0 }
   ].filter(chat => !blockedIds.includes(chat.id) && (supportChat || chat.id !== 'cycle-support'));
 
-  const chats = [
-    ...remoteRooms.map(room => ({
-      id: room.id,
-      name: room.name,
-      photo: people[0]?.photo,
-      last: room.last,
-      time: formatPostTime(room.time),
-      unread: 0,
-      group: room.kind === 'group',
-      remote: true
-    })),
-    ...demoChats
-  ];
+  const remoteChatRows = remoteRooms.map(room => ({
+    id: room.id,
+    name: room.name,
+    photo: people[0]?.photo,
+    last: room.last,
+    time: formatPostTime(room.time),
+    unread: 0,
+    group: room.kind === 'group',
+    otherUserId: room.otherUserId || null,
+    remote: true
+  }));
+  const chats = sessionUserId
+    ? Array.from(remoteChatRows.reduce((map, chat) => {
+        const key = !chat.group && chat.otherUserId ? `direct:${chat.otherUserId}` : `room:${chat.id}`;
+        if (!map.has(key)) map.set(key, chat);
+        return map;
+      }, new Map()).values())
+    : demoChats;
 
   const seededChatMessages = {
     'cycle-support': [
