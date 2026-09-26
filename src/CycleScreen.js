@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {Alert,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,space as sp} from './theme';
@@ -177,10 +177,15 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null
     <View style={s.header}>
       <Pressable onPress={onClose} style={s.iconBtn}><Ionicons name="arrow-back" size={24} color={c.ink}/></Pressable>
       <Typography style={s.headerTitle}>Cykl i samopoczucie</Typography>
-      <Pressable onPress={onOpenCare} style={s.iconBtn}><Ionicons name="book-outline" size={22} color={c.ink}/></Pressable>
+      <View style={s.iconBtn}/>
     </View>
 
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <Pressable onPress={onOpenCare} style={s.carePill}>
+        <View style={s.carePillIcon}><Ionicons name="book-outline" size={17} color={c.pink}/></View>
+        <View style={{flex:1}}><Typography style={s.carePillTitle}>Polka Care</Typography><Typography style={s.carePillSub}>Wiedza o cyklu i samopoczuciu</Typography></View>
+        <Ionicons name="chevron-forward" size={18} color={c.pink}/>
+      </Pressable>
       <View style={s.careHero}>
         <View style={s.careHeroTop}>
           <View>
@@ -193,21 +198,11 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null
 
         <View style={s.careHeroBody}>
           <View style={s.clayScene}>
-            <View style={s.clayGlow}/>
-            <View style={s.clayHairBack}/>
-            <View style={s.clayNeck}/>
-            <View style={s.clayTorso}/>
-            <View style={s.clayArmLeft}/>
-            <View style={s.clayArmRight}/>
-            <View style={s.clayHead}>
-              <View style={s.clayHairFront}/>
-              <View style={s.clayEyeLeft}/>
-              <View style={s.clayEyeRight}/>
-              <View style={s.claySmile}/>
-            </View>
-            <View style={s.claySkirt}/>
-            <View style={[s.claySparkle,{top:14,left:10}]}/>
-            <View style={[s.claySparkle,{bottom:16,right:9}]}/>
+            <Image
+              source={{uri:'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=85'}}
+              style={s.cycleHeroImage}
+              resizeMode="cover"
+            />
           </View>
           <View style={s.careStats}>
             <View style={s.careStat}><Typography style={s.careStatValue}>{daysToPeriod}</Typography><Typography style={s.careStatLabel}>dni do okresu</Typography></View>
@@ -334,6 +329,10 @@ const s=StyleSheet.create({
   summaryDay:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},
   summaryCopy:{fontFamily:f.regular,fontSize:13,lineHeight:19,color:c.muted,marginTop:13,maxWidth:340},
 
+  carePill:{marginHorizontal:sp.lg,marginTop:10,marginBottom:10,minHeight:62,borderRadius:18,backgroundColor:c.white,borderWidth:1,borderColor:c.line,paddingHorizontal:14,flexDirection:'row',alignItems:'center',gap:10},
+  carePillIcon:{width:34,height:34,borderRadius:12,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
+  carePillTitle:{fontFamily:f.bold,fontSize:15,color:c.ink},
+  carePillSub:{fontFamily:f.regular,fontSize:11,color:c.muted,marginTop:2},
   careHero:{marginHorizontal:sp.lg,marginTop:12,marginBottom:18,borderRadius:28,backgroundColor:'#F8E3EA',padding:18,overflow:'hidden'},
   careHeroTop:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',gap:12},
   careEyebrow:{fontFamily:f.bold,fontSize:12,letterSpacing:1.25,color:c.pink},
@@ -341,6 +340,7 @@ const s=StyleSheet.create({
   careHeroSubtitle:{fontFamily:f.semibold,fontSize:15,color:c.muted,marginTop:7},
   careHeroBody:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:8,gap:12},
   clayScene:{width:148,height:176,borderRadius:30,backgroundColor:'#F0CBD9',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'},
+  cycleHeroImage:{width:'100%',height:'100%'},
   clayGlow:{position:'absolute',width:126,height:126,borderRadius:63,backgroundColor:'#FFF1F5',top:15,left:11},
   clayHairBack:{position:'absolute',width:74,height:96,borderRadius:38,backgroundColor:'#6E4256',top:22,left:37},
   clayHead:{width:58,height:66,borderRadius:29,backgroundColor:'#F2BDAE',position:'absolute',top:30,left:45,alignItems:'center',zIndex:5},
