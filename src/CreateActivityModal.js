@@ -1,5 +1,6 @@
 import React,{useMemo,useState} from 'react';
-import {Modal,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Image,Modal,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,space as sp} from './theme';
 import {Button,Typography} from './ui';
@@ -10,7 +11,7 @@ const labelDate=d=>d.toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',m
 const nextDays=Array.from({length:21},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i);return d;});
 const times=Array.from({length:29},(_,i)=>{const mins=8*60+i*30;return `${pad(Math.floor(mins/60))}:${pad(mins%60)}`;});
 
-export default function CreateActivityModal({visible,onClose,initialType='plan',city='Warszawa',busy=false,onSubmit}){
+export default function CreateActivityModal({visible,onClose,initialType='plan',city='Warszawa',busy=false,onSubmit,initialValues=null}){
   const [type,setType]=useState(initialType);
   const [title,setTitle]=useState('');
   const [place,setPlace]=useState('');
@@ -20,9 +21,11 @@ export default function CreateActivityModal({visible,onClose,initialType='plan',
   const [capacity,setCapacity]=useState('6');
   const [dateOpen,setDateOpen]=useState(false);
   const [timeOpen,setTimeOpen]=useState(false);
-  React.useEffect(()=>{if(visible)setType(initialType)},[visible,initialType]);
+  const [coverUri,setCoverUri]=useState(null);
+  React.useEffect(()=>{if(!visible)return;setType(initialType);setTitle(initialValues?.title||'');setPlace(initialValues?.place||'');setDate(initialValues?.date||'');setTime(initialValues?.time||'');setDescription(initialValues?.description||'');setCapacity(String(initialValues?.capacity||6));setCoverUri(initialValues?.coverPhotoUrl||null)},[visible,initialType,initialValues]);
   const selectedDate=useMemo(()=>nextDays.find(d=>isoDate(d)===date),[date]);
-  const submit=()=>onSubmit?.({type,title:title.trim(),place:place.trim(),date,time,description:description.trim(),capacity});
+  const pickCover=async()=>{const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!permission.granted)return;const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[16,9],quality:.86});if(!result.canceled&&result.assets?.[0]?.uri)setCoverUri(result.assets[0].uri)};
+  const submit=()=>onSubmit?.({type,title:title.trim(),place:place.trim(),date,time,description:description.trim(),capacity,coverUri});
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
     <Pressable style={s.backdrop} onPress={onClose}>
       <Pressable style={s.sheet} onPress={e=>e.stopPropagation()}>
@@ -33,6 +36,8 @@ export default function CreateActivityModal({visible,onClose,initialType='plan',
           <Pressable onPress={()=>setType('meeting')} style={[s.segmentBtn,type==='meeting'&&s.segmentActive]}><Typography style={[s.segmentText,type==='meeting'&&s.segmentTextActive]}>Spotkanie</Typography></Pressable>
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Typography style={s.label}>Zdjęcie</Typography>
+          <Pressable onPress={pickCover} style={s.coverPicker}>{coverUri?<Image source={{uri:coverUri}} style={s.coverPreview}/>:<><Ionicons name="image-outline" size={24} color={c.pink}/><Typography style={s.coverText}>Dodaj zdjęcie planu</Typography></>}</Pressable>
           <Typography style={s.label}>Co chcesz zrobić?</Typography>
           <TextInput value={title} onChangeText={setTitle} maxLength={120} placeholder="Np. Matcha + spacer" placeholderTextColor={c.muted} style={s.input}/>
           <Typography style={s.label}>Lokalizacja</Typography>
@@ -55,5 +60,5 @@ export default function CreateActivityModal({visible,onClose,initialType='plan',
   </Modal>;
 }
 const s=StyleSheet.create({
-  backdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.28)'},sheet:{backgroundColor:c.white,borderTopLeftRadius:28,borderTopRightRadius:28,padding:sp.lg,paddingBottom:34,maxHeight:'92%'},handle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:14},header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},title:{fontFamily:f.bold,fontSize:26,color:c.ink},subtitle:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},icon:{width:40,height:40,alignItems:'center',justifyContent:'center'},segment:{flexDirection:'row',backgroundColor:c.canvas,borderRadius:16,padding:4,marginTop:16,marginBottom:6},segmentBtn:{flex:1,minHeight:44,borderRadius:13,alignItems:'center',justifyContent:'center'},segmentActive:{backgroundColor:c.blush},segmentText:{fontFamily:f.bold,fontSize:14,color:c.muted},segmentTextActive:{color:c.pink},label:{fontFamily:f.semibold,fontSize:13,color:c.ink,marginTop:12,marginBottom:7},input:{minHeight:50,borderRadius:15,borderWidth:1,borderColor:c.line,paddingHorizontal:14,fontFamily:f.regular,fontSize:14,color:c.ink},inputIcon:{minHeight:50,borderRadius:15,borderWidth:1,borderColor:c.line,paddingHorizontal:13,flexDirection:'row',alignItems:'center',gap:8},flexInput:{flex:1,fontFamily:f.regular,fontSize:14,color:c.ink},row:{flexDirection:'row',gap:10},flex:{flex:1},picker:{height:50,borderRadius:15,borderWidth:1,borderColor:c.line,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:7},pickerValue:{fontFamily:f.semibold,fontSize:13,color:c.ink},pickerPlaceholder:{fontFamily:f.regular,fontSize:13,color:c.muted},choices:{gap:8,paddingVertical:9},choice:{borderWidth:1,borderColor:c.line,borderRadius:999,paddingHorizontal:12,paddingVertical:9},choiceActive:{backgroundColor:c.pink,borderColor:c.pink},choiceText:{fontFamily:f.semibold,fontSize:12,color:c.ink},choiceTextActive:{color:c.white},description:{height:86,textAlignVertical:'top',paddingTop:13},city:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:10,paddingVertical:7,marginTop:12},cityText:{fontFamily:f.bold,fontSize:11,color:c.pink}
+  backdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.28)'},sheet:{backgroundColor:c.white,borderTopLeftRadius:28,borderTopRightRadius:28,padding:sp.lg,paddingBottom:34,maxHeight:'92%'},handle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:14},header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},title:{fontFamily:f.bold,fontSize:26,color:c.ink},subtitle:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},icon:{width:40,height:40,alignItems:'center',justifyContent:'center'},segment:{flexDirection:'row',backgroundColor:c.canvas,borderRadius:16,padding:4,marginTop:16,marginBottom:6},segmentBtn:{flex:1,minHeight:44,borderRadius:13,alignItems:'center',justifyContent:'center'},segmentActive:{backgroundColor:c.blush},segmentText:{fontFamily:f.bold,fontSize:14,color:c.muted},segmentTextActive:{color:c.pink},label:{fontFamily:f.semibold,fontSize:13,color:c.ink,marginTop:12,marginBottom:7},input:{minHeight:50,borderRadius:15,borderWidth:1,borderColor:c.line,paddingHorizontal:14,fontFamily:f.regular,fontSize:14,color:c.ink},inputIcon:{minHeight:50,borderRadius:15,borderWidth:1,borderColor:c.line,paddingHorizontal:13,flexDirection:'row',alignItems:'center',gap:8},flexInput:{flex:1,fontFamily:f.regular,fontSize:14,color:c.ink},row:{flexDirection:'row',gap:10},flex:{flex:1},picker:{height:50,borderRadius:15,borderWidth:1,borderColor:c.line,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:7},pickerValue:{fontFamily:f.semibold,fontSize:13,color:c.ink},pickerPlaceholder:{fontFamily:f.regular,fontSize:13,color:c.muted},choices:{gap:8,paddingVertical:9},choice:{borderWidth:1,borderColor:c.line,borderRadius:999,paddingHorizontal:12,paddingVertical:9},choiceActive:{backgroundColor:c.pink,borderColor:c.pink},choiceText:{fontFamily:f.semibold,fontSize:12,color:c.ink},choiceTextActive:{color:c.white},description:{height:86,textAlignVertical:'top',paddingTop:13},city:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:10,paddingVertical:7,marginTop:12},cityText:{fontFamily:f.bold,fontSize:11,color:c.pink},coverPicker:{height:150,borderRadius:18,borderWidth:1,borderColor:c.line,backgroundColor:c.canvas,overflow:'hidden',alignItems:'center',justifyContent:'center',gap:7},coverPreview:{width:'100%',height:'100%'},coverText:{fontFamily:f.bold,fontSize:13,color:c.pink}
 });
