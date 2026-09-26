@@ -166,12 +166,22 @@ export async function loadStories(userId,city){
     : {data:[],error:null};
   if(pError)throw pError;
   const pmap=new Map((profiles||[]).map(p=>[p.id,p]));
+  const storyIds=(rows||[]).map(row=>row.id);
+  let viewedIds=new Set();
+  if(storyIds.length){
+    const {data:views,error:vError}=await supabase.from('story_views')
+      .select('story_id')
+      .eq('viewer_id',userId)
+      .in('story_id',storyIds);
+    if(vError)throw vError;
+    viewedIds=new Set((views||[]).map(view=>view.story_id));
+  }
   const mapped=await Promise.all((rows||[]).map(async row=>{
     const p=pmap.get(row.author_id)||{};
     if(city&&p.city&&p.city!==city)return null;
     return {
       id:row.id,authorId:row.author_id,name:p.display_name||'Polka',caption:row.caption,
-      mediaType:row.media_type,createdAt:row.created_at,
+      mediaType:row.media_type,createdAt:row.created_at,viewed:viewedIds.has(row.id),
       mediaUrl:await signed('polka-story-media',row.media_path),
       avatar:p.avatar_path?await signed('polka-avatars',p.avatar_path):null
     };
@@ -179,11 +189,11 @@ export async function loadStories(userId,city){
   return mapped.filter(Boolean);
 }
 
-export async function createStory({userId,uri,caption='',tags=[]}) {
+export async function createStory({userId,uri,caption=''}) {
   const uploaded=await upload('polka-story-media',userId,uri,'story');
   const mediaType=uploaded.type.startsWith('video/')?'video':'image';
   const {data,error}=await supabase.from('stories')
-    .insert({author_id:userId,media_path:uploaded.path,media_type:mediaType,caption:caption.trim()||null,tags:tags.length ? tags : null})
+    .insert({author_id:userId,media_path:uploaded.path,media_type:mediaType,caption:caption.trim()||null})
     .select('id').single();
   if(error)throw error;
   return data;
