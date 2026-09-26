@@ -6,13 +6,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FFF9FA",
-    "primaryColor": "#CE0459",
+    "backgroundColor": "#FFF7FA",
+    "primaryColor": "#C84F7A",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#CE0459"
+      "backgroundColor": "#C84F7A"
     },
     "ios": {
       "supportsTablet": false,
@@ -21,7 +21,7 @@
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "contain",
-        "backgroundColor": "#CE0459"
+        "backgroundColor": "#C84F7A"
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Polka używa wybranego zdjęcia do Twojego profilu.",
@@ -34,11 +34,11 @@
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "contain",
-        "backgroundColor": "#CE0459"
+        "backgroundColor": "#C84F7A"
       },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#CE0459"
+        "backgroundColor": "#C84F7A"
       }
     },
     "web": {
@@ -64,7 +64,7 @@
       [
         "expo-notifications",
         {
-          "color": "#B8325A",
+          "color": "#C84F7A",
           "defaultChannel": "default",
           "enableBackgroundRemoteNotifications": true
         }
