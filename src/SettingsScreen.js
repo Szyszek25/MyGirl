@@ -7,10 +7,10 @@ import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences}
 import {defaultAccountSettings,loadAccountSettings,updateAccountSettings} from './services/accountSettingsApi';
 import {disablePushNotifications,enablePushNotifications} from './services/notificationsApi';
 
-const SHARE_URL='https://polka.app';
-const PRIVACY_URL='https://polka.app/privacy.html';
-const TERMS_URL='https://polka.app/terms.html';
-const DELETE_ACCOUNT_URL='https://polka.app/delete-account.html';
+const SHARE_URL='https://polka-red.vercel.app';
+const PRIVACY_URL='https://polka-red.vercel.app/privacy.html';
+const TERMS_URL='https://polka-red.vercel.app/terms.html';
+const DELETE_ACCOUNT_URL='https://polka-red.vercel.app/delete-account.html';
 const SUPPORT_EMAIL='mycampus.kontakt@gmail.com';
 
 function Row({icon,title,subtitle,onPress,right,danger=false}){
