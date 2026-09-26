@@ -974,10 +974,12 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             ? <View style={{ flexDirection: 'row' }}><TextAction icon="create-outline" title={isAdmin && item.authorId !== sessionUserId ? 'Edytuj jako admin' : 'Edytuj'} onPress={() => startEdit(item)} /><TextAction icon="trash-outline" title="Usuń" danger onPress={() => deleteOwnPost(item)} /></View>
             : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'post', id: item.id, label: `Wpis: ${item.author}` })} />}
         </View>
-        <Pressable onPress={() => openComments(item, true)} style={s.commentComposerPreview}>
+        <View style={s.commentComposerRow}>
           <Image source={{ uri: remotePosts.find(post => post.authorId === sessionUserId)?.avatar || people[0]?.photo }} style={s.commentComposerAvatar} />
-          <Typography numberOfLines={1} style={s.commentComposerPlaceholder}>Napisz komentarz...</Typography>
-        </Pressable>
+          <Pressable onPress={() => openComments(item, true)} style={s.commentComposerPreview}>
+            <Typography numberOfLines={1} style={s.commentComposerPlaceholder}>Napisz komentarz...</Typography>
+          </Pressable>
+        </View>
       </View>}
       ListEmptyComponent={!loading ? <View style={s.feedEmpty}><Typography style={s.emptyFeedTitle}>Jeszcze cicho w {city}</Typography><Typography style={s.emptyFeedText}>Napisz pierwszy post albo zmień miasto u góry.</Typography></View> : null}
     />
@@ -1656,7 +1658,7 @@ const s = StyleSheet.create({
   postAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   postActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   postActionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  commentComposerPreview: { marginTop: 8, marginBottom: 2, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.white },
+  commentComposerRow: { marginTop: 8, marginBottom: 2, flexDirection: 'row', alignItems: 'center', gap: 10 },\n  commentComposerPreview: { flex: 1, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: c.white },
   commentComposerAvatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.soft, borderWidth: 1, borderColor: c.line, overflow: 'hidden' },
   commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, color: c.muted },
   commentsRoot: { flex: 1, backgroundColor: c.white },
