@@ -154,10 +154,24 @@ export default function PolkaCareScreen({onClose}){
         <Typography style={s.introCopy}>Proste wyjaśnienia o okresie, objawach i samopoczuciu — napisane tak, żeby dało się to przeczytać w dwie minuty.</Typography>
       </View>
 
-      <Image
-        source={{uri:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1500&q=86'}}
-        style={s.coverImage}
-      />
+      <View style={s.careLandingGrid}>
+        <View style={s.careLandingTilePrimary}>
+          <View style={s.careLandingIcon}><Ionicons name="sparkles-outline" size={25} color={c.white}/></View>
+          <Typography style={s.careLandingKicker}>DZIŚ W POLKA CARE</Typography>
+          <Typography style={s.careLandingTitle}>Czytaj mniej. Rozumiej więcej.</Typography>
+          <Typography style={s.careLandingText}>Krótko o cyklu, objawach i tym, kiedy warto coś sprawdzić.</Typography>
+        </View>
+        <View style={s.careLandingTile}>
+          <Ionicons name="calendar-outline" size={26} color={c.pink}/>
+          <Typography style={s.careLandingMiniTitle}>Cykl</Typography>
+          <Typography style={s.careLandingMiniText}>Prognozy bez udawania pewności.</Typography>
+        </View>
+        <View style={s.careLandingTile}>
+          <Ionicons name="pulse-outline" size={26} color={c.pink}/>
+          <Typography style={s.careLandingMiniTitle}>Objawy</Typography>
+          <Typography style={s.careLandingMiniText}>Co warto obserwować i zapisywać.</Typography>
+        </View>
+      </View>
 
       <Pressable onPress={()=>setSelected(sourceArticles.find(a=>a.id==='late-period')||sourceArticles[0])} style={s.leadStory}>
         <Typography style={s.cardCategory}>NA POCZĄTEK</Typography>
@@ -212,12 +226,20 @@ const s=StyleSheet.create({
   headerTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
 
   content:{paddingBottom:70},
-  intro:{paddingHorizontal:sp.lg,paddingTop:26,paddingBottom:20},
+  intro:{paddingHorizontal:sp.lg,paddingTop:20,paddingBottom:16},
   topLabel:{fontFamily:f.bold,fontSize:11,letterSpacing:1.5,color:c.pink},
-  introTitle:{fontFamily:f.bold,fontSize:38,lineHeight:41,letterSpacing:-1.5,color:c.ink,marginTop:8,maxWidth:330},
+  introTitle:{fontFamily:f.bold,fontSize:34,lineHeight:38,letterSpacing:-1.2,color:c.ink,marginTop:8,maxWidth:330},
   introCopy:{fontFamily:f.regular,fontSize:15,lineHeight:22,color:c.muted,marginTop:10,maxWidth:330},
 
-  coverImage:{width:'100%',height:300,backgroundColor:c.blush},
+  careLandingGrid:{paddingHorizontal:sp.lg,display:'flex',flexDirection:'row',flexWrap:'wrap',gap:10,marginBottom:8},
+  careLandingTilePrimary:{width:'100%',minHeight:210,borderRadius:26,backgroundColor:c.pink,padding:20,justifyContent:'flex-end'},
+  careLandingIcon:{width:44,height:44,borderRadius:15,backgroundColor:'rgba(255,255,255,.18)',alignItems:'center',justifyContent:'center',marginBottom:'auto'},
+  careLandingKicker:{fontFamily:f.bold,fontSize:11,letterSpacing:1.1,color:'rgba(255,255,255,.82)',marginTop:20},
+  careLandingTitle:{fontFamily:f.bold,fontSize:30,lineHeight:34,letterSpacing:-1,color:c.white,marginTop:6,maxWidth:290},
+  careLandingText:{fontFamily:f.regular,fontSize:14,lineHeight:20,color:'rgba(255,255,255,.86)',marginTop:8,maxWidth:290},
+  careLandingTile:{width:'48%',minHeight:145,borderRadius:22,backgroundColor:c.white,borderWidth:1,borderColor:c.line,padding:16},
+  careLandingMiniTitle:{fontFamily:f.bold,fontSize:18,color:c.ink,marginTop:'auto'},
+  careLandingMiniText:{fontFamily:f.regular,fontSize:12,lineHeight:17,color:c.muted,marginTop:5},
   leadStory:{paddingHorizontal:sp.lg,paddingTop:22,paddingBottom:18},
   leadTitle:{fontFamily:f.bold,fontSize:28,lineHeight:32,letterSpacing:-.9,color:c.ink,marginTop:5},
   leadSummary:{fontFamily:f.regular,fontSize:14,lineHeight:21,color:c.muted,marginTop:9},
