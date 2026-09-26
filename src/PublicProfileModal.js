@@ -15,7 +15,7 @@ import { Typography } from './ui';
 import { people } from './data';
 import { supabase } from './lib/supabase';
 import { createChatRealtime } from './services/chatRealtime';
-import { loadFriendRequests, sendFriendRequest } from './services/friendsApi';
+import { loadFriendRequests, removeFriendRequest, sendFriendRequest } from './services/friendsApi';
 
 function formatMemberSince(dateStr) {
   if (!dateStr) return 'W Polce od września 2026';
@@ -47,6 +47,7 @@ export default function PublicProfileModal({
   const [profileData, setProfileData] = useState(null);
   const [existingConversationId, setExistingConversationId] = useState(null);
   const [friendSent, setFriendSent] = useState(false);
+  const [outgoingRequestId, setOutgoingRequestId] = useState(null);
   const [friendBusy, setFriendBusy] = useState(false);
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function PublicProfileModal({
     if (!visible || !sessionUserId || !authorId || !/^[0-9a-f-]{36}$/i.test(authorId)) {
       setExistingConversationId(null);
       setFriendSent(false);
+      setOutgoingRequestId(null);
       return;
     }
     let alive = true;
@@ -133,7 +135,9 @@ export default function PublicProfileModal({
       if (!alive) return;
       const direct = (rooms || []).find(room => room.kind === 'direct' && room.otherUserId === authorId);
       setExistingConversationId(direct?.id || null);
-      setFriendSent((requests || []).some(row => row.direction === 'outgoing' && row.otherId === authorId));
+      const outgoing = (requests || []).find(row => row.direction === 'outgoing' && row.otherId === authorId);
+      setFriendSent(!!outgoing);
+      setOutgoingRequestId(outgoing?.id || null);
     })().catch(() => {});
     return () => { alive = false; };
   }, [visible, sessionUserId, authorId]);
@@ -142,8 +146,30 @@ export default function PublicProfileModal({
     if (!sessionUserId || !profileData?.id || friendBusy || friendSent) return;
     setFriendBusy(true);
     try {
-      await sendFriendRequest(sessionUserId, profileData.id);
+      const request = await sendFriendRequest(sessionUserId, profileData.id);
+      if (request?.id) setOutgoingRequestId(request.id);
+      else {
+        const requests = await loadFriendRequests(sessionUserId);
+        setOutgoingRequestId((requests || []).find(row => row.direction === 'outgoing' && row.otherId === profileData.id)?.id || null);
+      }
       setFriendSent(true);
+    } finally {
+      setFriendBusy(false);
+    }
+  };
+
+  const handleCancelFriend = async () => {
+    if (!sessionUserId || !profileData?.id || friendBusy || !friendSent) return;
+    setFriendBusy(true);
+    try {
+      let requestId = outgoingRequestId;
+      if (!requestId) {
+        const requests = await loadFriendRequests(sessionUserId);
+        requestId = (requests || []).find(row => row.direction === 'outgoing' && row.otherId === profileData.id)?.id || null;
+      }
+      if (requestId) await removeFriendRequest(requestId);
+      setFriendSent(false);
+      setOutgoingRequestId(null);
     } finally {
       setFriendBusy(false);
     }
@@ -213,8 +239,8 @@ export default function PublicProfileModal({
 
             <View style={s.nameRow}>
               <Typography style={s.name}>{profileData.name}</Typography>
-              <Pressable disabled={friendBusy || friendSent || !sessionUserId} onPress={handleAddFriend} style={[s.addFriendBtn, friendSent && s.addFriendBtnSent]}>
-                <Typography style={[s.addFriendText, friendSent && s.addFriendTextSent]}>{friendBusy ? 'Wysyłam…' : friendSent ? 'Zaproszenie wysłane' : 'Dodaj do znajomego'}</Typography>
+              <Pressable disabled={friendBusy || !sessionUserId} onPress={friendSent ? handleCancelFriend : handleAddFriend} style={[s.addFriendBtn, friendSent && s.addFriendBtnSent]}>
+                <Typography style={[s.addFriendText, friendSent && s.addFriendTextSent]}>{friendBusy ? (friendSent ? 'Wycofuję…' : 'Wysyłam…') : friendSent ? 'Wycofaj zaproszenie' : 'Dodaj do znajomego'}</Typography>
               </Pressable>
             </View>
 
