@@ -7,6 +7,7 @@ import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
 import {createMeetup,loadMeetups,setMeetupRsvp} from './services/meetupsApi';
 import {createPlan} from './services/plansApi';
+import {loadCycleCloud} from './services/cycleApi';
 import CreateActivityModal from './CreateActivityModal';
 
 const starterMeetings=[
@@ -62,7 +63,7 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
+export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,onOpenCycle,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
@@ -93,12 +94,16 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
 
   useEffect(()=>{
     let alive=true;
-    AsyncStorage.getItem(CYCLE_STORAGE_KEY).then(raw=>{
-      if(!alive||!raw)return;
-      try{setCycleData(JSON.parse(raw));}catch{}
-    }).catch(()=>{});
+    (async()=>{
+      let local=null;
+      try{const raw=await AsyncStorage.getItem(CYCLE_STORAGE_KEY);if(raw)local=JSON.parse(raw);}catch{}
+      if(alive&&local)setCycleData(local);
+      if(sessionUserId){
+        try{const cloud=await loadCycleCloud(sessionUserId);if(alive&&cloud?.lastPeriod)setCycleData(cloud);}catch{}
+      }
+    })();
     return ()=>{alive=false;};
-  },[]);
+  },[sessionUserId,selected?.id]);
 
   const toggle=async id=>{
     const item=sourceMeetings.find(row=>row.id===id);
@@ -196,12 +201,12 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
           <View style={s.infoRow}><Ionicons name="calendar-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{new Date(selected.when).toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</Typography></View>
           <Pressable onPress={()=>Linking.openURL(selected.mapsUrl||`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.place+', '+selected.city)}`)} style={s.infoRow}><Ionicons name="location-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{selected.place}, {selected.city}</Typography><Ionicons name="open-outline" size={16} color={c.muted}/></Pressable>
 
-          {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(selected.when),cycleData);return <View style={s.careFit}>
+          {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(selected.when),cycleData);return <Pressable onPress={()=>onOpenCycle?.()} style={s.careFit}>
             <View style={s.careFitTop}><View><Typography style={s.careFitOverline}>POLKA CARE</Typography><Typography style={s.careFitTitle}>{ctx?ctx.label:'Kontekst terminu'}</Typography></View><View style={[s.careFitIcon,ctx?.tone==='easy'&&{backgroundColor:'#EAF6F0'},ctx?.tone==='careful'&&{backgroundColor:'#FFF4E5'},ctx?.tone==='period'&&{backgroundColor:c.blush}]}><Ionicons name={ctx?.icon||'heart-circle-outline'} size={22} color={ctx?.tone==='easy'?c.success:ctx?.tone==='careful'?c.warning:c.pink}/></View></View>
             <Typography style={s.careFitDays}>{ctx?ctx.daysText:'Ustaw cykl, żeby zobaczyć prognozę'}</Typography>
             <Typography style={s.careFitCopy}>{ctx?(ctx.tone==='easy'?'Termin nie wypada blisko przewidywanego okresu. Jeśli czujesz się dobrze, nic w trackerze nie sugeruje, żeby zmieniać plan.':ctx.tone==='careful'?'Termin wypada blisko przewidywanego okresu. Możesz zostawić sobie więcej luzu albo wybrać spokojniejszy plan — zależnie od samopoczucia.':'Termin może wypaść w przewidywane dni miesiączki. To nie znaczy, że masz rezygnować — potraktuj to tylko jako przypomnienie o własnym komforcie.'):'Ustaw cykl w Polka Care, żeby zobaczyć kontekst terminu.'}</Typography>
-            <Typography style={s.careFitNote}>Prognoza okresu jest orientacyjna.</Typography>
-          </View>})()}
+            <Typography style={s.careFitNote}>Prognoza okresu jest orientacyjna. Dotknij, aby otworzyć kalendarz cyklu.</Typography>
+          </Pressable>})()}
           {featurePreferences.zodiacMeetingContext&&featurePreferences.zodiacSign&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign,selected);return <View style={s.zodiacFit}>
             <Typography style={s.zodiacLabel}>ASTRO VIBE · {String(featurePreferences.zodiacSign).toUpperCase()}</Typography>
             <Typography style={s.zodiacFitTitle}>{vibe.title}</Typography>
