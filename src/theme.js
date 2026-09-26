@@ -2,14 +2,14 @@
 import {Platform} from 'react-native';
 
 export const colors = Object.freeze({
-  pink:'#B8325A',
-  pinkDark:'#8F2446',
-  blush:'#FBECEF',
-  canvas:'#FFF9FA',
+  pink:'#C84F7A',
+  pinkDark:'#B94B7C',
+  blush:'#F8DCE6',
+  canvas:'#FFF7FA',
   white:'#FFFFFF',
   ink:'#191317',
   muted:'#776B71',
-  line:'#EADDE2',
+  line:'#E9D9E0',
   success:'#237A57',
   warning:'#A86208'
 });
@@ -25,5 +25,5 @@ export const fonts = Object.freeze({
   display: isWeb ? 'Playfair Display, Georgia, serif' : 'PlayfairDisplay_700Bold'
 });
 export const elevation = Object.freeze({
-  card:{ shadowColor:'#321821',shadowOpacity:0.07,shadowRadius:18,shadowOffset:{width:0,height:6},elevation:2 }
+  card:{ shadowColor:'#3B1E2A',shadowOpacity:0.07,shadowRadius:18,shadowOffset:{width:0,height:6},elevation:2 }
 });
