@@ -4,18 +4,15 @@ import {Ionicons} from '@expo/vector-icons';
 import {groups as seedGroups,people} from './data';
 import {colors as c,space as sp,radii as r,fonts as f} from './theme';
 import {Button,Chip,Field,Typography} from './ui';
-import TemporaryChatScreen from './TemporaryChatScreen';
 import {createGroup,deleteGroup,loadGroups,setGroupJoined} from './services/groupsApi';
-import {ensureTemporaryRoom} from './services/tempChatApi';
 
 const categories=['Kawa','Sport','Książki','Podróże','Jedzenie','Muzyka','Samopoczucie','Studia','Inne'];
 const clean=(value,max)=>String(value||'').trim().slice(0,max);
 const localId=()=>`group-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
-export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,onReport}){
+export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat}){
   const [clubs,setClubs]=useState(()=>sessionUserId?[]:seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
   const [remoteLoaded,setRemoteLoaded]=useState(false);
-  const [tempRoom,setTempRoom]=useState(null);
   const [joined,setJoined]=useState(['coffee-waw']);
   const [activeClub,setActiveClub]=useState(null);
   const [creating,setCreating]=useState(false);
@@ -74,10 +71,12 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
   };
 
   const openGroupChat=async club=>{
-    if(!sessionUserId)return Alert.alert('Zaloguj się','Tymczasowy czat grupy wymaga konta.');
+    if(!sessionUserId)return Alert.alert('Zaloguj się','Czat grupy wymaga konta.');
+    if(!club?.remote)return Alert.alert('Czat grupy','Ta grupa demonstracyjna nie ma rozmowy online.');
+    if(!joined.includes(club.id))return Alert.alert('Dołącz do grupy','Najpierw dołącz do grupy, aby otworzyć jej czat.');
     try{
-      const room=await ensureTemporaryRoom({userId:sessionUserId,title:club.name,contextType:'group',contextId:club.id,hours:24});
-      setTempRoom(room);
+      await onOpenChat?.(club.id);
+      setActiveClub(null);
     }catch(error){Alert.alert('Czat grupy',error.message||'Nie udało się otworzyć czatu.');}
   };
 
@@ -161,17 +160,13 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
               {club.remote&&club.owned&&<Button title="Usuń grupę" secondary style={{marginTop:sp.sm}} onPress={()=>Alert.alert('Usunąć grupę?','Tej operacji nie można cofnąć.',[{text:'Anuluj',style:'cancel'},{text:'Usuń',style:'destructive',onPress:async()=>{try{await deleteGroup(club.id,sessionUserId);setActiveClub(null);setClubs(await loadGroups(city,sessionUserId));}catch(error){Alert.alert('Nie usunięto grupy',error.message||'Spróbuj ponownie.')}}}])}/>} 
 
               <View style={s.actions}>
-                <Pressable style={s.action} onPress={()=>openGroupChat(club)}><Ionicons name="chatbubbles-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Czat 24h</Typography></Pressable>
+                <Pressable style={s.action} onPress={()=>openGroupChat(club)}><Ionicons name="chatbubbles-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Otwórz czat</Typography></Pressable>
                 <Pressable style={s.action} onPress={()=>onReport?.({kind:'group',id:club.id,label:`Grupa: ${club.name}`})}><Ionicons name="flag-outline" size={20} color={c.pink}/><Typography style={s.actionText}>Zgłoś</Typography></Pressable>
               </View>
             </ScrollView>
           </View>
         </View>;
       })()}
-    </Modal>
-
-    <Modal visible={!!tempRoom} animationType="slide" onRequestClose={()=>setTempRoom(null)}>
-      {!!tempRoom&&<TemporaryChatScreen room={tempRoom} userId={sessionUserId} onClose={()=>setTempRoom(null)}/>}
     </Modal>
 
     <Modal visible={creating} transparent animationType="slide" onRequestClose={resetForm}>
