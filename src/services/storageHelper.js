@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export function resolveContentType(uri, fallback = 'image/jpeg') {
   if (!uri || typeof uri !== 'string') return fallback;

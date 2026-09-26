@@ -217,26 +217,28 @@ export default function StoryViewerModal({
         return Math.abs(gestureState.dx) > 18 && Math.abs(gestureState.dy) < 30;
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -50) {
+        const dx = gestureState.dx;
+        const dy = gestureState.dy;
+        const isTap = Math.abs(dx) < 20 && Math.abs(dy) < 20;
+
+        if (isTap) {
+          // Handle tap for next/prev slide
+          const x = gestureState.moveX;
+          if (x < SCREEN_WIDTH * 0.3) {
+            handlePrev();
+          } else {
+            handleNext();
+          }
+        } else if (dx < -50) {
           // Swiped left -> next sender
           trigger3DCube(senderIndex + 1, 'forward');
-        } else if (gestureState.dx > 50) {
+        } else if (dx > 50) {
           // Swiped right -> prev sender
           trigger3DCube(senderIndex - 1, 'backward');
         }
       }
     })
   ).current;
-
-  const handleTap = e => {
-    if (isCubeAnimating.current) return;
-    const x = e.nativeEvent.locationX;
-    if (x < SCREEN_WIDTH * 0.3) {
-      handlePrev();
-    } else {
-      handleNext();
-    }
-  };
 
   const toggleLike = () => {
     setLiked(prev => {
@@ -257,7 +259,9 @@ export default function StoryViewerModal({
     if (tags.includes('Sztuka')) return 'kreatywna';
     if (tags.includes('Jedzenie')) return 'towarzyska';
     if (tags.includes('Książki')) return 'spokojna';
-    return ['przedsiębiorcza', 'spontaniczna', 'ambitna', 'miejska'][Math.abs(String(sender?.id || '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0)) % 4];
+    if (tags.includes('Pilates') || tags.includes('Gym')) return 'fitness';
+    if (tags.includes('Matcha') || tags.includes('Kawa')) return 'kawiarniana';
+    return tags[0]?.toLowerCase() || 'aktywna';
   };
 
   // 3D Cube Interpolations
@@ -324,12 +328,7 @@ export default function StoryViewerModal({
           </View>
         ) : null}
 
-        <View style={s.topVignette}>
-          {/* Vibe Badge - top left */}
-          <View style={s.vibePill}>
-            <Typography style={s.vibeText}>{vibeFor(sender)}</Typography>
-          </View>
-        </View>
+        <View style={s.topVignette} />
         <View style={s.bottomVignette} />
 
         {/* Top Header Overlay with progress segments */}
@@ -521,19 +520,10 @@ export default function StoryViewerModal({
         )}
 
         {/* Swipe detector for 3D cube transition - full screen horizontal swipe */}
-        <Pressable
+        <View
           style={StyleSheet.absoluteFill}
           {...panResponder.panHandlers}
-          pointerEvents="box-none"
-        />
-
-        {/* Tap detector for slide navigation (left/right thirds) - separate from pan */}
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={handleTap}
-          onPressIn={() => setPaused(true)}
-          onPressOut={() => setPaused(false)}
-          pointerEvents="box-none"
+          pointerEvents="auto"
         />
       </View>
     </Modal>

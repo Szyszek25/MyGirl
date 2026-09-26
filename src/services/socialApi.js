@@ -179,11 +179,11 @@ export async function loadStories(userId,city){
   return mapped.filter(Boolean);
 }
 
-export async function createStory({userId,uri,caption=''}) {
+export async function createStory({userId,uri,caption='',tags=[]}) {
   const uploaded=await upload('polka-story-media',userId,uri,'story');
   const mediaType=uploaded.type.startsWith('video/')?'video':'image';
   const {data,error}=await supabase.from('stories')
-    .insert({author_id:userId,media_path:uploaded.path,media_type:mediaType,caption:caption.trim()||null})
+    .insert({author_id:userId,media_path:uploaded.path,media_type:mediaType,caption:caption.trim()||null,tags:tags.length ? tags : null})
     .select('id').single();
   if(error)throw error;
   return data;

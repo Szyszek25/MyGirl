@@ -382,9 +382,9 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     setStoryCreatorOpen(true);
   };
 
-  const handlePublishStory = async ({ uri, caption }) => {
+  const handlePublishStory = async ({ uri, caption, tags = [] }) => {
     if (sessionUserId) {
-      await createStory({ userId: sessionUserId, uri, caption });
+      await createStory({ userId: sessionUserId, uri, caption, tags });
       await refresh();
     } else {
       setStories(prev => [{
@@ -393,6 +393,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         avatar: people[0]?.photo,
         mediaUrl: uri,
         caption: caption || 'Twoja relacja ✨',
+        tags,
         createdAt: new Date().toISOString()
       }, ...prev]);
     }
