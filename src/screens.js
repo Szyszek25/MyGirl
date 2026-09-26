@@ -1172,7 +1172,7 @@ function VoiceMessageBubble({ message, outgoing = false }) {
   </Pressable>;
 }
 
-export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat, onOpenMeetup }) {
+export function ChatsScreen({ sessionUserId = null, initialConversationId = null, initialMeetupId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat, onOpenMeetup, onOpenProfile }) {
   const formatActivityStatus = lastActiveAt => {
     if (!lastActiveAt) return 'ostatnio aktywna niedawno';
     const ts = new Date(lastActiveAt).getTime();
@@ -1417,6 +1417,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
         side: message.sender_id === sessionUserId ? 'out' : 'in',
         author: message.sender_id === sessionUserId ? 'Ty' : (senderProfile?.display_name || active.name),
         authorPhoto: senderProfile?.avatar_url || null,
+        authorId: senderProfile?.id || message.sender_id || null,
         body: message.body,
         messageType: message.message_type || 'text',
         mediaUrl: message.media_url || null,
@@ -1458,9 +1459,9 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             </View>}
           </View>
           : <View key={message.id} style={s.incomingMessageRow}>
-            {active.group && (message.authorPhoto ? <Image source={{ uri: message.authorPhoto }} style={s.groupMessageAvatar} /> : <View style={[s.groupMessageAvatar,{alignItems:'center',justifyContent:'center',backgroundColor:c.blush}]}><Ionicons name="person" size={16} color={c.pink}/></View>)}
+            {active.group && <Pressable disabled={!message.authorId} onPress={()=>message.authorId&&onOpenProfile?.(message.authorId)}>{message.authorPhoto ? <Image source={{ uri: message.authorPhoto }} style={s.groupMessageAvatar} /> : <View style={[s.groupMessageAvatar,{alignItems:'center',justifyContent:'center',backgroundColor:c.blush}]}><Ionicons name="person" size={16} color={c.pink}/></View>}</Pressable>}
             <View style={s.incomingMessageBody}>
-              {active.group && <Typography style={s.groupMessageAuthor}>{message.author}</Typography>}
+              {active.group && <Pressable disabled={!message.authorId} onPress={()=>message.authorId&&onOpenProfile?.(message.authorId)}><Typography style={s.groupMessageAuthor}>{message.author}</Typography></Pressable>}
               {message.messageType === 'voice'
                 ? <VoiceMessageBubble message={message} />
                 : message.messageType === 'image' && message.mediaUrl
