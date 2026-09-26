@@ -952,7 +952,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'post', id: item.id, label: `Wpis: ${item.author}` })} />}
         </View>
         <Pressable onPress={() => openComments(item)} style={s.commentComposerPreview}>
-          <Image source={{ uri: me?.avatar || me?.avatarUrl || account?.avatarUrl || account?.avatar || item.avatar }} style={s.commentComposerAvatar} />
+          <Image source={{ uri: item.authorId === sessionUserId ? (item.avatar || people[0]?.photo) : (people[0]?.photo || item.avatar) }} style={s.commentComposerAvatar} />
           <Typography numberOfLines={1} style={s.commentComposerPlaceholder}>Napisz komentarz...</Typography>
         </Pressable>
       </View>}
