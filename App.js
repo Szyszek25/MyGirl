@@ -54,6 +54,7 @@ function PolkaApp(){
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [messagesOpen,setMessagesOpen]=useState(false);
   const [pendingConversationId,setPendingConversationId]=useState(null);
+  const [pendingMeetupId,setPendingMeetupId]=useState(null);
   const [cycleOpen,setCycleOpen]=useState(false);
   const [careOpen,setCareOpen]=useState(false);
   const [moreOpen,setMoreOpen]=useState(false);
@@ -184,6 +185,7 @@ function PolkaApp(){
       const {data,error}=await supabase.rpc('polka_join_meetup_chat',{p_meetup:meetupId});
       if(error)throw error;
       setPendingConversationId(data);
+      setPendingMeetupId(meetupId);
       setMessagesOpen(true);
     }catch(error){
       Alert.alert('Nie otwarto czatu',error.message||'Najpierw dołącz do spotkania.');
@@ -337,7 +339,7 @@ function PolkaApp(){
     cycleOpen?<CycleScreen userId={authSession?.user?.id||null} cloudSync={!!featurePreferences.cycleCloudSync} onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null)}}/></View>:
+    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenMeetup={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
     null;
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
