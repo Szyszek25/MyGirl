@@ -406,8 +406,8 @@ const s = StyleSheet.create({
   },
   addFriendBtnSent: { backgroundColor: c.blush, borderColor: c.blush },
   addFriendTextSent: { color: c.pink },
-  photoSection: { backgroundColor: c.white, borderRadius: 20, paddingVertical: 18, borderWidth: 1, borderColor: c.line },
-  photoRail: { paddingHorizontal: 18, gap: 10 },
+  photoSection: { backgroundColor: c.white, borderRadius: 20, paddingVertical: 18, paddingHorizontal: 18, borderWidth: 1, borderColor: c.line },
+  photoRail: { paddingTop: 10, gap: 10 },
   profilePhoto: { width: 210, aspectRatio: .78, borderRadius: 20, backgroundColor: c.blush },
   metaRow: {
     flexDirection: 'row',
