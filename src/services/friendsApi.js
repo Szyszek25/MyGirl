@@ -2,6 +2,7 @@ import {supabase} from '../lib/supabase';
 
 async function avatarUrl(path){
   if(!path)return null;
+  if(/^https?:\/\//i.test(path))return path;
   const {data}=await supabase.storage.from('polka-avatars').createSignedUrl(path,3600);
   return data?.signedUrl||null;
 }
