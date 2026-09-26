@@ -5,6 +5,8 @@ import {cities,people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Chip,Typography} from './ui';
 import {createPlan,loadPlans,setPlanJoined} from './services/plansApi';
+import {createMeetup} from './services/meetupsApi';
+import CreateActivityModal from './CreateActivityModal';
 
 const starterPlans=[
   {id:'p1',title:'Matcha + spacer po centrum',city:'Warszawa',when:'Dzisiaj · 18:00',spots:'3/5',category:'Kawa',photo:'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=900&q=80',host:'Maja'},
@@ -48,22 +50,23 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
 
   const visible=useMemo(()=>plans.filter(p=>(city==='Wszystkie'||p.city===city)&&(category==='Wszystkie'||p.category===category)),[plans,city,category]);
 
-  const addPlan=async()=>{
-    const clean=title.trim();
-    if(clean.length<4){Alert.alert('Dodaj nazwę planu','Np. „Matcha i spacer po centrum”.');return;}
-    if(sessionUserId){
-      try{
-        await createPlan(sessionUserId,{title:clean,city:city==='Wszystkie'?'Warszawa':city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:'Termin do ustalenia',details,capacity:6});
-        const rows=await loadPlans(city,sessionUserId);
-        setPlans(rows);
-        setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
-        setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
-        setTitle('');setDetails('');setCreating(false);return;
-      }catch(error){Alert.alert('Nie utworzono planu',error.message||'Spróbuj ponownie.');return;}
-    }
-    const id='local-'+Date.now();
-    setPlans(prev=>[{id,title:clean,city:city==='Wszystkie'?'Warszawa':city,when:'Termin do ustalenia',spots:'1/5',category:category==='Wszystkie'?'Wyjścia':category,photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80',host:'Ty'},...prev]);
-    setTitle('');setDetails('');setCreating(false);
+  const addActivity=async form=>{
+    if(!sessionUserId){Alert.alert('Zaloguj się','Tworzenie wymaga konta.');return;}
+    if(form.title.length<4){Alert.alert('Dodaj nazwę','Np. „Matcha + spacer”.');return;}
+    if(!form.place){Alert.alert('Dodaj lokalizację','Wpisz miejsce albo dzielnicę.');return;}
+    try{
+      if(form.type==='meeting'){
+        if(!form.date||!form.time){Alert.alert('Dodaj termin','Wybierz datę i godzinę.');return;}
+        const startsAt=new Date(`${form.date}T${form.time}:00`);
+        if(Number.isNaN(startsAt.getTime())||startsAt.getTime()<Date.now()){Alert.alert('Nieprawidłowy termin','Wybierz przyszły termin.');return;}
+        await createMeetup(sessionUserId,{title:form.title,description:form.description,city,venueName:form.place,startsAt:startsAt.toISOString(),capacity:form.capacity});
+      }else{
+        const timing=form.date?(form.time?`${form.date} · ${form.time}`:form.date):'Termin do ustalenia';
+        await createPlan(sessionUserId,{title:form.title,city:city==='Wszystkie'?'Warszawa':city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:timing,details:[form.place,form.description].filter(Boolean).join(' · '),capacity:6});
+        const rows=await loadPlans(city,sessionUserId);setPlans(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+      }
+      setCreating(false);
+    }catch(error){Alert.alert('Nie utworzono',error.message||'Spróbuj ponownie.');}
   };
 
   const toggleJoined=async plan=>{
@@ -139,23 +142,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
       </View>}
     </Modal>
 
-    <Modal visible={creating} animationType="slide" transparent onRequestClose={()=>setCreating(false)}>
-      <KeyboardAvoidingView style={s.modalBackdrop} behavior={Platform.OS==='ios'?'padding':'height'}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setCreating(false)}/>
-        <View style={s.sheet}>
-          <View style={s.handle}/>
-          <View style={s.sheetHeader}><Typography style={s.sheetTitle}>Nowy plan</Typography><Pressable onPress={()=>setCreating(false)}><Ionicons name="close" size={24} color={c.ink}/></Pressable></View>
-          <Typography style={s.fieldLabel}>Co chcesz zrobić?</Typography>
-          <TextInput value={title} onChangeText={setTitle} maxLength={80} placeholder="Np. matcha w centrum po 18" placeholderTextColor={c.muted} style={s.input}/>
-          <Typography style={s.fieldLabel}>Opis (opcjonalnie)</Typography>
-          <TextInput value={details} onChangeText={setDetails} maxLength={600} multiline placeholder="Dodaj klimat, miejsce albo dla kogo jest ten plan" placeholderTextColor={c.muted} style={[s.input,{height:86,textAlignVertical:'top',paddingTop:14}]}/>
-          <View style={s.fixedCity}><Ionicons name="location-outline" size={16} color={c.pink}/><Typography style={s.fixedCityText}>{city}</Typography></View>
-          <Typography style={s.fieldLabel}>Kategoria</Typography>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.sheetChipScroll} contentContainerStyle={s.sheetChipContent}>{categories.filter(v=>v!=='Wszystkie').map(v=><Chip key={v} label={v} selected={category===v} onPress={()=>setCategory(v)}/>)}</ScrollView>
-          <Button title="Utwórz plan" onPress={addPlan} style={{marginTop:sp.lg}}/>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="plan" city={city} onSubmit={addActivity}/>
   </View>;
 }
 
