@@ -1,19 +1,3 @@
-
-function formatActivityStatus(lastActiveAt) {
-  if (!lastActiveAt) return 'ostatnio aktywna niedawno';
-  const ts = new Date(lastActiveAt).getTime();
-  if (Number.isNaN(ts)) return 'ostatnio aktywna niedawno';
-  const diff = Math.max(0, Date.now() - ts);
-  const mins = Math.floor(diff / 60000);
-  if (mins < 2) return 'aktywna teraz';
-  if (mins < 60) return `aktywna ${mins} min temu`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `aktywna ${hours} godz. temu`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return 'aktywna wczoraj';
-  return `aktywna ${days} dni temu`;
-}
-
 function formatPostTime(createdAt) {
   if (!createdAt) return 'przed chwilą';
   if (typeof createdAt === 'string' && (createdAt.includes('min') || createdAt.includes('godz') || createdAt.includes('wczoraj'))) {
@@ -1027,6 +1011,18 @@ function VoiceMessageBubble({ message, outgoing = false }) {
 }
 
 export function ChatsScreen({ sessionUserId = null, initialConversationId = null, blockedIds = [], supportChat = true, onReport, onClose }) {
+  const formatActivityStatus = lastActiveAt => {
+    if (!lastActiveAt) return 'ostatnio aktywna niedawno';
+    const ts = new Date(lastActiveAt).getTime();
+    if (Number.isNaN(ts)) return 'ostatnio aktywna niedawno';
+    const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+    if (mins < 2) return 'aktywna teraz';
+    if (mins < 60) return `aktywna ${mins} min temu`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `aktywna ${hours} godz. temu`;
+    const days = Math.floor(hours / 24);
+    return days === 1 ? 'aktywna wczoraj' : `aktywna ${days} dni temu`;
+  };
   const [active, setActive] = useState(null);
   const initialOpened = useRef(false);
   const chatScrollRef = useRef(null);
