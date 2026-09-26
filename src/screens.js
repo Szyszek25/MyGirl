@@ -1078,7 +1078,7 @@ function VoiceMessageBubble({ message, outgoing = false }) {
   </Pressable>;
 }
 
-export function ChatsScreen({ sessionUserId = null, initialConversationId = null, blockedIds = [], supportChat = true, onReport, onClose }) {
+export function ChatsScreen({ sessionUserId = null, initialConversationId = null, blockedIds = [], supportChat = true, onReport, onClose, onOpenChat }) {
   const formatActivityStatus = lastActiveAt => {
     if (!lastActiveAt) return 'ostatnio aktywna niedawno';
     const ts = new Date(lastActiveAt).getTime();
@@ -1101,6 +1101,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const [sending, setSending] = useState(false);
   const [keyboardOpen,setKeyboardOpen]=useState(false);
   const [previewImage,setPreviewImage]=useState(null);
+  const [chatProfileOpen,setChatProfileOpen]=useState(false);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
@@ -1336,8 +1337,10 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     >
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
-        {avatar(active.photo || people[0]?.photo, 42)}
-        <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
+        <Pressable disabled={!active.otherUserId} onPress={()=>setChatProfileOpen(true)} style={s.chatProfileHeader}>
+          {avatar(active.photo || people[0]?.photo, 42)}
+          <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
+        </Pressable>
         <Pressable onPress={() => onReport?.({ kind: 'chat', id: active.id, label: `Rozmowa: ${active.name}` })} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink} /></Pressable>
       </View>
 
@@ -1392,6 +1395,16 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
           ? <Pressable accessibilityRole="button" accessibilityLabel={recorderState.isRecording ? 'Zatrzymaj i wyślij głosówkę' : 'Nagraj głosówkę'} disabled={sending} onPress={recorderState.isRecording ? stopVoice : startVoice} style={[s.voiceRecordButton, recorderState.isRecording && s.voiceRecordButtonActive, sending && { opacity: .4 }]}><Ionicons name={recorderState.isRecording ? 'stop' : 'mic'} color={c.white} size={20} /></Pressable>
           : <Pressable accessibilityRole="button" accessibilityLabel="Wyślij wiadomość" disabled={!draft.trim() || sending} onPress={send} style={[s.fullSend, (!draft.trim() || sending) && { opacity: .35 }]}><Ionicons name="arrow-up" color={c.white} size={21} /></Pressable>}
       </View>
+      <PublicProfileModal
+        visible={chatProfileOpen}
+        authorName={active?.name}
+        authorId={active?.otherUserId}
+        initialData={active?{name:active.name,photo:active.photo}:null}
+        onClose={()=>setChatProfileOpen(false)}
+        onOpenChat={onOpenChat}
+        onReport={onReport}
+        sessionUserId={sessionUserId}
+      />
       <ImagePreviewModal uri={previewImage} onClose={()=>setPreviewImage(null)}/>
     </KeyboardAvoidingView>;
   }
@@ -1642,6 +1655,7 @@ const s = StyleSheet.create({
   chatImageOutgoing: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-end' },
   chatImageIncoming: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-start' },
   fullChatHeader: { minHeight: 64, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
+  chatProfileHeader:{flex:1,minWidth:0,flexDirection:'row',alignItems:'center',gap:10},
   fullChatIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   fullChatName: { fontFamily: f.bold, fontSize: 15, color: c.ink },
   fullChatStatus: { fontFamily: f.regular, fontSize: 11, color: c.muted, marginTop: 1 },
