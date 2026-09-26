@@ -195,15 +195,19 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null
           <View style={s.clayScene}>
             <View style={s.clayGlow}/>
             <View style={s.clayHairBack}/>
+            <View style={s.clayNeck}/>
+            <View style={s.clayTorso}/>
+            <View style={s.clayArmLeft}/>
+            <View style={s.clayArmRight}/>
             <View style={s.clayHead}>
               <View style={s.clayHairFront}/>
               <View style={s.clayEyeLeft}/>
               <View style={s.clayEyeRight}/>
               <View style={s.claySmile}/>
             </View>
-            <View style={s.clayBody}/>
-            <View style={[s.claySparkle,{top:18,left:8}]}/>
-            <View style={[s.claySparkle,{bottom:22,right:8}]}/>
+            <View style={s.claySkirt}/>
+            <View style={[s.claySparkle,{top:14,left:10}]}/>
+            <View style={[s.claySparkle,{bottom:16,right:9}]}/>
           </View>
           <View style={s.careStats}>
             <View style={s.careStat}><Typography style={s.careStatValue}>{daysToPeriod}</Typography><Typography style={s.careStatLabel}>dni do okresu</Typography></View>
@@ -330,48 +334,52 @@ const s=StyleSheet.create({
   summaryDay:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},
   summaryCopy:{fontFamily:f.regular,fontSize:13,lineHeight:19,color:c.muted,marginTop:13,maxWidth:340},
 
-  careHero:{marginHorizontal:sp.lg,marginTop:12,marginBottom:14,borderRadius:26,backgroundColor:'#F7DCE6',padding:16,overflow:'hidden',borderWidth:1,borderColor:'#F0C8D7'},
+  careHero:{marginHorizontal:sp.lg,marginTop:12,marginBottom:18,borderRadius:28,backgroundColor:'#F8E3EA',padding:18,overflow:'hidden'},
   careHeroTop:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',gap:12},
-  careEyebrow:{fontFamily:f.bold,fontSize:10,letterSpacing:1.3,color:c.pink},
-  careHeroTitle:{fontFamily:f.bold,fontSize:23,lineHeight:27,color:c.ink,letterSpacing:-.6,marginTop:3,maxWidth:230},
-  careHeroSubtitle:{fontFamily:f.semibold,fontSize:12,color:c.muted,marginTop:6},
+  careEyebrow:{fontFamily:f.bold,fontSize:12,letterSpacing:1.25,color:c.pink},
+  careHeroTitle:{fontFamily:f.bold,fontSize:31,lineHeight:35,color:c.ink,letterSpacing:-1.1,marginTop:5,maxWidth:290},
+  careHeroSubtitle:{fontFamily:f.semibold,fontSize:15,color:c.muted,marginTop:7},
   careHeroBody:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:8,gap:12},
-  clayScene:{width:112,height:112,borderRadius:28,backgroundColor:'#F3C6D7',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden',shadowColor:'#8F5168',shadowOpacity:.15,shadowRadius:12,shadowOffset:{width:0,height:6},elevation:3},
-  clayGlow:{position:'absolute',width:112,height:112,borderRadius:56,backgroundColor:'#FFEAF1',top:18,left:19},
-  clayHairBack:{position:'absolute',width:78,height:84,borderRadius:38,backgroundColor:'#7A4A5D',top:31,left:36,transform:[{rotate:'-7deg'}]},
-  clayHead:{width:66,height:76,borderRadius:33,backgroundColor:'#F4BFAE',position:'absolute',top:36,left:42,alignItems:'center'},
-  clayHairFront:{position:'absolute',width:48,height:18,borderBottomLeftRadius:16,borderBottomRightRadius:20,backgroundColor:'#7A4A5D',top:0,left:5,transform:[{rotate:'-8deg'}]},
-  clayEyeLeft:{position:'absolute',width:5,height:5,borderRadius:3,backgroundColor:'#3F2830',top:35,left:20},
-  clayEyeRight:{position:'absolute',width:5,height:5,borderRadius:3,backgroundColor:'#3F2830',top:35,right:20},
-  claySmile:{position:'absolute',width:18,height:8,borderBottomWidth:2,borderColor:'#A64D63',borderRadius:12,bottom:18},
-  clayBody:{position:'absolute',width:92,height:66,borderTopLeftRadius:42,borderTopRightRadius:42,borderBottomLeftRadius:24,borderBottomRightRadius:24,backgroundColor:c.pink,bottom:-8,left:29},
+  clayScene:{width:148,height:176,borderRadius:30,backgroundColor:'#F0CBD9',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'},
+  clayGlow:{position:'absolute',width:126,height:126,borderRadius:63,backgroundColor:'#FFF1F5',top:15,left:11},
+  clayHairBack:{position:'absolute',width:74,height:96,borderRadius:38,backgroundColor:'#6E4256',top:22,left:37},
+  clayHead:{width:58,height:66,borderRadius:29,backgroundColor:'#F2BDAE',position:'absolute',top:30,left:45,alignItems:'center',zIndex:5},
+  clayHairFront:{position:'absolute',width:48,height:17,borderBottomLeftRadius:18,borderBottomRightRadius:20,backgroundColor:'#6E4256',top:-1,left:4,transform:[{rotate:'-6deg'}]},
+  clayEyeLeft:{position:'absolute',width:4,height:4,borderRadius:2,backgroundColor:'#3F2830',top:31,left:17},
+  clayEyeRight:{position:'absolute',width:4,height:4,borderRadius:2,backgroundColor:'#3F2830',top:31,right:17},
+  claySmile:{position:'absolute',width:16,height:7,borderBottomWidth:2,borderColor:'#A64D63',borderRadius:12,bottom:14},
+  clayNeck:{position:'absolute',width:18,height:18,borderRadius:8,backgroundColor:'#F2BDAE',top:86,left:65,zIndex:4},
+  clayTorso:{position:'absolute',width:72,height:78,borderTopLeftRadius:28,borderTopRightRadius:28,borderBottomLeftRadius:16,borderBottomRightRadius:16,backgroundColor:c.pink,top:94,left:38,zIndex:3},
+  clayArmLeft:{position:'absolute',width:18,height:70,borderRadius:10,backgroundColor:'#F2BDAE',top:101,left:29,transform:[{rotate:'9deg'}],zIndex:2},
+  clayArmRight:{position:'absolute',width:18,height:70,borderRadius:10,backgroundColor:'#F2BDAE',top:101,right:29,transform:[{rotate:'-9deg'}],zIndex:2},
+  claySkirt:{position:'absolute',width:88,height:44,borderTopLeftRadius:18,borderTopRightRadius:18,backgroundColor:'#A94B70',bottom:-12,left:30,zIndex:2},
   claySparkle:{position:'absolute',width:11,height:11,borderRadius:4,backgroundColor:'#FFF6C9',transform:[{rotate:'45deg'}]},
   careStats:{flex:1,gap:10},
   careStat:{backgroundColor:'rgba(255,255,255,.72)',borderRadius:18,paddingVertical:12,paddingHorizontal:14},
-  careStatValue:{fontFamily:f.bold,fontSize:22,color:c.ink},
-  careStatLabel:{fontFamily:f.regular,fontSize:10,color:c.muted,marginTop:2},
+  careStatValue:{fontFamily:f.bold,fontSize:28,color:c.ink},
+  careStatLabel:{fontFamily:f.semibold,fontSize:12,color:c.muted,marginTop:2},
   progressTrackHero:{height:7,borderRadius:999,backgroundColor:'rgba(255,255,255,.68)',overflow:'hidden',marginTop:12},
   progressFillHero:{height:'100%',borderRadius:999,backgroundColor:c.pink},
   progressMeta:{flexDirection:'row',justifyContent:'space-between',marginTop:6},
-  progressMetaText:{fontFamily:f.semibold,fontSize:9,color:c.muted},
-  careHeroCopy:{fontFamily:f.regular,fontSize:11,lineHeight:16,color:c.muted,marginTop:9},
+  progressMetaText:{fontFamily:f.semibold,fontSize:11,color:c.muted},
+  careHeroCopy:{fontFamily:f.regular,fontSize:14,lineHeight:20,color:c.muted,marginTop:12},
   sectionIntro:{paddingHorizontal:sp.lg,marginBottom:0,marginTop:2},
-  sectionIntroEyebrow:{fontFamily:f.bold,fontSize:9,letterSpacing:1.2,color:c.pink},
-  sectionIntroTitle:{fontFamily:f.bold,fontSize:24,color:c.ink,marginTop:3},
-  sectionIntroCopy:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:3},
+  sectionIntroEyebrow:{fontFamily:f.bold,fontSize:11,letterSpacing:1.2,color:c.pink},
+  sectionIntroTitle:{fontFamily:f.bold,fontSize:30,lineHeight:34,color:c.ink,marginTop:4},
+  sectionIntroCopy:{fontFamily:f.regular,fontSize:14,lineHeight:20,color:c.muted,marginTop:5},
   calendarHead:{paddingHorizontal:sp.lg,flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:4},
   monthButton:{width:40,height:40,alignItems:'center',justifyContent:'center'},
-  monthTitle:{fontFamily:f.bold,fontSize:18,color:c.ink,textTransform:'capitalize'},
+  monthTitle:{fontFamily:f.bold,fontSize:22,color:c.ink,textTransform:'capitalize'},
   calendar:{paddingHorizontal:sp.lg,paddingBottom:16},
   weekRow:{flexDirection:'row',marginTop:8},
-  weekDay:{width:'14.2857%',textAlign:'center',fontFamily:f.semibold,fontSize:10,color:c.muted,paddingVertical:7},
+  weekDay:{width:'14.2857%',textAlign:'center',fontFamily:f.semibold,fontSize:12,color:c.muted,paddingVertical:8},
   daysGrid:{flexDirection:'row',flexWrap:'wrap'},
   dayCell:{width:'14.2857%',height:48,alignItems:'center',justifyContent:'center'},
   dayCircle:{width:36,height:36,borderRadius:18,alignItems:'center',justifyContent:'center'},
   predictedDay:{borderWidth:1.5,borderColor:c.pink,borderStyle:'dashed'},
   loggedPeriod:{backgroundColor:c.pink,borderColor:c.pink},
   selectedDay:{borderWidth:2,borderColor:c.ink},
-  dayText:{fontFamily:f.semibold,fontSize:13,color:c.ink},
+  dayText:{fontFamily:f.semibold,fontSize:15,color:c.ink},
   dayMuted:{color:'#B9ADB3'},
   dayStrong:{fontFamily:f.bold},
   entryDot:{position:'absolute',bottom:2,width:4,height:4,borderRadius:2,backgroundColor:c.ink},
