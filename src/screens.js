@@ -74,7 +74,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       if (ids.length) {
         const [interestResult,photoResult] = await Promise.all([
           supabase.from('profile_interests').select('profile_id,interest').in('profile_id', ids),
-          supabase.from('profile_photos').select('user_id,storage_path,position').in('user_id', ids).order('position',{ascending:true})
+          supabase.from('profile_photos').select('user_id,storage_path,source_url,position').in('user_id', ids).order('position',{ascending:true})
         ]);
         if (interestResult.error) throw interestResult.error;
         if (photoResult.error) throw photoResult.error;
@@ -88,6 +88,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           photo = signed.data?.signedUrl || null;
         }
         const galleryPhotos=(await Promise.all(profilePhotos.filter(row=>row.user_id===profile.id).map(async row=>{
+          if(row.source_url)return row.source_url;
           const signed=await supabase.storage.from('polka-profile-photos').createSignedUrl(row.storage_path,3600);
           return signed.data?.signedUrl||null;
         }))).filter(Boolean);
