@@ -74,14 +74,13 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [createDescription,setCreateDescription]=useState('');
   const [createCapacity,setCreateCapacity]=useState('6');
   const [createBusy,setCreateBusy]=useState(false);
-  const sourceMeetings=remoteMeetups.length
-    ? [...remoteMeetups, ...starterMeetings.filter(sm=>!remoteMeetups.some(rm=>rm.title===sm.title))]
-    : starterMeetings;
+  const sourceMeetings=sessionUserId ? remoteMeetups : starterMeetings;
   const data=useMemo(()=>sourceMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[sourceMeetings,city,category]);
   const cityPeople=useMemo(()=>people.filter(p=>p.city===city),[city]);
   useEffect(()=>{
     if(!sessionUserId){setRemoteMeetups([]);return;}
     let alive=true;
+    setRemoteMeetups([]);
     loadMeetups(city,sessionUserId).then(rows=>{
       if(!alive)return;
       setRemoteMeetups(rows);
