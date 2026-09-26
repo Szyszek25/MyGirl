@@ -266,7 +266,7 @@ function PolkaApp(){
       if(partnerOpen){setPartnerOpen(false);return true;}
       if(settingsOpen){setSettingsOpen(false);return true;}
       if(resetPasswordOpen){setResetPasswordOpen(false);setSettingsOpen(true);return true;}
-      if(messagesOpen){setChatBackRequest(v=>v+1);return true;}
+      if(messagesOpen){setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);return true;}
       if(cycleOpen){setCycleOpen(false);return true;}
       if(careOpen){setCareOpen(false);return true;}
       if(moreOpen){setMoreOpen(false);return true;}
@@ -342,7 +342,7 @@ function PolkaApp(){
     cycleOpen?<CycleScreen userId={authSession?.user?.id||null} cloudSync={!!featurePreferences.cycleCloudSync} onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen backRequest={chatBackRequest} sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenProfile={userId=>setPublicProfileTarget({id:userId})} onOpenGroup={groupId=>{setMessagesOpen(false);setPendingConversationId(null);setOpenGroupDetailId(groupId);setTab('Grupy')}} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
+    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenProfile={userId=>setPublicProfileTarget({id:userId})} onOpenGroup={groupId=>{setMessagesOpen(false);setPendingConversationId(null);setOpenGroupDetailId(groupId);setTab('Grupy')}} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
     null;
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
