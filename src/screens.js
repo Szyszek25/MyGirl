@@ -48,17 +48,27 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   const [searching, setSearching] = useState(false);
   const [profileOpen, setProfileOpen] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
+  const [dismissedIds, setDismissedIds] = useState([]);
   useEffect(() => {
-    if (!sessionUserId) { setRemotePeople([]); return; }
+    if (!sessionUserId) { setRemotePeople([]); setDismissedIds([]); return; }
     let alive = true;
     (async () => {
-      const { data: profiles, error } = await supabase.from('profiles')
-        .select('id,display_name,city,bio,avatar_path')
-        .neq('id', sessionUserId)
-        .eq('city', city)
-        .eq('onboarding_complete', true)
-        .limit(80);
-      if (error) throw error;
+      const [profilesResult, dismissalsResult] = await Promise.all([
+        supabase.from('profiles')
+          .select('id,display_name,city,bio,avatar_path')
+          .neq('id', sessionUserId)
+          .eq('city', city)
+          .eq('onboarding_complete', true)
+          .limit(80),
+        supabase.from('profile_dismissals')
+          .select('dismissed_user_id')
+          .eq('user_id', sessionUserId)
+          .gt('expires_at', new Date().toISOString())
+      ]);
+      if (profilesResult.error) throw profilesResult.error;
+      if (dismissalsResult.error) throw dismissalsResult.error;
+      const profiles = profilesResult.data || [];
+      const activeDismissedIds = (dismissalsResult.data || []).map(row => row.dismissed_user_id);
       const ids = (profiles || []).map(item => item.id);
       let interests = [];
       if (ids.length) {
@@ -85,7 +95,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           remote: true
         };
       }));
-      if (alive) { setRemotePeople(rows); setIndex(0); }
+      if (alive) { setRemotePeople(rows); setDismissedIds(activeDismissedIds); setIndex(0); }
     })().catch(() => { if (alive) setRemotePeople([]) });
     return () => { alive = false };
   }, [sessionUserId, city]);
@@ -132,7 +142,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   };
   const sourcePeople = sessionUserId && remotePeople.length ? remotePeople : people;
   const availableTags = useMemo(() => Array.from(new Set(sourcePeople.filter(p => p.city === city).flatMap(p => p.tags || []))).sort(), [city, sourcePeople]);
-  const filtered = sourcePeople.filter(p => !blockedIds.includes(p.id) && p.city === city && (selectedTags.length === 0 || selectedTags.some(tag => (p.tags || []).includes(tag))));
+  const filtered = sourcePeople.filter(p => !blockedIds.includes(p.id) && !dismissedIds.includes(p.id) && p.city === city && (selectedTags.length === 0 || selectedTags.some(tag => (p.tags || []).includes(tag))));
   const person = filtered.length ? filtered[index % filtered.length] : null;
   const xy = useRef(new Animated.ValueXY()).current;
   const vibeFor = p => {
@@ -145,7 +155,33 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     if (tags.includes('Książki')) return 'spokojna';
     return ['przedsiębiorcza', 'spontaniczna', 'ambitna', 'miejska'][Math.abs(String(p?.id || '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0)) % 4];
   };
-  const decide = dir => { if (!person) return; Animated.timing(xy, { toValue: { x: dir * W, y: 0 }, duration: 190, useNativeDriver: true }).start(() => { if (dir > 0) setSaved(prev => prev.includes(person.id) ? prev : [...prev, person.id]); setIndex(v => v + 1); xy.setValue({ x: 0, y: 0 }) }) };
+  const dismissPerson = target => {
+    if (!target) return;
+    if (!sessionUserId || !target.remote) { setIndex(v => v + 1); return; }
+    setDismissedIds(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    void supabase.from('profile_dismissals').upsert({
+      user_id: sessionUserId,
+      dismissed_user_id: target.id,
+      created_at: new Date().toISOString(),
+      expires_at: expiresAt
+    }, { onConflict: 'user_id,dismissed_user_id' }).then(({ error }) => {
+      if (error) setDismissedIds(prev => prev.filter(id => id !== target.id));
+    });
+  };
+  const decide = dir => {
+    if (!person) return;
+    const target = person;
+    Animated.timing(xy, { toValue: { x: dir * W, y: 0 }, duration: 190, useNativeDriver: true }).start(() => {
+      if (dir > 0) {
+        setSaved(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
+        setIndex(v => v + 1);
+      } else {
+        dismissPerson(target);
+      }
+      xy.setValue({ x: 0, y: 0 });
+    });
+  };
   const pan = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 16 && Math.abs(g.dx) > Math.abs(g.dy) * 1.15,
     onPanResponderMove: Animated.event([null, { dx: xy.x, dy: xy.y }], { useNativeDriver: false }),
