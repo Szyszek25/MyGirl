@@ -50,7 +50,7 @@ export function createChatRealtime(client){
     const otherIds=[...new Set((members||[]).filter(row=>row.user_id!==userId).map(row=>row.user_id))];
     let profiles=[];
     if(otherIds.length){
-      const result=await client.from('profiles').select('id,display_name,avatar_path').in('id',otherIds);
+      const result=await client.from('profiles').select('id,display_name,avatar_path,last_active_at').in('id',otherIds);
       if(result.error)throw result.error;
       profiles=result.data||[];
     }
@@ -67,6 +67,7 @@ export function createChatRealtime(client){
         name:room.kind==='group'?(room.title||'Grupa'):(other?.display_name||'Rozmowa'),
         otherUserId:other?.id||null,
         avatarPath:other?.avatar_path||null,
+        lastActiveAt:other?.last_active_at||null,
         last:last?.body||'Nowa rozmowa',
         time:last?.created_at||room.updated_at||room.created_at
       };
@@ -126,6 +127,31 @@ export function createChatRealtime(client){
     return data;
   };
 
+  const sendImage=async({roomId,senderId,uri,clientMessageId=newClientMessageId()})=>{
+    if(!roomId||!senderId||!uri)throw new Error('Missing image message fields');
+    const {buffer,contentType}=await uriToUploadPayload(uri,'image/jpeg');
+    if(!String(contentType).startsWith('image/'))throw new Error('Wybierz zdjęcie.');
+    const ext=extensionForContentType(contentType);
+    const mediaPath=`${senderId}/image-${Date.now()}-${clientMessageId.slice(0,8)}.${ext}`;
+    const upload=await client.storage.from('polka-chat-media').upload(mediaPath,buffer,{contentType,upsert:false});
+    if(upload.error)throw upload.error;
+    const payload={
+      conversation_id:roomId,
+      sender_id:senderId,
+      body:'Zdjęcie',
+      client_message_id:clientMessageId,
+      media_path:mediaPath,
+      message_type:'image'
+    };
+    const {data,error}=await client.from('messages').insert(payload)
+      .select('id,conversation_id,sender_id,body,created_at,client_message_id,media_path,message_type,duration_ms').single();
+    if(error){
+      await client.storage.from('polka-chat-media').remove([mediaPath]).catch(()=>{});
+      throw error;
+    }
+    return hydrateMedia(data);
+  };
+
   const sendVoice=async({roomId,senderId,uri,durationMs,clientMessageId=newClientMessageId()})=>{
     if(!roomId||!senderId||!uri)throw new Error('Missing voice message fields');
     const {buffer,contentType}=await uriToUploadPayload(uri,'audio/m4a');
@@ -157,5 +183,5 @@ export function createChatRealtime(client){
     return data;
   };
 
-  return {listConversations,history,watch,send,sendVoice,startDirect,stop};
+  return {listConversations,history,watch,send,sendImage,sendVoice,startDirect,stop};
 }
