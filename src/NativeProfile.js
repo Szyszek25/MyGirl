@@ -107,17 +107,16 @@ export default function NativeProfile({account,showCare=true,onSafety,onPartner,
         </>}
       </Surface>
       <>
-        <Surface>
+        {(!!account.headline||!!account.subtitle||!!account.instagramHandle||!!account.tiktokHandle||!!account.spotifyUrl)&&<Surface>
           {!!account.headline&&<Typography style={s.profileHeadline}>{account.headline}</Typography>}
-          {!!account.subtitle&&<Typography style={s.profileSubtitle}>{account.subtitle}</Typography>}
-          {!account.headline&&!account.subtitle&&<Typography style={s.muted}>{account.goal}</Typography>}
+          {!!account.subtitle&&account.subtitle!==account.goal&&<Typography style={s.profileSubtitle}>{account.subtitle}</Typography>}
           <View style={s.socialRow}>
             {!!account.instagramHandle&&<View style={s.socialChip}><Ionicons name="logo-instagram" size={16} color={c.pink}/><Typography style={s.socialText}>@{account.instagramHandle.replace(/^@/,'')}</Typography></View>}
             {!!account.tiktokHandle&&<View style={s.socialChip}><Ionicons name="logo-tiktok" size={16} color={c.ink}/><Typography style={s.socialText}>@{account.tiktokHandle.replace(/^@/,'')}</Typography></View>}
             {!!account.spotifyUrl&&<View style={s.socialChip}><Ionicons name="musical-notes" size={16} color={c.pink}/><Typography style={s.socialText}>Spotify</Typography></View>}
           </View>
-        </Surface>
-        <Surface><Typography variant="subtitle" style={s.title}>Po co tu jestem</Typography><Typography>{account.goal}</Typography></Surface>
+        </Surface>}
+        {!!account.goal&&<Surface><Typography variant="subtitle" style={s.title}>Po co tu jestem</Typography><Typography>{account.goal}</Typography></Surface>}
         {(!!account?.zodiac||!!account?.style)&&<Surface>
           <Typography variant="subtitle" style={s.title}>Zodiak i styl</Typography>
           <View style={s.wrap}>
