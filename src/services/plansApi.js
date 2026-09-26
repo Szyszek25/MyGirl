@@ -21,8 +21,8 @@ export async function loadPlans(city,userId){
     const p=pmap.get(row.host_id)||{};
     let photo=null;
     if(p.avatar_path){
-      const signed=await supabase.storage.from('polka-avatars').createSignedUrl(p.avatar_path,3600);
-      photo=signed.data?.signedUrl||null;
+      if(/^https?:\/\//i.test(p.avatar_path)) photo=p.avatar_path;
+      else { const signed=await supabase.storage.from('polka-avatars').createSignedUrl(p.avatar_path,3600); photo=signed.data?.signedUrl||null; }
     }
     const joined=(members||[]).filter(m=>m.plan_id===row.id);
     return {
