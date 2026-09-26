@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -210,35 +210,21 @@ export default function StoryViewerModal({
     }
   };
 
-  // Horizontal pan responder for 3D swipe between senders
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 18 && Math.abs(gestureState.dy) < 30;
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const dx = gestureState.dx;
-        const dy = gestureState.dy;
-        const isTap = Math.abs(dx) < 20 && Math.abs(dy) < 20;
-
-        if (isTap) {
-          // Handle tap for next/prev slide
-          const x = gestureState.moveX;
-          if (x < SCREEN_WIDTH * 0.3) {
-            handlePrev();
-          } else {
-            handleNext();
-          }
-        } else if (dx < -50) {
-          // Swiped left -> next sender
-          trigger3DCube(senderIndex + 1, 'forward');
-        } else if (dx > 50) {
-          // Swiped right -> prev sender
-          trigger3DCube(senderIndex - 1, 'backward');
-        }
-      }
-    })
-  ).current;
+  // Horizontal swipe changes sender; taps on left/right zones move within
+  // the current sender, matching the interaction users expect from Stories.
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) =>
+      Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.05,
+    onMoveShouldSetPanResponderCapture: (_, g) =>
+      Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.05,
+    onPanResponderTerminationRequest: () => false,
+    onShouldBlockNativeResponder: () => true,
+    onPanResponderRelease: (_, g) => {
+      if (g.dx < -44) trigger3DCube(senderIndex + 1, 'forward');
+      else if (g.dx > 44) trigger3DCube(senderIndex - 1, 'backward');
+    }
+  }), [senderIndex, slideIndex, resolvedSenders.length]);
 
   const toggleLike = () => {
     setLiked(prev => {
@@ -394,6 +380,14 @@ export default function StoryViewerModal({
             <View style={s.captionPill}>
               <Typography style={s.captionText}>{slideObj.caption}</Typography>
             </View>
+          </View>
+        )}
+
+        {!isTarget && (
+          <View style={s.tapZones} pointerEvents="box-none">
+            <Pressable onPress={handlePrev} style={s.tapZoneLeft} accessibilityRole="button" accessibilityLabel="Poprzednia relacja" />
+            <View style={s.tapZoneMiddle} pointerEvents="none" />
+            <Pressable onPress={handleNext} style={s.tapZoneRight} accessibilityRole="button" accessibilityLabel="Następna relacja" />
           </View>
         )}
 
@@ -568,6 +562,16 @@ const s = StyleSheet.create({
     height: 180,
     backgroundColor: 'rgba(0,0,0,0.5)'
   },
+  tapZones: {
+    ...StyleSheet.absoluteFillObject,
+    top: Platform.OS === 'ios' ? 92 : 78,
+    bottom: 92,
+    zIndex: 8,
+    flexDirection: 'row'
+  },
+  tapZoneLeft: { width: '30%', height: '100%' },
+  tapZoneMiddle: { width: '40%', height: '100%' },
+  tapZoneRight: { width: '30%', height: '100%' },
   heartPopCenter: {
     position: 'absolute',
     top: 0,
