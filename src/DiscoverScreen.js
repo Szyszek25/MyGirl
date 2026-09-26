@@ -26,7 +26,7 @@ const categories=['Wszystkie','Kawa','Wyjścia','Sport','Koncert','Spacer','Podr
 
 export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
   const [category,setCategory]=useState('Wszystkie');
-  const [plans,setPlans]=useState(starterPlans);
+  const [plans,setPlans]=useState(()=>sessionUserId?[]:starterPlans);
   const [remoteLoaded,setRemoteLoaded]=useState(false);
   const [details,setDetails]=useState('');
   const [creating,setCreating]=useState(false);
@@ -36,12 +36,13 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
   useEffect(()=>{
     if(!sessionUserId){setPlans(starterPlans);setRemoteLoaded(false);return;}
     let alive=true;
+    setPlans([]);
     loadPlans(city,sessionUserId).then(rows=>{
       if(!alive)return;
-      if(rows.length){setPlans([...rows, ...starterPlans.filter(sp=>!rows.some(r=>r.title===sp.title))]);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));}
-      else setPlans(starterPlans);
+      setPlans(rows||[]);
+      setJoined((rows||[]).filter(row=>row.joinedByMe).map(row=>row.id));
       setRemoteLoaded(true);
-    }).catch(()=>{if(alive){setPlans(starterPlans);setRemoteLoaded(false)}});
+    }).catch(()=>{if(alive){setPlans([]);setRemoteLoaded(false)}});
     return ()=>{alive=false};
   },[city,sessionUserId]);
 
@@ -56,7 +57,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
         const rows=await loadPlans(city,sessionUserId);
         setPlans(rows);
         setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
-        setSelected(prev=>prev?.id===plan.id ? {...prev,joinedByMe:!currently} : prev);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+        setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
         setTitle('');setDetails('');setCreating(false);return;
       }catch(error){Alert.alert('Nie utworzono planu',error.message||'Spróbuj ponownie.');return;}
     }
