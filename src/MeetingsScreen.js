@@ -80,6 +80,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [createBusy,setCreateBusy]=useState(false);
   const [businessAccount,setBusinessAccount]=useState(null);
   const [createAsBusiness,setCreateAsBusiness]=useState(false);
+  const [participantsOpen,setParticipantsOpen]=useState(false);
   const sourceMeetings=sessionUserId ? remoteMeetups : starterMeetings;
   useEffect(()=>{let alive=true;if(!sessionUserId){setBusinessAccount(null);return;}loadBusinessAccount(sessionUserId).then(value=>{if(alive)setBusinessAccount(value)}).catch(()=>{if(alive)setBusinessAccount(null)});return()=>{alive=false}},[sessionUserId]);
   const data=useMemo(()=>sourceMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[sourceMeetings,city,category]);
@@ -225,35 +226,39 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
             {selected.hostPhoto?<Image source={{uri:selected.hostPhoto}} style={s.hostAvatar}/>:<View style={[s.hostAvatar,{backgroundColor:c.blush,alignItems:"center",justifyContent:"center"}]}><Ionicons name={selected.isBusiness?"storefront-outline":"person-outline"} size={22} color={c.pink}/></View>}
           </Pressable>
 
-          <View style={s.participantsSection}>
+          <Pressable onPress={()=>setParticipantsOpen(true)} style={s.participantsSection}>
             <View style={s.participantsHeader}>
               <View><Typography style={s.sectionLabel}>Uczestniczki</Typography><Typography style={s.participantsCount}>{selected.joined}/{selected.spots} miejsc</Typography></View>
-              <Ionicons name="people-outline" size={20} color={c.pink}/>
+              <Ionicons name="chevron-forward" size={20} color={c.pink}/>
             </View>
             <View style={s.participantsGrid}>
-              {(cityPeople.length?cityPeople:people).slice(0,Math.min(selected.joined,5)).map(p=><View key={p.id} style={s.participant}>
-                <Image source={{uri:p.photo}} style={s.participantPhoto}/>
+              {(selected.participants||[]).slice(0,5).map(p=><Pressable key={p.id} onPress={()=>onOpenProfile?.(p.id)} style={s.participant}>
+                {p.photo?<Image source={{uri:p.photo}} style={s.participantPhoto}/>:<View style={[s.participantPhoto,s.thumbFallback]}><Ionicons name="person-outline" size={18} color={c.pink}/></View>}
                 <Typography numberOfLines={1} style={s.participantName}>{p.name}</Typography>
-              </View>)}
+              </Pressable>)}
               {selected.joined>5&&<View style={s.participantMore}><Typography style={s.participantMoreText}>+{selected.joined-5}</Typography></View>}
             </View>
-          </View>
+          </Pressable>
 
           <View style={s.detailActions}>
-            <Pressable onPress={()=>toggle(selected.id)} style={[s.compactPrimary,joined.includes(selected.id)&&s.compactSecondary]}>
+            <Pressable onPress={()=>toggle(selected.id)} style={[s.compactPrimary,s.detailActionsEqual,joined.includes(selected.id)&&s.compactSecondary]}>
               <Typography style={[s.compactPrimaryText,joined.includes(selected.id)&&s.compactSecondaryText]}>{joined.includes(selected.id)?'Wycofaj udział':'Dołącz'}</Typography>
             </Pressable>
-            {selected.remote&&sessionUserId&&joined.includes(selected.id)&&onOpenChat&&<Pressable onPress={()=>onOpenChat(selected.id)} style={s.compactChat}><Ionicons name="chatbubbles-outline" size={18} color={c.white}/><Typography style={s.compactChatText}>Dołącz do czatu</Typography></Pressable>}
+            {selected.remote&&sessionUserId&&joined.includes(selected.id)&&onOpenChat&&<Pressable onPress={()=>onOpenChat(selected.id)} style={[s.compactChat,s.detailActionsEqual]}><Ionicons name="chatbubbles-outline" size={18} color={c.white}/><Typography style={s.compactChatText}>Dołącz do czatu</Typography></Pressable>}
           </View>
           <Pressable onPress={()=>Share.share({message:`${selected.title} · ${selected.place}, ${selected.city} · ${new Date(selected.when).toLocaleString('pl-PL')}`})} style={s.shareRow}><Ionicons name="share-social-outline" size={20} color={c.ink}/><Typography style={s.shareText}>Udostępnij spotkanie</Typography></Pressable>
         </ScrollView>
       </View>}
+    </Modal>
+    <Modal visible={participantsOpen&&!!selected} transparent animationType="slide" onRequestClose={()=>setParticipantsOpen(false)}>
+      <View style={s.participantsModalBackdrop}><Pressable style={StyleSheet.absoluteFill} onPress={()=>setParticipantsOpen(false)}/><View style={s.participantsSheet}><View style={s.participantsSheetHeader}><Typography style={s.participantsSheetTitle}>Uczestniczki</Typography><Pressable onPress={()=>setParticipantsOpen(false)}><Ionicons name="close" size={25} color={c.ink}/></Pressable></View>{(selected?.participants||[]).map(p=><Pressable key={p.id} onPress={()=>{setParticipantsOpen(false);onOpenProfile?.(p.id)}} style={s.participantRow}>{p.photo?<Image source={{uri:p.photo}} style={s.participantRowPhoto}/>:<View style={[s.participantRowPhoto,s.thumbFallback]}><Ionicons name="person-outline" size={19} color={c.pink}/></View>}<Typography style={s.participantRowName}>{p.name}</Typography><Ionicons name="chevron-forward" size={18} color={c.muted}/></Pressable>)}</View></View>
     </Modal>
   </View>;
 }
 
 const s=StyleSheet.create({
   root:{flex:1,backgroundColor:c.canvas},
+  participantsModalBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.25)'},participantsSheet:{backgroundColor:c.white,borderTopLeftRadius:26,borderTopRightRadius:26,padding:sp.lg,paddingBottom:36,maxHeight:'70%'},participantsSheetHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:14},participantsSheetTitle:{fontFamily:f.bold,fontSize:22,color:c.ink},participantRow:{minHeight:62,flexDirection:'row',alignItems:'center',gap:12,borderBottomWidth:1,borderBottomColor:c.line},participantRowPhoto:{width:42,height:42,borderRadius:21,backgroundColor:c.blush},participantRowName:{flex:1,fontFamily:f.semibold,fontSize:15,color:c.ink},
   businessCreatorBar:{position:'absolute',left:24,right:24,bottom:24,zIndex:120,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:18,padding:10},businessCreatorLabel:{fontFamily:f.regular,fontSize:10,color:c.muted},businessCreatorSwitch:{marginTop:5,flexDirection:'row',alignItems:'center',gap:7},businessCreatorText:{flex:1,fontFamily:f.bold,fontSize:13,color:c.ink},
   header:{paddingHorizontal:sp.lg,paddingTop:6,paddingBottom:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
   title:{fontFamily:f.bold,fontSize:26,letterSpacing:-1,color:c.ink},
