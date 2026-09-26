@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,Image,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
+import {Alert,BackHandler,Image,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView,useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@expo-google-fonts/dm-sans';
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
@@ -181,6 +181,26 @@ function PolkaApp(){
       Alert.alert('Nie udało się wylogować',error.message||'Spróbuj ponownie.');
     }
   };
+  useEffect(()=>{
+    if(Platform.OS!=='android'||!account)return;
+    const onHardwareBack=()=>{
+      if(reportTarget){setReportTarget(null);return true;}
+      if(safetyOpen){setSafetyOpen(false);return true;}
+      if(partnerOpen){setPartnerOpen(false);return true;}
+      if(settingsOpen){setSettingsOpen(false);return true;}
+      if(resetPasswordOpen){setResetPasswordOpen(false);setSettingsOpen(true);return true;}
+      if(messagesOpen){setMessagesOpen(false);setPendingConversationId(null);return true;}
+      if(cycleOpen){setCycleOpen(false);return true;}
+      if(careOpen){setCareOpen(false);return true;}
+      if(moreOpen){setMoreOpen(false);return true;}
+      if(cityPickerOpen){setCityPickerOpen(false);return true;}
+      if(tab!=='Start'){setTab('Start');return true;}
+      return false;
+    };
+    const sub=BackHandler.addEventListener('hardwareBackPress',onHardwareBack);
+    return ()=>sub.remove();
+  },[account,reportTarget,safetyOpen,partnerOpen,settingsOpen,resetPasswordOpen,messagesOpen,cycleOpen,careOpen,moreOpen,cityPickerOpen,tab]);
+
   const reset=async()=>{
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
