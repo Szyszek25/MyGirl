@@ -6,8 +6,6 @@ import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
 import {createMeetup,loadMeetups,setMeetupRsvp} from './services/meetupsApi';
-import TemporaryChatScreen from './TemporaryChatScreen';
-import {ensureTemporaryRoom} from './services/tempChatApi';
 
 const starterMeetings=[
   {id:'m1',category:'Kawa',title:'Matcha + spacer po centrum',city:'Warszawa',when:'2026-09-27T17:30:00',place:'Śródmieście',description:'Najpierw matcha, potem luźny spacer po centrum. Bez spiny — poznajemy się na żywo.',spots:6,joined:4,host:'Maja',photo:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88'},
@@ -62,12 +60,11 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
+export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
   const [cycleData,setCycleData]=useState(null);
-  const [tempRoom,setTempRoom]=useState(null);
   const [remoteMeetups,setRemoteMeetups]=useState([]);
   const [creating,setCreating]=useState(false);
   const [createTitle,setCreateTitle]=useState('');
@@ -153,14 +150,6 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
     finally{setCreateBusy(false);}
   };
 
-  const openTempChat=async item=>{
-    if(!sessionUserId)return;
-    try{
-      const room=await ensureTemporaryRoom({userId:sessionUserId,title:item.title,contextType:item.category==='Sport'?'sport':'meetup',contextId:item.remote?item.id:null,hours:12});
-      setTempRoom(room);
-    }catch{}
-  };
-
 
   return <View style={s.root}>
     <View style={s.header}>
@@ -228,10 +217,6 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={!!tempRoom} animationType="slide" onRequestClose={()=>setTempRoom(null)}>
-      {!!tempRoom&&<TemporaryChatScreen room={tempRoom} userId={sessionUserId} onClose={()=>setTempRoom(null)}/>}
-    </Modal>
-
     <Modal visible={!!selected} animationType="slide" onRequestClose={()=>setSelected(null)}>
       {!!selected&&<View style={s.detailRoot}>
         <View style={s.detailTop}>
@@ -278,8 +263,12 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
             </View>
           </View>
 
-          <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do spotkania'} secondary={joined.includes(selected.id)} onPress={()=>toggle(selected.id)}/>
-          {sessionUserId&&joined.includes(selected.id)&&<Pressable onPress={()=>openTempChat(selected)} style={s.shareRow}><Ionicons name="eye-off-outline" size={20} color={c.pink}/><Typography style={s.shareText}>Anonimowy czat do spotkania</Typography></Pressable>}
+          <View style={s.detailActions}>
+            <Pressable onPress={()=>toggle(selected.id)} style={[s.compactPrimary,joined.includes(selected.id)&&s.compactSecondary]}>
+              <Typography style={[s.compactPrimaryText,joined.includes(selected.id)&&s.compactSecondaryText]}>{joined.includes(selected.id)?'Wycofaj udział':'Dołącz'}</Typography>
+            </Pressable>
+            {selected.remote&&sessionUserId&&joined.includes(selected.id)&&onOpenChat&&<Pressable onPress={()=>onOpenChat(selected.id)} style={s.compactChat}><Ionicons name="chatbubbles-outline" size={18} color={c.white}/><Typography style={s.compactChatText}>Dołącz do czatu</Typography></Pressable>}
+          </View>
           <Pressable onPress={()=>Share.share({message:`${selected.title} · ${selected.place}, ${selected.city} · ${new Date(selected.when).toLocaleString('pl-PL')}`})} style={s.shareRow}><Ionicons name="share-social-outline" size={20} color={c.ink}/><Typography style={s.shareText}>Udostępnij spotkanie</Typography></Pressable>
         </ScrollView>
       </View>}
@@ -379,6 +368,13 @@ const s=StyleSheet.create({
   participantMore:{width:50,height:50,borderRadius:25,backgroundColor:c.blush,alignItems:'center',justifyContent:'center'},
   participantMoreText:{fontFamily:f.bold,fontSize:13,color:c.pink},
   detailAvatar:{width:34,height:34,borderRadius:17,borderWidth:2,borderColor:c.white,marginRight:-7},
+  detailActions:{marginHorizontal:sp.lg,marginTop:8,flexDirection:'row',flexWrap:'wrap',gap:10,alignItems:'center'},
+  compactPrimary:{minHeight:46,borderRadius:14,backgroundColor:c.pink,paddingHorizontal:20,alignItems:'center',justifyContent:'center'},
+  compactPrimaryText:{fontFamily:f.bold,fontSize:14,color:c.white},
+  compactSecondary:{backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
+  compactSecondaryText:{color:c.pink},
+  compactChat:{minHeight:46,borderRadius:14,backgroundColor:c.ink,paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},
+  compactChatText:{fontFamily:f.bold,fontSize:14,color:c.white},
   shareRow:{height:52,marginHorizontal:sp.lg,marginTop:10,borderRadius:16,borderWidth:1,borderColor:c.line,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},
   shareText:{fontFamily:f.semibold,fontSize:14,color:c.ink}
 });
