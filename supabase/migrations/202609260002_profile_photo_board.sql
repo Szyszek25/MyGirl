@@ -2,7 +2,8 @@ create table if not exists public.profile_photos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   storage_path text not null,
-  position smallint not null default 0 check (position between 0 and 5),
+  source_url text,
+  position smallint not null default 0 check (position between 0 and 8),
   created_at timestamptz not null default now(),
   unique(user_id, position),
   unique(storage_path)
