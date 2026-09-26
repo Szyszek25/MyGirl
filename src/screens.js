@@ -1060,7 +1060,11 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
                   </Typography>
                 </View>
               )}
-              <View style={{ flex: 1 }}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{ color: c.muted }}>{commentPost.city}</Typography></View>
+              <Pressable disabled={!commentPost.authorId} onPress={() => commentPost.authorId && setSelectedProfile({ name: commentPost.author, authorId: commentPost.authorId, avatar: commentPost.avatar })} style={{ flex: 1 }}>
+                <Typography style={s.postAuthor}>{commentPost.author}</Typography>
+                {!!commentPost.username && <Typography style={{ color: c.pink, fontFamily: f.semibold, fontSize: 13 }}>{'@' + commentPost.username}</Typography>}
+                <Typography variant="caption" style={{ color: c.muted }}>{commentPost.city}</Typography>
+              </Pressable>
             </View>
             <Typography style={s.postBody}>{commentPost.body}</Typography>
             {!!commentPost.image && <Pressable onPress={() => setPreviewImage(commentPost.image)}><Image source={{ uri: commentPost.image }} style={s.commentPostImage} resizeMode="cover" /></Pressable>}
