@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {Alert,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
+import {Alert,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,space as sp} from './theme';
@@ -198,11 +198,7 @@ export default function CycleScreen({onClose,onOpenGroups,onOpenCare,userId=null
 
         <View style={s.careHeroBody}>
           <View style={s.clayScene}>
-            <Image
-              source={{uri:'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&q=85'}}
-              style={s.cycleHeroImage}
-              resizeMode="cover"
-            />
+            <Typography style={{fontSize:96,lineHeight:112,textAlign:'center'}}>👩</Typography>
           </View>
           <View style={s.careStats}>
             <View style={s.careStat}><Typography style={s.careStatValue}>{daysToPeriod}</Typography><Typography style={s.careStatLabel}>dni do okresu</Typography></View>
