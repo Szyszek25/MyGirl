@@ -1231,7 +1231,9 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     time: formatPostTime(room.time),
     unread: 0,
     group: room.kind === 'group',
-    otherUserId: room.otherUserId || null,
+    groupId: room.groupId || null,
+    meetupId: room.meetupId || null,
+    otherUserId: room.kind === 'group' ? null : (room.otherUserId || null),
     lastActiveAt: room.lastActiveAt || null,
     memberProfiles: room.memberProfiles || [],
     remote: true
