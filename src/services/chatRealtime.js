@@ -12,6 +12,13 @@ export function newClientMessageId(){
 export function createChatRealtime(client){
   if(!client)throw new Error('Authenticated Supabase client required');
 
+  const resolveAvatarUrl=async path=>{
+    if(!path)return null;
+    if(/^https?:\/\//i.test(path))return path;
+    const {data}=await client.storage.from('polka-avatars').createSignedUrl(path,3600);
+    return data?.signedUrl||null;
+  };
+
   const hydrateMedia=async message=>{
     if(!message?.media_path)return message;
     const {data,error}=await client.storage.from('polka-chat-media').createSignedUrl(message.media_path,60*60);
@@ -54,7 +61,8 @@ export function createChatRealtime(client){
       if(result.error)throw result.error;
       profiles=result.data||[];
     }
-    const profileMap=new Map(profiles.map(profile=>[profile.id,profile]));
+    const profileEntries=await Promise.all(profiles.map(async profile=>[profile.id,{...profile,avatar_url:await resolveAvatarUrl(profile.avatar_path)}]));
+    const profileMap=new Map(profileEntries);
     const groupIds=[...new Set((rooms||[]).map(room=>room.group_id).filter(Boolean))];
     const groupMap=new Map();
     if(groupIds.length){
@@ -75,7 +83,7 @@ export function createChatRealtime(client){
         name:room.kind==='group'?(room.title||'Grupa'):(other?.display_name||'Rozmowa'),
         otherUserId:other?.id||null,
         avatarPath:other?.avatar_path||null,
-        avatarUrl:room.group_id?groupMap.get(room.group_id)||null:null,
+        avatarUrl:room.group_id?groupMap.get(room.group_id)||null:(other?.avatar_url||null),
         meetupId:room.meetup_id||null,
         groupId:room.group_id||null,
         lastActiveAt:other?.last_active_at||null,
