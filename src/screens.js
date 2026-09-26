@@ -23,7 +23,7 @@ import { people, groups, cities } from './data';
 import { Button, Chip, Field, PageHeading, Surface, Typography } from './ui';
 import { supabase } from './lib/supabase';
 import { createChatRealtime, newClientMessageId } from './services/chatRealtime';
-import { addComment, createPost, createStory, deletePost, editPost, loadComments, loadFeed, loadStories, markStoryViewed, togglePostLike } from './services/socialApi';
+import { addComment, createPost, createStory, deletePost, editPost, loadComments, loadFeed, loadStories, markStoryViewed, setPostReaction, togglePostLike } from './services/socialApi';
 import { acceptFriendRequest, loadFriendRequests, searchPeople, sendFriendRequest } from './services/friendsApi';
 import { readCached, writeCached } from './cache';
 import StoryCameraModal from './StoryCameraModal';
@@ -481,6 +481,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   const [commentDraft, setCommentDraft] = useState('');
   const [comments, setComments] = useState({});
   const [replyingTo, setReplyingTo] = useState(null);
+  const [reactionPickerPostId, setReactionPickerPostId] = useState(null);
   const commentInputRef = useRef(null);
   const focusCommentOnOpenRef = useRef(false);
   const [remotePosts, setRemotePosts] = useState([]);
@@ -692,6 +693,22 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     { id: `${post.id}-c1`, author: 'Maja', body: 'Ja jestem chętna 🙋‍♀️', photo: people[0].photo },
     { id: `${post.id}-c2`, author: 'Ola', body: 'Brzmi super, o której dokładnie?', photo: people[1].photo }
   ];
+
+  const reactToPost = async (post, reaction) => {
+    if (!sessionUserId || !post?.remote) return;
+    const previous = post.myReaction || null;
+    const next = previous === reaction ? null : reaction;
+    setRemotePosts(current => current.map(p => {
+      if (p.id !== post.id) return p;
+      const counts = { ...(p.reactions || {}) };
+      if (previous) counts[previous] = Math.max(0, (counts[previous] || 0) - 1);
+      if (next) counts[next] = (counts[next] || 0) + 1;
+      return { ...p, reactions: counts, myReaction: next };
+    }));
+    setReactionPickerPostId(null);
+    try { await setPostReaction(post.id, sessionUserId, reaction, previous); }
+    catch (error) { refresh(true); Alert.alert('Reakcja', error.message || 'Nie udało się zapisać reakcji.'); }
+  };
 
   const openComments = async (post, focusInput = false) => {
     focusCommentOnOpenRef.current = focusInput;
@@ -974,8 +991,19 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
           <View style={s.postActionLeft}>
             <TextAction icon={(item.likedByMe || likes.includes(item.id)) ? 'heart' : 'heart-outline'} title={String((item.likes || 0) + (!item.remote && likes.includes(item.id) ? 1 : 0))} onPress={() => toggleLike(item)} />
             <TextAction icon="chatbubble-outline" title={String(item.remote ? (item.commentsCount || 0) : seededComments(item).length)} onPress={() => openComments(item)} />
+            {item.remote && <View style={s.reactionControl}>
+              <Pressable onPress={() => setReactionPickerPostId(current => current === item.id ? null : item.id)} style={s.reactionAddButton}>
+                <Ionicons name="happy-outline" size={20} color={c.ink} /><Ionicons name="add" size={11} color={c.ink} style={s.reactionPlus} />
+              </Pressable>
+              {reactionPickerPostId === item.id && <View style={s.reactionPicker}>
+                {['🌹','😂','😍','🥹','🔥'].map(reaction => <Pressable key={reaction} onPress={() => reactToPost(item,reaction)} style={s.reactionChoice}><Typography style={s.reactionEmoji}>{reaction}</Typography></Pressable>)}
+              </View>}
+            </View>}
           </View>
         </View>
+        {item.remote && Object.entries(item.reactions || {}).some(([,count]) => count > 0) && <View style={s.reactionSummaryRow}>
+          {Object.entries(item.reactions || {}).filter(([,count]) => count > 0).map(([reaction,count]) => <Pressable key={reaction} onPress={() => reactToPost(item,reaction)} style={[s.reactionPill, item.myReaction === reaction && s.reactionPillMine]}><Typography style={s.reactionPillText}>{reaction} {count}</Typography></Pressable>)}
+        </View>}
         <View style={s.commentComposerRow}>
           <Image source={{ uri: remotePosts.find(post => post.authorId === sessionUserId)?.avatar || people[0]?.photo }} style={s.commentComposerAvatar} />
           <Pressable onPress={() => openComments(item, true)} style={s.commentComposerPreview}>
@@ -1678,6 +1706,16 @@ const s = StyleSheet.create({
   postAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   postActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   postActionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reactionControl: { position: 'relative' },
+  reactionAddButton: { width: 38, height: 34, borderRadius: 999, borderWidth: 1, borderColor: c.line, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center' },
+  reactionPlus: { position: 'absolute', right: 6, top: 5 },
+  reactionPicker: { position: 'absolute', left: 0, bottom: 40, zIndex: 30, flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 7, paddingVertical: 6, borderRadius: 999, backgroundColor: c.white, borderWidth: 1, borderColor: c.line, elevation: 7 },
+  reactionChoice: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  reactionEmoji: { fontSize: 22, lineHeight: 28 },
+  reactionSummaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 7 },
+  reactionPill: { minHeight: 30, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: c.line, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center' },
+  reactionPillMine: { borderColor: c.pink, backgroundColor: c.blush },
+  reactionPillText: { fontFamily: f.semibold, fontSize: 12, color: c.ink },
   postMenuTrigger: { width: 42, height: 42, alignItems: 'flex-end', justifyContent: 'center', gap: 5, paddingRight: 2 },
   postMenuLineWide: { width: 25, height: 2.5, borderRadius: 99, backgroundColor: c.ink },
   postMenuLineShort: { width: 17, height: 2.5, borderRadius: 99, backgroundColor: c.ink },
