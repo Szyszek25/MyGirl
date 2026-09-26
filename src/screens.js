@@ -526,9 +526,9 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     setStoryCreatorOpen(true);
   };
 
-  const handlePublishStory = async ({ uri, caption, tags = [] }) => {
+  const handlePublishStory = async ({ uri, caption }) => {
     if (sessionUserId) {
-      await createStory({ userId: sessionUserId, uri, caption, tags });
+      await createStory({ userId: sessionUserId, uri, caption });
       await refresh();
     } else {
       setStories(prev => [{
@@ -537,7 +537,6 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         avatar: people[0]?.photo,
         mediaUrl: uri,
         caption: caption || 'Twoja relacja ✨',
-        tags,
         createdAt: new Date().toISOString()
       }, ...prev]);
     }
@@ -635,11 +634,25 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
   };
 
   const [selectedStorySenderIndex, setSelectedStorySenderIndex] = useState(0);
+  const [viewedStoryIds, setViewedStoryIds] = useState(() => new Set());
 
-  const openStory = async (sender, idx = 0) => {
+  const openStory = (sender, idx = 0) => {
     setSelectedStorySenderIndex(idx);
     setStoryOpen(sender);
-    if (sessionUserId && sender?.id) markStoryViewed(sender.id, sessionUserId).catch(() => { });
+  };
+
+  const handleStoryViewed = storyId => {
+    if (!storyId) return;
+    setViewedStoryIds(prev => {
+      if (prev.has(storyId)) return prev;
+      const next = new Set(prev);
+      next.add(storyId);
+      return next;
+    });
+    setStories(prev => prev.map(story => story.id === storyId ? { ...story, viewed: true } : story));
+    if (sessionUserId && /^[0-9a-f-]{36}$/i.test(String(storyId))) {
+      void markStoryViewed(storyId, sessionUserId).catch(() => {});
+    }
   };
 
   const storySenders = useMemo(() => {
@@ -658,13 +671,15 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         mediaUrl,
         mediaType: st.mediaType || (/\.(mp4|mov|webm)$/i.test(mediaUrl) ? 'video' : 'image'),
         caption: st.caption || '',
-        createdAt: st.createdAt || new Date().toISOString()
+        createdAt: st.createdAt || new Date().toISOString(),
+        viewed: !!st.viewed || viewedStoryIds.has(st.id)
       };
 
       if (!map.has(senderKey)) {
         map.set(senderKey, {
           key: senderKey,
           id: st.id,
+          authorId: st.authorId || st.userId || null,
           name: senderName,
           avatar: senderAvatar,
           city: st.city || city,
@@ -731,12 +746,18 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         s => s.name.toLowerCase().trim() === demo.name.toLowerCase().trim()
       );
       if (!exists) {
-        map.set(demo.key, demo);
+        map.set(demo.key, {
+          ...demo,
+          slides: demo.slides.map(slide => ({ ...slide, viewed: viewedStoryIds.has(slide.id) }))
+        });
       }
     });
 
-    return Array.from(map.values());
-  }, [stories, people, city]);
+    return Array.from(map.values()).map(sender => ({
+      ...sender,
+      allViewed: sender.slides.length > 0 && sender.slides.every(slide => slide.viewed || viewedStoryIds.has(slide.id))
+    }));
+  }, [stories, people, city, viewedStoryIds]);
 
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {loading && <View style={s.feedLoading}><ActivityIndicator size="small" color={c.pink} /><Typography style={s.feedLoadingText}>Ładuję Polkę…</Typography></View>}
@@ -755,7 +776,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
               <Typography numberOfLines={1} style={s.storyName}>Dodaj</Typography>
             </Pressable>
             {storySenders.map((sender, idx) => <Pressable key={sender.key || sender.name} onPress={() => openStory(sender, idx)} style={s.storyItem}>
-              <View style={s.storyRing}>
+              <View style={[s.storyRing, sender.allViewed && s.storyRingViewed]}>
                 {sender.avatar ? (
                   <Image source={{ uri: sender.avatar }} style={s.storyAvatar} />
                 ) : (
@@ -845,6 +866,8 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
       visible={!!storyOpen}
       senders={storySenders}
       initialSenderIndex={selectedStorySenderIndex}
+      sessionUserId={sessionUserId}
+      onStoryViewed={handleStoryViewed}
       onClose={() => setStoryOpen(null)}
     />
 
@@ -1237,6 +1260,7 @@ const s = StyleSheet.create({
   storiesRow: { paddingHorizontal: sp.lg, paddingTop: 8, paddingBottom: 12, gap: 12, backgroundColor: c.canvas },
   storyItem: { width: 68, alignItems: 'center' },
   storyRing: { width: 62, height: 62, borderRadius: 31, borderWidth: 3, borderColor: c.pink, padding: 2, alignItems: 'center', justifyContent: 'center' },
+  storyRingViewed: { borderColor: '#B8B1B4' },
   storyAddRing: { borderColor: c.line },
   storyAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: c.blush },
   storyAdd: { width: 52, height: 52, borderRadius: 26, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center' },
