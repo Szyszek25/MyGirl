@@ -61,7 +61,7 @@ const cycleContextFor=(meetingDate,cycle)=>{
 
   if(duringPeriod)return {tone:'period',label:'Może wypaść w trakcie okresu',daysText:'przewidywany okres',icon:'water-outline'};
   if(nearPeriod)return {tone:'careful',label:'Zostaw sobie luz',daysText:daysToPeriod===0?'okres może zacząć się tego dnia':daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'heart-outline'};
-  return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
+  return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'female-outline'};
 };
 
 export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,onOpenCycle,onOpenProfile,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
@@ -175,7 +175,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
             <Typography style={s.cardTitle}>{item.title}</Typography>
             <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
             <View style={s.metaBadges}>
-              {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(item.when),cycleData);return ctx?<View style={[s.cycleMini,ctx.tone==='easy'&&s.cycleMiniEasy,ctx.tone==='careful'&&s.cycleMiniCareful,ctx.tone==='period'&&s.cycleMiniPeriod]}><Ionicons name={ctx.icon} size={12} color={ctx.tone==='easy'?c.success:ctx.tone==='careful'?c.warning:c.pink}/><Typography style={[s.cycleMiniText,ctx.tone==='easy'&&{color:c.success},ctx.tone==='careful'&&{color:c.warning},ctx.tone==='period'&&{color:c.pink}]}>{ctx.label} · {ctx.daysText}</Typography></View>:null})()}
+              {featurePreferences.polkaCare&&featurePreferences.cycleMeetingContext&&(()=>{const ctx=cycleContextFor(new Date(item.when),cycleData);return ctx?<View style={[s.cycleMini,ctx.tone==='easy'&&s.cycleMiniEasy,ctx.tone==='careful'&&s.cycleMiniCareful,ctx.tone==='period'&&s.cycleMiniPeriod]}><Ionicons name={ctx.icon} size={12} color={ctx.tone==='easy'?c.pink:ctx.tone==='careful'?c.warning:c.pink}/><Typography style={[s.cycleMiniText,ctx.tone==='easy'&&{color:c.pink},ctx.tone==='careful'&&{color:c.warning},ctx.tone==='period'&&{color:c.pink}]}>{ctx.label} · {ctx.daysText}</Typography></View>:null})()}
               {featurePreferences.zodiacMeetingContext&&featurePreferences.zodiacSign&&(()=>{const vibe=zodiacVibeFor(featurePreferences.zodiacSign,item);return <View style={s.zodiacMini}><Typography style={s.zodiacMiniText}>✦ Dla {featurePreferences.zodiacSign}: {vibe.short}</Typography></View>})()}
             </View>
             <View style={s.cardBottom}>
