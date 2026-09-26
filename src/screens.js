@@ -1025,7 +1025,6 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
 
   useEffect(() => {
-    const lastOutgoingId = [...visibleMessages].reverse().find(message => message.side === 'out')?.id || null;
 
   if (active) {
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 120);
@@ -1206,10 +1205,10 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
 
       <ScrollView ref={chatScrollRef} onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: true })} style={s.messageArea} contentContainerStyle={s.messageContent} keyboardShouldPersistTaps="handled">
         {!active.remote && <View style={s.dayPill}><Typography style={s.dayText}>Dzisiaj</Typography></View>}
-        {visibleMessages.map(message => message.side === 'out'
+        {visibleMessages.map((message, messageIndex) => message.side === 'out'
           ? <View key={message.id} style={s.outgoingWrap}>
             {message.messageType === 'voice' ? <VoiceMessageBubble message={message} outgoing /> : <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}
-            {message.id === lastOutgoingId && <View style={s.deliveryStatusRow}>
+            {!visibleMessages.slice(messageIndex + 1).some(next => next.side === 'out') && <View style={s.deliveryStatusRow}>
               <Ionicons name="checkmark-done" size={13} color={c.pink} />
               <Typography style={s.deliveryStatusText}>Dostarczono</Typography>
             </View>}
