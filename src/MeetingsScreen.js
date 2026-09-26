@@ -1,11 +1,11 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {Image,Linking,Modal,Pressable,ScrollView,Share,StyleSheet,View} from 'react-native';
+import {Alert,Image,KeyboardAvoidingView,Linking,Modal,Platform,Pressable,ScrollView,Share,StyleSheet,TextInput,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {people} from './data';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Button,Typography} from './ui';
-import {loadMeetups,setMeetupRsvp} from './services/meetupsApi';
+import {createMeetup,loadMeetups,setMeetupRsvp} from './services/meetupsApi';
 import TemporaryChatScreen from './TemporaryChatScreen';
 import {ensureTemporaryRoom} from './services/tempChatApi';
 
@@ -69,6 +69,14 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [cycleData,setCycleData]=useState(null);
   const [tempRoom,setTempRoom]=useState(null);
   const [remoteMeetups,setRemoteMeetups]=useState([]);
+  const [creating,setCreating]=useState(false);
+  const [createTitle,setCreateTitle]=useState('');
+  const [createPlace,setCreatePlace]=useState('');
+  const [createDate,setCreateDate]=useState('');
+  const [createTime,setCreateTime]=useState('');
+  const [createDescription,setCreateDescription]=useState('');
+  const [createCapacity,setCreateCapacity]=useState('6');
+  const [createBusy,setCreateBusy]=useState(false);
   const sourceMeetings=remoteMeetups.length
     ? [...remoteMeetups, ...starterMeetings.filter(sm=>!remoteMeetups.some(rm=>rm.title===sm.title))]
     : starterMeetings;
@@ -107,6 +115,44 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       }
     }
   };
+  const reloadMeetups=async()=>{
+    if(!sessionUserId)return;
+    const rows=await loadMeetups(city,sessionUserId);
+    setRemoteMeetups(rows);
+    setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+  };
+  const submitMeeting=async()=>{
+    if(!sessionUserId){Alert.alert('Zaloguj się','Spotkania online wymagają konta.');return;}
+    const title=createTitle.trim();
+    const place=createPlace.trim();
+    if(title.length<4){Alert.alert('Dodaj nazwę','Np. „Matcha + spacer”.');return;}
+    if(!place){Alert.alert('Dodaj miejsce','Np. „Rynek” albo nazwa kawiarni.');return;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(createDate)||!/^\d{2}:\d{2}$/.test(createTime)){
+      Alert.alert('Dodaj termin','Wpisz datę jako RRRR-MM-DD i godzinę jako GG:MM.');
+      return;
+    }
+    const startsAt=new Date(`${createDate}T${createTime}:00`);
+    if(Number.isNaN(startsAt.getTime())||startsAt.getTime()<Date.now()+5*60*1000){
+      Alert.alert('Nieprawidłowy termin','Wybierz przyszłą datę i godzinę.');
+      return;
+    }
+    setCreateBusy(true);
+    try{
+      await createMeetup(sessionUserId,{
+        title,
+        description:createDescription,
+        city,
+        venueName:place,
+        startsAt:startsAt.toISOString(),
+        capacity:createCapacity
+      });
+      await reloadMeetups();
+      setCreating(false);
+      setCreateTitle('');setCreatePlace('');setCreateDate('');setCreateTime('');setCreateDescription('');setCreateCapacity('6');
+    }catch(error){Alert.alert('Nie utworzono spotkania',error.message||'Spróbuj ponownie.');}
+    finally{setCreateBusy(false);}
+  };
+
   const openTempChat=async item=>{
     if(!sessionUserId)return;
     try{
@@ -122,7 +168,10 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
         <Typography style={s.title}>Spotkania</Typography>
         <Typography style={s.subtitle}>Małe plany i wyjścia w {city}</Typography>
       </View>
-      <View style={s.count}><Typography style={s.countText}>{data.length}</Typography></View>
+      <View style={s.headerActions}>
+        <View style={s.count}><Typography style={s.countText}>{data.length}</Typography></View>
+        <Pressable onPress={()=>setCreating(true)} style={s.addMeetingBtn} accessibilityRole="button" accessibilityLabel="Dodaj spotkanie"><Ionicons name="add" size={22} color={c.white}/></Pressable>
+      </View>
     </View>
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScroll} contentContainerStyle={s.filters}>
@@ -152,6 +201,32 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       })}
       {!data.length&&<View style={s.empty}><Typography style={s.emptyTitle}>Brak spotkań w {city}</Typography><Typography style={s.emptyText}>Zmień miasto u góry albo wróć później.</Typography></View>}
     </ScrollView>
+
+    <Modal visible={creating} transparent animationType="slide" onRequestClose={()=>setCreating(false)}>
+      <KeyboardAvoidingView style={s.createBackdrop} behavior={Platform.OS==='ios'?'padding':'height'}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setCreating(false)}/>
+        <View style={s.createSheet}>
+          <View style={s.createHandle}/>
+          <View style={s.createHeader}><View><Typography style={s.createTitle}>Nowe spotkanie</Typography><Typography style={s.createSubtitle}>Konkretny termin, miejsce i liczba miejsc</Typography></View><Pressable onPress={()=>setCreating(false)} style={s.iconButton}><Ionicons name="close" size={23} color={c.ink}/></Pressable></View>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Typography style={s.fieldLabel}>Co robicie?</Typography>
+            <TextInput value={createTitle} onChangeText={setCreateTitle} maxLength={120} placeholder="Np. Matcha + spacer" placeholderTextColor={c.muted} style={s.input}/>
+            <Typography style={s.fieldLabel}>Miejsce</Typography>
+            <TextInput value={createPlace} onChangeText={setCreatePlace} maxLength={160} placeholder="Np. Rynek / nazwa kawiarni" placeholderTextColor={c.muted} style={s.input}/>
+            <View style={s.dateRow}>
+              <View style={{flex:1}}><Typography style={s.fieldLabel}>Data</Typography><TextInput value={createDate} onChangeText={setCreateDate} keyboardType="numbers-and-punctuation" placeholder="2026-09-30" placeholderTextColor={c.muted} style={s.input}/></View>
+              <View style={{width:120}}><Typography style={s.fieldLabel}>Godzina</Typography><TextInput value={createTime} onChangeText={setCreateTime} keyboardType="numbers-and-punctuation" placeholder="18:00" placeholderTextColor={c.muted} style={s.input}/></View>
+            </View>
+            <Typography style={s.fieldLabel}>Liczba miejsc</Typography>
+            <TextInput value={createCapacity} onChangeText={setCreateCapacity} keyboardType="number-pad" maxLength={2} placeholder="6" placeholderTextColor={c.muted} style={s.input}/>
+            <Typography style={s.fieldLabel}>Opis</Typography>
+            <TextInput value={createDescription} onChangeText={setCreateDescription} multiline maxLength={1200} placeholder="Jaki klimat, dla kogo, co warto wiedzieć?" placeholderTextColor={c.muted} style={[s.input,s.descriptionInput]}/>
+            <View style={s.cityPill}><Ionicons name="location-outline" size={15} color={c.pink}/><Typography style={s.cityPillText}>{city}</Typography></View>
+            <Button title={createBusy?'Tworzę…':'Utwórz spotkanie'} disabled={createBusy} onPress={submitMeeting} style={{marginTop:sp.md}}/>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
 
     <Modal visible={!!tempRoom} animationType="slide" onRequestClose={()=>setTempRoom(null)}>
       {!!tempRoom&&<TemporaryChatScreen room={tempRoom} userId={sessionUserId} onClose={()=>setTempRoom(null)}/>}
@@ -219,6 +294,20 @@ const s=StyleSheet.create({
   subtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},
   count:{minWidth:34,height:34,borderRadius:17,backgroundColor:c.blush,alignItems:'center',justifyContent:'center',paddingHorizontal:9},
   countText:{fontFamily:f.bold,fontSize:13,color:c.pink},
+  headerActions:{flexDirection:'row',alignItems:'center',gap:8},
+  addMeetingBtn:{width:38,height:38,borderRadius:19,backgroundColor:c.pink,alignItems:'center',justifyContent:'center'},
+  createBackdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.28)'},
+  createSheet:{backgroundColor:c.white,borderTopLeftRadius:28,borderTopRightRadius:28,padding:sp.lg,paddingBottom:34,maxHeight:'88%'},
+  createHandle:{width:42,height:5,borderRadius:3,backgroundColor:c.line,alignSelf:'center',marginBottom:16},
+  createHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:14},
+  createTitle:{fontFamily:f.bold,fontSize:24,color:c.ink,letterSpacing:-.8},
+  createSubtitle:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:2},
+  fieldLabel:{fontFamily:f.semibold,fontSize:13,color:c.ink,marginTop:10,marginBottom:7},
+  input:{minHeight:50,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,paddingHorizontal:14,fontFamily:f.regular,fontSize:14,color:c.ink},
+  descriptionInput:{height:92,textAlignVertical:'top',paddingTop:13},
+  dateRow:{flexDirection:'row',gap:10},
+  cityPill:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,backgroundColor:c.blush,borderRadius:999,paddingHorizontal:10,paddingVertical:7,marginTop:12},
+  cityPillText:{fontFamily:f.bold,fontSize:11,color:c.pink},
   filterScroll:{flexGrow:0,flexShrink:0},
   filters:{paddingHorizontal:sp.lg,paddingBottom:12,alignItems:'center'},
   filterChip:{paddingHorizontal:14,paddingVertical:9,borderRadius:999,backgroundColor:c.white,borderWidth:1,borderColor:c.line,marginRight:8},
