@@ -454,7 +454,7 @@ export default function StoryViewerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={s.container}>
+      <View style={s.container} {...panResponder.panHandlers}>
         {/* Animated 3D Cube Viewport - entire screen rotates */}
         <Animated.View
           style={[
@@ -518,13 +518,6 @@ export default function StoryViewerModal({
             <Ionicons name="heart" size={110} color="#FF1493" />
           </View>
         )}
-
-        {/* Swipe detector for 3D cube transition - full screen horizontal swipe */}
-        <View
-          style={StyleSheet.absoluteFill}
-          {...panResponder.panHandlers}
-          pointerEvents="auto"
-        />
       </View>
     </Modal>
   );
