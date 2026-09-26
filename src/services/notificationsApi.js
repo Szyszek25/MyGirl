@@ -38,7 +38,7 @@ export async function enablePushNotifications() {
       name: 'Polka',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 180, 90, 180],
-      lightColor: '#CE0459',
+      lightColor: '#C84F7A',
       sound: 'default'
     });
   }
