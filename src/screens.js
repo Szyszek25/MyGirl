@@ -167,8 +167,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       const rows = await Promise.all((profiles || []).map(async profile => {
         let photo = null;
         if (profile.avatar_path) {
-          const signed = await supabase.storage.from('polka-avatars').createSignedUrl(profile.avatar_path, 3600);
-          photo = signed.data?.signedUrl || null;
+          if (/^https?:\/\//i.test(profile.avatar_path)) photo = profile.avatar_path;
+          else { const signed = await supabase.storage.from('polka-avatars').createSignedUrl(profile.avatar_path, 3600); photo = signed.data?.signedUrl || null; }
         }
         const galleryPhotos = (await Promise.all(profilePhotos.filter(row => row.user_id === profile.id).map(async row => {
           if (row.source_url) return row.source_url;
