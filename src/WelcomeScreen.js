@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ImageBackground, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { colors as c, fonts as f, radii as r, space as sp } from './theme';
@@ -8,6 +8,8 @@ import { resendVerificationOtp, signInApple, signInEmail, signInGoogle, signUpEm
 
 const HERO = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&q=88';
 const HERO_VIDEO = 'https://v1.pinimg.com/videos/iht/720p/16/45/f9/1645f970dcf565517796a967ba767b42.mp4';
+const PRIVACY_URL = 'https://polka.app/privacy.html';
+const TERMS_URL = 'https://polka.app/terms.html';
 
 export default function WelcomeScreen({ onContinue, onBusiness }) {
   const [emailMode, setEmailMode] = useState(false);
@@ -172,7 +174,7 @@ export default function WelcomeScreen({ onContinue, onBusiness }) {
           <View style={s.divider}><View style={s.line} /><Typography variant="caption" style={{ color: c.muted }}>albo</Typography><View style={s.line} /></View>
           <Pressable onPress={onBusiness} style={s.business}><Ionicons name="storefront-outline" size={19} color={c.ink} /><View style={{ flex: 1 }}><Typography style={s.businessTitle}>Dla firm i organizacji</Typography><Typography variant="caption" style={{ color: c.muted }}>Miejsce, oferta, wydarzenie lub partnerstwo</Typography></View><Ionicons name="chevron-forward" size={19} color={c.muted} /></Pressable>
         </>}
-        <Typography variant="caption" style={s.legal}>Kontynuując, potwierdzasz regulamin Polka</Typography>
+        <View style={s.legalWrap}><Typography variant="caption" style={s.legal}>Kontynuując, akceptujesz </Typography><Pressable accessibilityRole="link" onPress={()=>Linking.openURL(TERMS_URL)}><Typography variant="caption" style={s.legalLink}>Regulamin</Typography></Pressable><Typography variant="caption" style={s.legal}> i potwierdzasz zapoznanie się z </Typography><Pressable accessibilityRole="link" onPress={()=>Linking.openURL(PRIVACY_URL)}><Typography variant="caption" style={s.legalLink}>Polityką prywatności</Typography></Pressable><Typography variant="caption" style={s.legal}>.</Typography></View>
       </View>
     </ScrollView>
   </KeyboardAvoidingView>;
@@ -205,5 +207,7 @@ const s = StyleSheet.create({
   businessTitle: { fontFamily: f.bold, fontSize: 14 },
   input: { height: 54, borderRadius: r.md, borderWidth: 1, borderColor: c.line, paddingHorizontal: sp.base, fontFamily: f.regular, fontSize: 16, color: c.ink },
   otpInput: { textAlign: 'center', fontSize: 24, letterSpacing: 8, fontFamily: f.bold, fontWeight: '700' },
-  legal: { color: c.muted, textAlign: 'center', lineHeight: 17, marginTop: 8 }
+  legalWrap: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' },
+  legal: { color: c.muted, textAlign: 'center', lineHeight: 18 },
+  legalLink: { color: c.pink, fontFamily: f.bold, lineHeight: 18, textDecorationLine: 'underline' }
 });
