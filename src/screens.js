@@ -1288,7 +1288,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             setActive({
               id: room.id, name: room.name, photo: room.avatarUrl || null, last: room.last,
               time: formatPostTime(room.time), unread: 0, group: room.kind === 'group', remote: true,
-              otherUserId: room.otherUserId || null, lastActiveAt: room.lastActiveAt || null, memberProfiles: room.memberProfiles || []
+              groupId: room.groupId || null, meetupId: room.meetupId || null, otherUserId: room.kind === 'group' ? null : (room.otherUserId || null), lastActiveAt: room.lastActiveAt || null, memberProfiles: room.memberProfiles || []
             });
           }
         }
