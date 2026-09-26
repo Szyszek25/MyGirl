@@ -69,3 +69,31 @@ export async function createMeetup(userId,{title,description='',city,venueName,s
   if(error)throw error;
   return data;
 }
+
+
+export async function updateMeetup(meetupId,userId,{title,description='',city,venueName,startsAt,capacity=6}){
+  if(!meetupId||!userId)throw new Error('Brak danych spotkania.');
+  const cleanTitle=String(title||'').trim();
+  const cleanVenue=String(venueName||'').trim();
+  if(cleanTitle.length<4)throw new Error('Dodaj nazwę spotkania.');
+  if(!cleanVenue)throw new Error('Dodaj miejsce spotkania.');
+  const {data,error}=await supabase.from('meetups').update({
+    title:cleanTitle.slice(0,120),
+    description:String(description||'').trim().slice(0,1200),
+    city,
+    venue_name:cleanVenue.slice(0,160),
+    starts_at:new Date(startsAt).toISOString(),
+    capacity:Math.max(2,Math.min(50,Number(capacity)||6))
+  }).eq('id',meetupId).eq('host_id',userId).select('id').maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('Nie możesz edytować tego spotkania.');
+  return data;
+}
+
+export async function deleteMeetup(meetupId,userId){
+  if(!meetupId||!userId)throw new Error('Brak danych spotkania.');
+  const {data,error}=await supabase.from('meetups').delete().eq('id',meetupId).eq('host_id',userId).select('id').maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('Nie możesz usunąć tego spotkania.');
+  return data;
+}
