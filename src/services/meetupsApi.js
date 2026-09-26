@@ -7,26 +7,29 @@ export async function loadMeetups(city,userId){
     .order('starts_at',{ascending:true}).limit(80);
   if(error)throw error;
   if(!rows?.length)return [];
+  const {data:rsvps,error:rError}=await supabase.from('meetup_rsvps').select('meetup_id,user_id,status').in('meetup_id',rows.map(r=>r.id));
+  if(rError)throw rError;
   const hostIds=[...new Set(rows.map(r=>r.host_id))];
-  const {data:profiles,error:pError}=await supabase.from('profiles').select('id,display_name,avatar_path').in('id',hostIds);
+  const participantIds=[...new Set((rsvps||[]).filter(r=>r.status==='going').map(r=>r.user_id))];
+  const profileIds=[...new Set([...hostIds,...participantIds])];
+  const {data:profiles,error:pError}=await supabase.from('profiles').select('id,display_name,avatar_path').in('id',profileIds);
   if(pError)throw pError;
   const businessIds=[...new Set(rows.map(r=>r.business_id).filter(Boolean))];
   const {data:businesses,error:bError}=businessIds.length?await supabase.from('business_accounts').select('id,name,city,verified').in('id',businessIds):{data:[],error:null};
   if(bError)throw bError;
   const bmap=new Map((businesses||[]).map(b=>[b.id,b]));
-  const {data:rsvps,error:rError}=await supabase.from('meetup_rsvps').select('meetup_id,user_id,status').in('meetup_id',rows.map(r=>r.id));
-  if(rError)throw rError;
   const pmap=new Map((profiles||[]).map(p=>[p.id,p]));
   const signedAvatars=new Map();
   await Promise.all((profiles||[]).filter(p=>p.avatar_path).map(async p=>{const {data}=await supabase.storage.from('polka-avatars').createSignedUrl(p.avatar_path,3600);if(data?.signedUrl)signedAvatars.set(p.id,data.signedUrl);}));
   return rows.map(row=>{
     const host=pmap.get(row.host_id)||{};
     const business=row.business_id?bmap.get(row.business_id):null;
-    const rs=(rsvps||[]).filter(r=>r.meetup_id===row.id);
+    const rs=(rsvps||[]).filter(r=>r.meetup_id===row.id&&r.status==='going');
+    const participants=rs.map(r=>{const p=pmap.get(r.user_id)||{};return {id:r.user_id,name:p.display_name||'Uczestniczka',photo:signedAvatars.get(r.user_id)||null};});
     return {
       id:row.id,category:'Spotkanie',title:row.title,city:row.city,when:row.starts_at,
       place:row.venue_name||row.city,description:row.description,spots:row.capacity,
-      joined:rs.filter(r=>r.status==='going').length,host:business?.name||host.display_name||'Polka',
+      joined:rs.length,participants,host:business?.name||host.display_name||'Polka',
       hostPhoto:signedAvatars.get(row.host_id)||null,businessId:business?.id||null,isBusiness:!!business,
       mapsUrl:row.maps_url||null,hostId:row.host_id,remote:true,
       joinedByMe:!!userId&&rs.some(r=>r.user_id===userId&&r.status==='going')
