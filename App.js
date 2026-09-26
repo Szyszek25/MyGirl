@@ -33,7 +33,7 @@ import {defaultAppFeatureFlags,loadAppFeatureFlags} from './src/services/appFeat
 import {loadBusinessAccount} from './src/services/businessApi';
 const tabs=[{key:'Start',icon:'home-outline',active:'home'},{key:'Poznaj',icon:'heart-outline',active:'heart'},{key:'Plany',icon:'calendar-outline',active:'calendar'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Profil',icon:'person-outline',active:'person'}];
 
-export default function App(){return <SafeAreaProvider><PolkaApp/></SafeAreaProvider>}
+export default function App(){return <SafeAreaProvider><StatusBar barStyle="dark-content" backgroundColor="#FFF7FA"/><PolkaApp/></SafeAreaProvider>}
 function PolkaApp(){
   const insets=useSafeAreaInsets();
   const [fontsLoaded]=useFonts(Platform.OS==='web'?{}:{DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold,PlayfairDisplay_700Bold});
@@ -55,6 +55,7 @@ function PolkaApp(){
   const [messagesOpen,setMessagesOpen]=useState(false);
   const [pendingConversationId,setPendingConversationId]=useState(null);
   const [pendingMeetupId,setPendingMeetupId]=useState(null);
+  const [openMeetupDetailId,setOpenMeetupDetailId]=useState(null);
   const [cycleOpen,setCycleOpen]=useState(false);
   const [careOpen,setCareOpen]=useState(false);
   const [moreOpen,setMoreOpen]=useState(false);
@@ -339,7 +340,7 @@ function PolkaApp(){
     cycleOpen?<CycleScreen userId={authSession?.user?.id||null} cloudSync={!!featurePreferences.cycleCloudSync} onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenMeetup={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
+    messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
     null;
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
@@ -356,7 +357,7 @@ function PolkaApp(){
         {mountedTabs.has('Plany')&&<View style={[s.fill,{display:showTabs&&tab==='Plany'?'flex':'none'}]}>
           <View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>
           {mountedPlanViews.has('Plany')&&<View style={[s.fill,{display:plansView==='Plany'?'flex':'none'}]}><DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} onOpenProfile={(hostId,name)=>setPublicProfileTarget({id:hostId,name})}/></View>}
-          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat} onOpenCycle={()=>setCycleOpen(true)} onOpenProfile={hostId=>setPublicProfileTarget({id:hostId})}/></View>}
+          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={meetupId=>{setOpenMeetupDetailId(null);openMeetupChat(meetupId)}} onOpenCycle={()=>setCycleOpen(true)} onOpenProfile={hostId=>setPublicProfileTarget({id:hostId})} openMeetupId={openMeetupDetailId} onMeetupOpened={()=>setOpenMeetupDetailId(null)}/></View>}
         </View>}
         {mountedTabs.has('Grupy')&&<View style={[s.fill,{display:showTabs&&tab==='Grupy'?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget} onOpenChat={openGroupChat}/></View>}
         {mountedTabs.has('Profil')&&<View style={[s.fill,{display:showTabs&&tab==='Profil'?'flex':'none'}]}><NativeProfile account={account} businessAccount={businessAccount} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/></View>}
