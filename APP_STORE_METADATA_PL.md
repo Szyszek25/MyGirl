@@ -33,10 +33,11 @@ przyjaźń,dziewczyny,spotkania,plany,kobiety,miasto,znajomi,grupy,kawa,wydarzen
 Primary: Social Networking
 Secondary: Lifestyle
 
-## URL-e wymagane przed wysyłką
-- Privacy Policy URL: DO UZUPEŁNIENIA po publikacji finalnej polityki
-- Support URL: DO UZUPEŁNIENIA
-- Marketing URL: opcjonalnie finalny landing Polka
+## URL-e
+- Privacy Policy URL: https://polka.app/privacy.html
+- Support URL: https://polka.app/
+- Account deletion URL: https://polka.app/delete-account.html
+- Marketing URL: https://polka.app/
 
 ## Review notes — szablon
 Polka is an 18+ local social app for women. The review account should have access to the production moderation/reporting flow. Provide exact review credentials only in App Store Connect, never in this repository.
