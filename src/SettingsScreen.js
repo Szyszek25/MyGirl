@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,Pressable,ScrollView,Share,StyleSheet,Switch,View} from 'react-native';
+import {Alert,Linking,Pressable,ScrollView,Share,StyleSheet,Switch,View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {colors as c,fonts as f,radii as r,space as sp} from './theme';
 import {Typography} from './ui';
@@ -8,6 +8,9 @@ import {defaultAccountSettings,loadAccountSettings,updateAccountSettings} from '
 import {disablePushNotifications,enablePushNotifications} from './services/notificationsApi';
 
 const SHARE_URL='https://polka.app';
+const PRIVACY_URL='https://polka.app/privacy.html';
+const TERMS_URL='https://polka.app/terms.html';
+const DELETE_ACCOUNT_URL='https://polka.app/delete-account.html';
 
 function Row({icon,title,subtitle,onPress,right,danger=false}){
   return <Pressable accessibilityRole="button" onPress={onPress} style={s.row}>
@@ -110,8 +113,9 @@ export default function SettingsScreen({onClose,onSafety,onPartner,onReset,onPas
     <Typography variant="eyebrow" style={s.sectionLabel}>POMOC</Typography>
     <View style={s.group}>
       <Row icon="help-circle-outline" title="Pomoc i FAQ"/>
-      <Row icon="document-text-outline" title="Regulamin"/>
-      <Row icon="finger-print-outline" title="Polityka prywatności"/>
+      <Row icon="document-text-outline" title="Regulamin" onPress={()=>Linking.openURL(TERMS_URL)}/>
+      <Row icon="finger-print-outline" title="Polityka prywatności" onPress={()=>Linking.openURL(PRIVACY_URL)}/>
+      <Row icon="person-remove-outline" title="Usunięcie konta i danych" subtitle="Instrukcja dostępna także poza aplikacją" onPress={()=>Linking.openURL(DELETE_ACCOUNT_URL)}/>
       <Row icon="mail-outline" title="Kontakt"/>
     </View>
 
