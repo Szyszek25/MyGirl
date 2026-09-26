@@ -64,7 +64,7 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'female-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,onOpenCycle,onOpenProfile,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
+export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,onOpenCycle,onOpenProfile,openMeetupId,onMeetupOpened,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
@@ -82,7 +82,8 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [createAsBusiness,setCreateAsBusiness]=useState(false);
   const [participantsOpen,setParticipantsOpen]=useState(false);
   const sourceMeetings=sessionUserId ? remoteMeetups : starterMeetings;
-  useEffect(()=>{let alive=true;if(!sessionUserId){setBusinessAccount(null);return;}loadBusinessAccount(sessionUserId).then(value=>{if(alive)setBusinessAccount(value)}).catch(()=>{if(alive)setBusinessAccount(null)});return()=>{alive=false}},[sessionUserId]);
+  useEffect(()=>{if(!openMeetupId)return;const target=remoteMeetups.find(item=>item.id===openMeetupId);if(target){setSelected(target);onMeetupOpened?.();}},[openMeetupId,remoteMeetups,onMeetupOpened]);
+    useEffect(()=>{let alive=true;if(!sessionUserId){setBusinessAccount(null);return;}loadBusinessAccount(sessionUserId).then(value=>{if(alive)setBusinessAccount(value)}).catch(()=>{if(alive)setBusinessAccount(null)});return()=>{alive=false}},[sessionUserId]);
   const data=useMemo(()=>sourceMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[sourceMeetings,city,category]);
   const cityPeople=useMemo(()=>people.filter(p=>p.city===city),[city]);
   useEffect(()=>{
