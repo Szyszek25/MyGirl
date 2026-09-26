@@ -27,7 +27,8 @@ import {blockProfile as blockRemote,loadMyBlocks,loadMyReports,reportTarget,unbl
 import {cities,initialPosts} from './src/data';
 import {colors as c,fonts as f,space as sp} from './src/theme';
 import {Typography} from './src/ui';
-import {defaultFeaturePreferences,loadFeaturePreferences} from './src/featurePreferences';
+import {defaultFeaturePreferences,loadFeaturePreferences,saveFeaturePreferences} from './src/featurePreferences';
+import {defaultAppFeatureFlags,loadAppFeatureFlags} from './src/services/appFeatureFlagsApi';
 const tabs=[{key:'Start',icon:'home-outline',active:'home'},{key:'Poznaj',icon:'heart-outline',active:'heart'},{key:'Plany',icon:'calendar-outline',active:'calendar'},{key:'Grupy',icon:'people-outline',active:'people'},{key:'Profil',icon:'person-outline',active:'person'}];
 
 export default function App(){return <SafeAreaProvider><PolkaApp/></SafeAreaProvider>}
@@ -59,6 +60,9 @@ function PolkaApp(){
   const [posts,setPosts]=useState(initialPosts);
   const [session,setSession]=useState(0);
   const [featurePreferences,setFeaturePreferences]=useState(defaultFeaturePreferences);
+  const [appFeatureFlags,setAppFeatureFlags]=useState(defaultAppFeatureFlags);
+  const [mountedTabs,setMountedTabs]=useState(()=>new Set(['Start']));
+  const [mountedPlanViews,setMountedPlanViews]=useState(()=>new Set(['Plany']));
   const [sleepReminderOpen,setSleepReminderOpen]=useState(()=>{
     const hour=new Date().getHours();
     return hour>=22||hour<5;
@@ -99,9 +103,10 @@ function PolkaApp(){
       }
     };
 
-    Promise.all([getSession(),loadFeaturePreferences(),Linking.getInitialURL()]).then(async([session,prefs,url])=>{
+    Promise.all([getSession(),loadFeaturePreferences(),loadAppFeatureFlags(),Linking.getInitialURL()]).then(async([session,prefs,flags,url])=>{
       if(!alive)return;
       setFeaturePreferences(prefs);
+      setAppFeatureFlags(flags);
       if(url){await handleAuthCallback(url).catch(()=>null);if(url.includes('reset-password'))setResetPasswordOpen(true);}
       const latest=await getSession();
       await syncSession(latest||session);
@@ -216,6 +221,22 @@ function PolkaApp(){
     return ()=>sub.remove();
   },[account,reportTarget,safetyOpen,partnerOpen,settingsOpen,resetPasswordOpen,messagesOpen,cycleOpen,careOpen,moreOpen,cityPickerOpen,tab]);
 
+  useEffect(()=>{
+    if(!account)return;
+    setMountedTabs(prev=>{
+      if(prev.has(tab))return prev;
+      const next=new Set(prev);next.add(tab);return next;
+    });
+  },[account,tab]);
+
+  useEffect(()=>{
+    if(tab!=='Plany')return;
+    setMountedPlanViews(prev=>{
+      if(prev.has(plansView))return prev;
+      const next=new Set(prev);next.add(plansView);return next;
+    });
+  },[tab,plansView]);
+
   const reset=async()=>{
     try{await deleteLocalProfile();}
     catch(error){Alert.alert('Nie usunięto wszystkich danych','Spróbuj ponownie. '+(error.message||''));return;}
@@ -241,13 +262,11 @@ function PolkaApp(){
   };
   if(!account){
     if(preBusiness)return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><PartnerPanel userId={authSession?.user?.id||null} onClose={()=>setPreBusiness(false)}/></SafeAreaView>;
-    if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen onContinue={({method}={})=>{if(method==='skip')setEntryStarted(true)}} onBusiness={()=>setPreBusiness(true)}/></View>;
+    if(!entryStarted)return <View style={s.safe}><StatusBar barStyle="light-content" translucent backgroundColor="transparent"/><WelcomeScreen authFlags={appFeatureFlags} onContinue={({method}={})=>{if(method==='skip')setEntryStarted(true)}} onBusiness={()=>setPreBusiness(true)}/></View>;
     return <SafeAreaView edges={['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/><Onboarding key={session} online={!!authSession?.user} onComplete={saveProfile} onBack={handleCancelOnboarding}/></SafeAreaView>;
   }
   const showTabs=!reportTarget&&!safetyOpen&&!partnerOpen&&!messagesOpen&&!cycleOpen&&!careOpen&&!moreOpen;
-  const homeVisible=tab==='Start'&&showTabs;
-  const clubsVisible=tab==='Grupy'&&showTabs;
-  const content=reportTarget?
+  const overlayContent=reportTarget?
     <ReportForm target={reportTarget} online={!!authSession?.user} onCancel={()=>setReportTarget(null)} onSave={async report=>{
       if(authSession?.user&&/^[0-9a-f-]{36}$/i.test(report?.target?.id)){
         try{
@@ -267,7 +286,7 @@ function PolkaApp(){
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
     messagesOpen?<View style={s.fill}><ChatsScreen sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null)}}/></View>:
-    ({'Start':null,'Poznaj':<PeopleDiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} onMessage={openDirectChat} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={account?.zodiac||featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={account?.style||featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/>,'Plany':<View style={s.fill}><View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>{plansView==='Plany'?<DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} blockedIds={blockedIds} onBlock={block} onReport={setReportTarget}/>:<MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat}/>}</View>,'Profil':<NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/>})[tab];
+    null;
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
     <ShiftTransition screenKey={screenKey}>
@@ -278,9 +297,16 @@ function PolkaApp(){
           <Pressable onPress={()=>setCityPickerOpen(true)} style={s.cityBlock} accessibilityRole="button" accessibilityLabel="Zmień miasto"><Ionicons name="location-outline" size={18} color={c.pink}/><Typography style={s.cityName}>{activeCity}</Typography><Ionicons name="chevron-down" size={17} color={c.muted}/></Pressable>
         </View>
       )}
-        <View style={[s.fill,{display:homeVisible?'flex':'none'}]}><CommunityScreen city={activeCity} sessionUserId={authSession?.user?.id||null} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget} onOpenChat={openDirectChat}/></View>
-        <View style={[s.fill,{display:clubsVisible?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget}/></View>
-        {!homeVisible&&!clubsVisible&&<View style={s.fill}>{content}</View>}
+        {mountedTabs.has('Start')&&<View style={[s.fill,{display:showTabs&&tab==='Start'?'flex':'none'}]}><CommunityScreen city={activeCity} sessionUserId={authSession?.user?.id||null} posts={posts} setPosts={setPosts} blockedIds={blockedIds} onReport={setReportTarget} onOpenChat={openDirectChat}/></View>}
+        {mountedTabs.has('Poznaj')&&<View style={[s.fill,{display:showTabs&&tab==='Poznaj'?'flex':'none'}]}><PeopleDiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null} onMessage={openDirectChat} blockedIds={blockedIds} zodiacEnabled={featurePreferences.zodiacPeopleMatching} userZodiac={account?.zodiac||featurePreferences.zodiacSign} styleEnabled={featurePreferences.stylePeopleMatching} userStyle={account?.style||featurePreferences.stylePreference} onBlock={block} onReport={setReportTarget}/></View>}
+        {mountedTabs.has('Plany')&&<View style={[s.fill,{display:showTabs&&tab==='Plany'?'flex':'none'}]}>
+          <View style={s.plansSwitch}><Pressable onPress={()=>setPlansView('Plany')} style={[s.plansSwitchItem,plansView==='Plany'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Plany'&&s.plansSwitchTextActive]}>Plany</Typography></Pressable><Pressable onPress={()=>setPlansView('Spotkania')} style={[s.plansSwitchItem,plansView==='Spotkania'&&s.plansSwitchActive]}><Typography style={[s.plansSwitchText,plansView==='Spotkania'&&s.plansSwitchTextActive]}>Spotkania</Typography></Pressable></View>
+          {mountedPlanViews.has('Plany')&&<View style={[s.fill,{display:plansView==='Plany'?'flex':'none'}]}><DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null}/></View>}
+          {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat}/></View>}
+        </View>}
+        {mountedTabs.has('Grupy')&&<View style={[s.fill,{display:showTabs&&tab==='Grupy'?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget}/></View>}
+        {mountedTabs.has('Profil')&&<View style={[s.fill,{display:showTabs&&tab==='Profil'?'flex':'none'}]}><NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/></View>}
+        {!showTabs&&<View style={s.fill}>{overlayContent}</View>}
       </View>
     </ShiftTransition>
     <Modal visible={cityPickerOpen} transparent animationType="fade" onRequestClose={()=>setCityPickerOpen(false)}><Pressable style={s.cityModalBackdrop} onPress={()=>setCityPickerOpen(false)}><View style={s.citySheet}><Typography style={s.citySheetTitle}>Wybierz miasto</Typography>{cities.map(city=><Pressable key={city} onPress={()=>{setActiveCity(city);setCityPickerOpen(false)}} style={s.cityOption}><Typography style={[s.cityOptionText,activeCity===city&&{color:c.pink,fontFamily:f.bold}]}>{city}</Typography>{activeCity===city&&<Ionicons name="checkmark" size={20} color={c.pink}/>}</Pressable>)}</View></Pressable></Modal>
