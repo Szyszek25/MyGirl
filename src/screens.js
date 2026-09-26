@@ -25,7 +25,7 @@ import { Button, Chip, Field, PageHeading, Surface, Typography } from './ui';
 import { supabase } from './lib/supabase';
 import { createChatRealtime, newClientMessageId } from './services/chatRealtime';
 import { addComment, createPost, createStory, deletePost, editPost, loadComments, loadFeed, loadStories, markStoryViewed, togglePostLike } from './services/socialApi';
-import { searchPeople, sendFriendRequest } from './services/friendsApi';
+import { acceptFriendRequest, loadFriendRequests, searchPeople, sendFriendRequest } from './services/friendsApi';
 import { readCached, writeCached } from './cache';
 import StoryCameraModal from './StoryCameraModal';
 import StoryViewerModal from './StoryViewerModal';
@@ -48,12 +48,14 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   const [searching, setSearching] = useState(false);
   const [profileOpen, setProfileOpen] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
+  const [incomingRequests, setIncomingRequests] = useState({});
+  const [matchedProfile, setMatchedProfile] = useState(null);
   const [dismissedIds, setDismissedIds] = useState([]);
   useEffect(() => {
     if (!sessionUserId) { setRemotePeople([]); setDismissedIds([]); return; }
     let alive = true;
     (async () => {
-      const [profilesResult, dismissalsResult] = await Promise.all([
+      const [profilesResult, dismissalsResult, requests] = await Promise.all([
         supabase.from('profiles')
           .select('id,display_name,city,bio,avatar_path')
           .neq('id', sessionUserId)
@@ -63,12 +65,23 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
         supabase.from('profile_dismissals')
           .select('dismissed_user_id')
           .eq('user_id', sessionUserId)
-          .gt('expires_at', new Date().toISOString())
+          .gt('expires_at', new Date().toISOString()),
+        loadFriendRequests(sessionUserId)
       ]);
       if (profilesResult.error) throw profilesResult.error;
       if (dismissalsResult.error) throw dismissalsResult.error;
       const profiles = profilesResult.data || [];
       const activeDismissedIds = (dismissalsResult.data || []).map(row => row.dismissed_user_id);
+      const incoming = {};
+      const outgoing = [];
+      (requests || []).forEach(req => {
+        if (req.direction === 'incoming') incoming[req.otherId] = req;
+        else if (req.direction === 'outgoing') outgoing.push(req.otherId);
+      });
+      if (alive) {
+        setIncomingRequests(incoming);
+        setSentRequests(outgoing);
+      }
       const ids = (profiles || []).map(item => item.id);
       let interests = [], profilePhotos = [];
       if (ids.length) {
@@ -180,12 +193,35 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       if (error) setDismissedIds(prev => prev.filter(id => id !== target.id));
     });
   };
+  const likePerson = async target => {
+    if (!target) return;
+    setSaved(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
+    if (!sessionUserId || !target.remote) return;
+    try {
+      const incoming = incomingRequests[target.id];
+      if (incoming?.id) {
+        await acceptFriendRequest(incoming.id);
+        setIncomingRequests(prev => {
+          const next = { ...prev };
+          delete next[target.id];
+          return next;
+        });
+        setMatchedProfile(target);
+        return;
+      }
+      const created = await sendFriendRequest(sessionUserId, target.id);
+      if (created) setSentRequests(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
+    } catch (error) {
+      Alert.alert('Nie zapisano polubienia', error.message || 'Spróbuj ponownie.');
+    }
+  };
+
   const decide = dir => {
     if (!person) return;
     const target = person;
     Animated.timing(xy, { toValue: { x: dir * W, y: 0 }, duration: 190, useNativeDriver: true }).start(() => {
       if (dir > 0) {
-        setSaved(prev => prev.includes(target.id) ? prev : [...prev, target.id]);
+        void likePerson(target);
         setIndex(v => v + 1);
       } else {
         dismissPerson(target);
@@ -193,11 +229,18 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       xy.setValue({ x: 0, y: 0 });
     });
   };
+  const wantsHorizontalSwipe = g => Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.1;
   const pan = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 16 && Math.abs(g.dx) > Math.abs(g.dy) * 1.15,
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => wantsHorizontalSwipe(g),
+    // The profile card contains a full-size Pressable for opening details. Capture
+    // horizontal movement at the card level so that Pressable does not swallow swipes.
+    onMoveShouldSetPanResponderCapture: (_, g) => wantsHorizontalSwipe(g),
     onPanResponderMove: Animated.event([null, { dx: xy.x, dy: xy.y }], { useNativeDriver: false }),
-    onPanResponderRelease: (_, g) => Math.abs(g.dx) > 88 ? decide(g.dx > 0 ? 1 : -1) : Animated.spring(xy, { toValue: { x: 0, y: 0 }, friction: 7, useNativeDriver: true }).start()
-  }), [person?.id]);
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderRelease: (_, g) => Math.abs(g.dx) > 72 ? decide(g.dx > 0 ? 1 : -1) : Animated.spring(xy, { toValue: { x: 0, y: 0 }, friction: 7, useNativeDriver: true }).start(),
+    onPanResponderTerminate: () => Animated.spring(xy, { toValue: { x: 0, y: 0 }, friction: 7, useNativeDriver: true }).start()
+  }), [person?.id, incomingRequests, sessionUserId]);
   const runSearch = async value => {
     setSearchText(value);
     if (!sessionUserId || value.trim().length < 2) { setSearchResults([]); return; }
@@ -240,6 +283,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
             <View pointerEvents="none" style={s.cardIdentity}>
               <Typography style={s.cardName}>{p.name}{p.age ? `, ${p.age}` : ''}</Typography>
               <Typography style={s.cardMeta}>{p.city} · {(p.tags || []).slice(0, 2).join(' · ')}</Typography>
+              {isTop && incomingRequests[p.id] && <View style={s.likesYouBadge}><Ionicons name="heart" size={13} color={c.white} /><Typography style={s.likesYouText}>Też chce Cię poznać</Typography></View>}
             </View>
           </Wrapper>
         })}
@@ -314,6 +358,23 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           </View>
         </ScrollView>
       </View>}
+    </Modal>
+
+    <Modal visible={!!matchedProfile} transparent animationType="fade" onRequestClose={() => setMatchedProfile(null)}>
+      <View style={s.matchModalBackdrop}>
+        <View style={s.matchModalCard}>
+          <View style={s.matchModalHeart}><Ionicons name="heart" size={34} color={c.white} /></View>
+          <Typography style={s.matchModalEyebrow}>MACIE MATCH ✨</Typography>
+          <Typography style={s.matchModalTitle}>Ty i {matchedProfile?.name} chcecie się poznać</Typography>
+          <Typography style={s.matchModalCopy}>Możecie teraz zacząć rozmowę. Napisz pierwsze hej albo zobacz kolejny profil.</Typography>
+          <View style={s.matchModalAvatars}>
+            <View style={s.matchAvatarPlaceholder}><Ionicons name="person" size={30} color={c.pink} /></View>
+            <View style={s.matchAvatarOverlap}>{matchedProfile?.photo ? <Image source={{uri:matchedProfile.photo}} style={s.matchAvatarImage}/> : <Ionicons name="person" size={30} color={c.pink}/>}</View>
+          </View>
+          {onMessage && matchedProfile?.remote && <Pressable onPress={() => { const id=matchedProfile.id; setMatchedProfile(null); onMessage(id); }} style={s.matchModalPrimary}><Ionicons name="chatbubble-ellipses" size={19} color={c.white}/><Typography style={s.matchModalPrimaryText}>Napisz wiadomość</Typography></Pressable>}
+          <Pressable onPress={() => setMatchedProfile(null)} style={s.matchModalSecondary}><Typography style={s.matchModalSecondaryText}>Dalej poznawaj</Typography></Pressable>
+        </View>
+      </View>
     </Modal>
 
     <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
@@ -1256,6 +1317,22 @@ const s = StyleSheet.create({
   cardName: { fontFamily: f.bold, fontSize: 34, lineHeight: 38, color: c.white, letterSpacing: -1.4 },
   cardMeta: { fontFamily: f.semibold, fontSize: 14, color: 'rgba(255,255,255,.92)', marginTop: 4 },
   heartRound: { backgroundColor: c.pink, borderColor: c.pink },
+  likesYouBadge: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(200,79,122,.95)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  likesYouText: { color: c.white, fontFamily: f.bold, fontSize: 11 },
+  matchModalBackdrop: { flex: 1, backgroundColor: 'rgba(24,11,18,.66)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  matchModalCard: { width: '100%', maxWidth: 380, backgroundColor: c.white, borderRadius: 30, padding: 26, alignItems: 'center' },
+  matchModalHeart: { width: 68, height: 68, borderRadius: 34, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  matchModalEyebrow: { fontFamily: f.bold, color: c.pink, fontSize: 12, letterSpacing: 1.5 },
+  matchModalTitle: { fontFamily: f.bold, color: c.ink, fontSize: 27, lineHeight: 31, textAlign: 'center', marginTop: 8 },
+  matchModalCopy: { color: c.muted, fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 10 },
+  matchModalAvatars: { flexDirection: 'row', marginVertical: 22, paddingLeft: 18 },
+  matchAvatarPlaceholder: { width: 64, height: 64, borderRadius: 32, backgroundColor: c.blush, borderWidth: 4, borderColor: c.white, alignItems: 'center', justifyContent: 'center' },
+  matchAvatarOverlap: { width: 64, height: 64, borderRadius: 32, backgroundColor: c.blush, borderWidth: 4, borderColor: c.white, marginLeft: -18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  matchAvatarImage: { width: '100%', height: '100%' },
+  matchModalPrimary: { width: '100%', minHeight: 52, borderRadius: 16, backgroundColor: c.pink, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
+  matchModalPrimaryText: { color: c.white, fontFamily: f.bold, fontSize: 15 },
+  matchModalSecondary: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 5 },
+  matchModalSecondaryText: { color: c.ink, fontFamily: f.semibold, fontSize: 14 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap' },
   profileCard: { borderRadius: r.lg, backgroundColor: c.white, overflow: 'hidden', borderWidth: 1, borderColor: c.line },
   heroPhoto: { width: '100%', height: Math.min(W * 1.2, 470), backgroundColor: c.blush },
