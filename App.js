@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,AppState,BackHandler,Image,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
+import {Alert,AppState,BackHandler,Image,Linking,Modal,PanResponder,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView,useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@expo-google-fonts/dm-sans';
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
@@ -54,6 +54,7 @@ function PolkaApp(){
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [messagesOpen,setMessagesOpen]=useState(false);
   const [chatBackRequest,setChatBackRequest]=useState(0);
+  const chatEdgeBack=React.useRef(PanResponder.create({onMoveShouldSetPanResponder:(_,g)=>g.x0<=28&&g.dx>12&&Math.abs(g.dy)<24,onPanResponderRelease:(_,g)=>{if(g.dx>70&&Math.abs(g.dy)<70)setChatBackRequest(v=>v+1)}})).current;
   const [pendingConversationId,setPendingConversationId]=useState(null);
   const [pendingMeetupId,setPendingMeetupId]=useState(null);
   const [openMeetupDetailId,setOpenMeetupDetailId]=useState(null);
@@ -342,7 +343,7 @@ function PolkaApp(){
     cycleOpen?<CycleScreen userId={authSession?.user?.id||null} cloudSync={!!featurePreferences.cycleCloudSync} onClose={()=>setCycleOpen(false)} onOpenCare={()=>{setCycleOpen(false);setCareOpen(true)}} onOpenGroups={()=>{setCycleOpen(false);setTab('Grupy')}}/>:
     careOpen?<PolkaCareScreen onClose={()=>setCareOpen(false)}/>:
     moreOpen?<MoreScreen onClose={()=>setMoreOpen(false)}/>:
-    messagesOpen?<View style={s.fill}><ChatsScreen backRequest={chatBackRequest} sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenProfile={userId=>setPublicProfileTarget({id:userId})} onOpenGroup={groupId=>{setMessagesOpen(false);setPendingConversationId(null);setOpenGroupDetailId(groupId);setTab('Grupy')}} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
+    messagesOpen?<View style={s.fill} {...chatEdgeBack.panHandlers}><ChatsScreen backRequest={chatBackRequest} sessionUserId={authSession?.user?.id||null} initialConversationId={pendingConversationId} initialMeetupId={pendingMeetupId} blockedIds={blockedIds} supportChat={featurePreferences.supportChat} onReport={setReportTarget} onOpenChat={openDirectChat} onOpenProfile={userId=>setPublicProfileTarget({id:userId})} onOpenGroup={groupId=>{setMessagesOpen(false);setPendingConversationId(null);setOpenGroupDetailId(groupId);setTab('Grupy')}} onOpenMeetup={meetupId=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null);setOpenMeetupDetailId(meetupId);setTab('Plany');setPlansView('Spotkania')}} onClose={()=>{setMessagesOpen(false);setPendingConversationId(null);setPendingMeetupId(null)}}/></View>:
     null;
   const screenKey=reportTarget?'report':safetyOpen?'safety':partnerOpen?'partner':cycleOpen?'cycle':careOpen?'polka-care':moreOpen?'more':messagesOpen?'messages':tab;
   return <SafeAreaView edges={showTabs?['top']:['top','bottom']} style={s.safe}><StatusBar barStyle="dark-content" backgroundColor={c.canvas}/>
