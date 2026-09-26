@@ -1432,7 +1432,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
         <Pressable disabled={!active.otherUserId && !(active.meetupId||initialMeetupId)} onPress={() => active.otherUserId ? setChatProfileOpen(true) : (active.meetupId||initialMeetupId)&&onOpenMeetup?.(active.meetupId||initialMeetupId)} style={s.chatProfileHeader}>
-          {avatar(active.photo || people[0]?.photo, 42)}
+          {active.photo ? avatar(active.photo,42) : <View style={[s.chatGroupFallback,{width:42,height:42,borderRadius:21}]}><Ionicons name="people-outline" size={23} color={c.pink}/></View>}
           <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
         </Pressable>
         {(active.meetupId||initialMeetupId)&&active.group?<Pressable onPress={()=>onOpenMeetup?.(active.meetupId||initialMeetupId)} style={s.fullChatIcon} accessibilityLabel="Otwórz spotkanie"><Ionicons name="calendar-outline" size={22} color={c.pink}/></Pressable>:<Pressable onPress={() => onReport?.({ kind: 'chat', id: active.id, label: `Rozmowa: ${active.name}` })} style={s.fullChatIcon}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink} /></Pressable>}
@@ -1774,6 +1774,7 @@ const s = StyleSheet.create({
   chatImageIncoming: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-start' },
   fullChatHeader: { minHeight: 64, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   chatProfileHeader: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  chatGroupFallback:{alignItems:'center',justifyContent:'center',backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
   fullChatIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   fullChatName: { fontFamily: f.bold, fontSize: 15, color: c.ink },
   fullChatStatus: { fontFamily: f.regular, fontSize: 11, color: c.muted, marginTop: 1 },
