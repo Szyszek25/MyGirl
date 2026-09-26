@@ -89,7 +89,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
     <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
       {visible.map(plan=>{
         const isJoined=joined.includes(plan.id);
-        const hostPhoto=plan.hostPhoto||people.find(p=>p.name===plan.host)?.photo||null;
+        const hostPhoto=plan.remote?plan.hostPhoto:(people.find(p=>p.name===plan.host)?.photo||null);
         return <Pressable key={plan.id} onPress={()=>setSelected(plan)} style={s.planCard}>
           <Image source={{uri:plan.photo}} style={s.cover}/>
           <View style={s.overlay}/>
@@ -127,7 +127,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
           <View style={s.detailMetaRow}><Ionicons name="location-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.city}</Typography></View>
           <View style={s.detailMetaRow}><Ionicons name="people-outline" size={18} color={c.pink}/><Typography style={s.detailMeta}>{selected.spots} osób</Typography></View>
           <View style={s.detailHost}>
-            {(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo)?<Image source={{uri:selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
+            {(selected.remote?selected.hostPhoto:(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo))?<Image source={{uri:selected.remote?selected.hostPhoto:(selected.hostPhoto||people.find(p=>p.name===selected.host)?.photo)}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
             <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
           </View>
           <View style={s.detailActionRow}>
