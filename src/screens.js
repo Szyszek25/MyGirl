@@ -1516,7 +1516,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={sessionUserId ? <Typography style={{ paddingHorizontal: sp.lg, paddingVertical: 9, color: c.muted, fontSize: 11 }}>Twoje rozmowy są przechowywane bezpiecznie. </Typography> : null}
       renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => setActive(item)} style={s.chatListRow}>
-        {avatar(item.photo || people[0]?.photo, 54)}
+        {item.photo ? avatar(item.photo, 54) : <View style={[s.composerAvatar,{width:54,height:54}]}><Ionicons name={item.group ? 'people' : 'person'} size={25} color={c.pink} /></View>}
         <View style={s.chatListBody}>
           <View style={s.chatTitleRow}><Typography style={s.chatName}>{item.name}</Typography><Typography style={s.chatTime}>{item.time}</Typography></View>
           <View style={s.chatPreviewRow}><Typography numberOfLines={1} style={s.chatPreview}>{item.last}</Typography>{item.unread > 0 && <View style={s.unread}><Typography style={s.unreadText}>{item.unread}</Typography></View>}</View>
