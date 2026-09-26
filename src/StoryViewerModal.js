@@ -246,8 +246,11 @@ export default function StoryViewerModal({
     onPanResponderTerminationRequest: () => false,
     onShouldBlockNativeResponder: () => true,
     onPanResponderRelease: (evt, g) => {
+      const verticalClose = g.dy > 72 && Math.abs(g.dy) > Math.abs(g.dx) * 1.15;
       const horizontal = Math.abs(g.dx) > 26 || Math.abs(g.vx) > 0.3;
-      if (horizontal) {
+      if (verticalClose) {
+        onClose();
+      } else if (horizontal) {
         if (g.dx < 0) trigger3DCube(senderIndex + 1, 'forward');
         else trigger3DCube(senderIndex - 1, 'backward');
       } else if (Math.abs(g.dy) < 18) {
@@ -562,9 +565,9 @@ const s = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: Platform.OS === 'ios' ? 104 : 92,
-    bottom: Platform.OS === 'ios' ? 104 : 92,
-    zIndex: 80
+    top: Platform.OS === 'ios' ? 174 : 158,
+    bottom: Platform.OS === 'ios' ? 112 : 100,
+    zIndex: 40
   },
   heartPopCenter: {
     position: 'absolute',
@@ -594,6 +597,7 @@ const s = StyleSheet.create({
 
   /* Top Overlay */
   topHeader: {
+    zIndex: 90,
     paddingTop: Platform.OS === 'ios' ? 52 : 38,
     paddingHorizontal: 14,
     zIndex: 15
