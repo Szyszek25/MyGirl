@@ -54,7 +54,9 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
       try{
         await createPlan(sessionUserId,{title:clean,city:city==='Wszystkie'?'Warszawa':city,category:category==='Wszystkie'?'Wyjścia':category,timingLabel:'Termin do ustalenia',details,capacity:6});
         const rows=await loadPlans(city,sessionUserId);
-        setPlans(rows);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+        setPlans(rows);
+        setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
+        setSelected(prev=>prev?.id===plan.id ? {...prev,joinedByMe:!currently} : prev);setJoined(rows.filter(row=>row.joinedByMe).map(row=>row.id));
         setTitle('');setDetails('');setCreating(false);return;
       }catch(error){Alert.alert('Nie utworzono planu',error.message||'Spróbuj ponownie.');return;}
     }
@@ -100,7 +102,7 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
             <View style={s.hostRow}>
               {host?<Image source={{uri:host.photo}} style={s.avatar}/>:<View style={[s.avatar,s.avatarFallback]}><Ionicons name="person" size={15} color={c.pink}/></View>}
               <Typography style={s.hostText}>Organizuje {plan.host}</Typography>
-              <Pressable onPress={()=>toggleJoined(plan)} style={[s.joinBtn,isJoined&&s.joinedBtn]}>
+              <Pressable onPress={e=>{e.stopPropagation?.();void toggleJoined(plan);}} style={[s.joinBtn,isJoined&&s.joinedBtn]} hitSlop={6}>
                 <Typography style={[s.joinText,isJoined&&{color:c.pink}]}>{isJoined?'Dołączono':'Dołącz'}</Typography>
               </Pressable>
             </View>
@@ -127,7 +129,11 @@ export default function DiscoverScreen({city='Warszawa',sessionUserId=null}){
             {people.find(p=>p.name===selected.host)?<Image source={{uri:people.find(p=>p.name===selected.host).photo}} style={s.detailHostAvatar}/>:<View style={[s.detailHostAvatar,s.avatarFallback]}><Ionicons name="person" size={18} color={c.pink}/></View>}
             <View><Typography style={s.detailHostLabel}>Organizuje</Typography><Typography style={s.detailHostName}>{selected.host}</Typography></View>
           </View>
-          <Button title={joined.includes(selected.id)?'Wycofaj udział':'Dołącz do planu'} secondary={joined.includes(selected.id)} onPress={()=>toggleJoined(selected)}/>
+          <View style={s.detailActionRow}>
+            <Pressable onPress={()=>toggleJoined(selected)} style={[s.detailJoinBtn,joined.includes(selected.id)&&s.detailJoinBtnActive]}>
+              <Typography style={[s.detailJoinText,joined.includes(selected.id)&&s.detailJoinTextActive]}>{joined.includes(selected.id)?'Wycofaj udział':'Dołącz do planu'}</Typography>
+            </Pressable>
+          </View>
         </ScrollView>
       </View>}
     </Modal>
@@ -202,5 +208,10 @@ const s=StyleSheet.create({
   detailHostAvatar:{width:46,height:46,borderRadius:23,backgroundColor:c.blush},
   detailHostLabel:{fontFamily:f.regular,fontSize:11,color:c.muted},
   detailHostName:{fontFamily:f.bold,fontSize:16,color:c.ink,marginTop:2},
+  detailActionRow:{paddingHorizontal:sp.lg,marginTop:4,alignItems:'flex-start'},
+  detailJoinBtn:{minHeight:46,borderRadius:14,backgroundColor:c.pink,paddingHorizontal:20,alignItems:'center',justifyContent:'center'},
+  detailJoinBtnActive:{backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
+  detailJoinText:{fontFamily:f.bold,fontSize:14,color:c.white},
+  detailJoinTextActive:{color:c.pink},
   input:{height:52,borderRadius:r.md,borderWidth:1,borderColor:c.line,backgroundColor:c.white,paddingHorizontal:sp.base,fontFamily:f.regular,fontSize:15,color:c.ink}
 });
