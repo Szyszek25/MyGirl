@@ -32,66 +32,66 @@ import PublicProfileModal from './PublicProfileModal';
 const W = Dimensions.get('window').width;
 const avatar = (photo, size = 48) => <Image source={{ uri: photo || people[0]?.photo }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.blush }} />;
 const authorId = post => post.authorId || people.find(p => p.name === post.author)?.id;
-function ImagePreviewModal({uri,onClose}) {
-  const scale=useRef(new Animated.Value(1)).current;
-  const scaleValue=useRef(1);
-  const pinchStart=useRef(null);
-  const pinchBase=useRef(1);
-  const lastTap=useRef(0);
+function ImagePreviewModal({ uri, onClose }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const scaleValue = useRef(1);
+  const pinchStart = useRef(null);
+  const pinchBase = useRef(1);
+  const lastTap = useRef(0);
 
-  useEffect(()=>{
-    if(!uri)return;
+  useEffect(() => {
+    if (!uri) return;
     scale.setValue(1);
-    scaleValue.current=1;
-    pinchStart.current=null;
-  },[uri,scale]);
+    scaleValue.current = 1;
+    pinchStart.current = null;
+  }, [uri, scale]);
 
-  const clamp=v=>Math.max(1,Math.min(4,v));
-  const responder=useMemo(()=>PanResponder.create({
-    onStartShouldSetPanResponder:()=>true,
-    onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dx)>2||Math.abs(g.dy)>2,
-    onPanResponderGrant:(evt)=>{
-      const touches=evt.nativeEvent.touches||[];
-      if(touches.length>=2){
-        const [a,b]=touches;
-        pinchStart.current=Math.hypot(a.pageX-b.pageX,a.pageY-b.pageY);
-        pinchBase.current=scaleValue.current;
+  const clamp = v => Math.max(1, Math.min(4, v));
+  const responder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 2 || Math.abs(g.dy) > 2,
+    onPanResponderGrant: (evt) => {
+      const touches = evt.nativeEvent.touches || [];
+      if (touches.length >= 2) {
+        const [a, b] = touches;
+        pinchStart.current = Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
+        pinchBase.current = scaleValue.current;
       }
     },
-    onPanResponderMove:(evt)=>{
-      const touches=evt.nativeEvent.touches||[];
-      if(touches.length>=2){
-        const [a,b]=touches;
-        const dist=Math.hypot(a.pageX-b.pageX,a.pageY-b.pageY);
-        if(!pinchStart.current)pinchStart.current=dist;
-        const next=clamp(pinchBase.current*(dist/Math.max(1,pinchStart.current)));
+    onPanResponderMove: (evt) => {
+      const touches = evt.nativeEvent.touches || [];
+      if (touches.length >= 2) {
+        const [a, b] = touches;
+        const dist = Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
+        if (!pinchStart.current) pinchStart.current = dist;
+        const next = clamp(pinchBase.current * (dist / Math.max(1, pinchStart.current)));
         scale.setValue(next);
-        scaleValue.current=next;
+        scaleValue.current = next;
       }
     },
-    onPanResponderRelease:(_,g)=>{
-      pinchStart.current=null;
-      pinchBase.current=scaleValue.current;
-      if(Math.abs(g.dx)<8&&Math.abs(g.dy)<8){
-        const now=Date.now();
-        if(now-lastTap.current<280){
-          const next=scaleValue.current>1.2?1:2.5;
-          Animated.spring(scale,{toValue:next,useNativeDriver:true,friction:8}).start();
-          scaleValue.current=next;
-          pinchBase.current=next;
-          lastTap.current=0;
-        }else lastTap.current=now;
+    onPanResponderRelease: (_, g) => {
+      pinchStart.current = null;
+      pinchBase.current = scaleValue.current;
+      if (Math.abs(g.dx) < 8 && Math.abs(g.dy) < 8) {
+        const now = Date.now();
+        if (now - lastTap.current < 280) {
+          const next = scaleValue.current > 1.2 ? 1 : 2.5;
+          Animated.spring(scale, { toValue: next, useNativeDriver: true, friction: 8 }).start();
+          scaleValue.current = next;
+          pinchBase.current = next;
+          lastTap.current = 0;
+        } else lastTap.current = now;
       }
     },
-    onPanResponderTerminate:()=>{pinchStart.current=null;}
-  }),[scale]);
+    onPanResponderTerminate: () => { pinchStart.current = null; }
+  }), [scale]);
 
   return <Modal visible={!!uri} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
     <View style={s.imagePreviewRoot} {...responder.panHandlers}>
       <Pressable onPress={onClose} style={s.imagePreviewClose} hitSlop={10} accessibilityLabel="Zamknij podgląd">
-        <Ionicons name="close" size={28} color={c.white}/>
+        <Ionicons name="close" size={28} color={c.white} />
       </Pressable>
-      <Animated.Image source={{uri}} resizeMode="contain" style={[s.imagePreviewImage,{transform:[{scale}]}]}/>
+      <Animated.Image source={{ uri }} resizeMode="contain" style={[s.imagePreviewImage, { transform: [{ scale }] }]} />
       <View pointerEvents="none" style={s.imagePreviewHint}><Typography style={s.imagePreviewHintText}>Uszczypnij lub stuknij 2×, aby powiększyć</Typography></View>
     </View>
   </Modal>;
@@ -155,9 +155,9 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       const ids = (profiles || []).map(item => item.id);
       let interests = [], profilePhotos = [];
       if (ids.length) {
-        const [interestResult,photoResult] = await Promise.all([
+        const [interestResult, photoResult] = await Promise.all([
           supabase.from('profile_interests').select('profile_id,interest').in('profile_id', ids),
-          supabase.from('profile_photos').select('user_id,storage_path,source_url,position').in('user_id', ids).order('position',{ascending:true})
+          supabase.from('profile_photos').select('user_id,storage_path,source_url,position').in('user_id', ids).order('position', { ascending: true })
         ]);
         if (interestResult.error) throw interestResult.error;
         if (photoResult.error) throw photoResult.error;
@@ -170,10 +170,10 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           const signed = await supabase.storage.from('polka-avatars').createSignedUrl(profile.avatar_path, 3600);
           photo = signed.data?.signedUrl || null;
         }
-        const galleryPhotos=(await Promise.all(profilePhotos.filter(row=>row.user_id===profile.id).map(async row=>{
-          if(row.source_url)return row.source_url;
-          const signed=await supabase.storage.from('polka-profile-photos').createSignedUrl(row.storage_path,3600);
-          return signed.data?.signedUrl||null;
+        const galleryPhotos = (await Promise.all(profilePhotos.filter(row => row.user_id === profile.id).map(async row => {
+          if (row.source_url) return row.source_url;
+          const signed = await supabase.storage.from('polka-profile-photos').createSignedUrl(row.storage_path, 3600);
+          return signed.data?.signedUrl || null;
         }))).filter(Boolean);
         return {
           id: profile.id,
@@ -339,10 +339,10 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     { text: 'Anuluj', style: 'cancel' }, { text: 'Zablokuj', style: 'destructive', onPress: () => onBlock(person.id) }
   ]);
 
-  const stack = Array.from({length:Math.min(3,filtered.length)},(_,offset)=>filtered[(index+offset)%filtered.length]);
+  const stack = Array.from({ length: Math.min(3, filtered.length) }, (_, offset) => filtered[(index + offset) % filtered.length]);
   return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: 8, paddingBottom: 80 }]}>
     <View style={s.discoverControls}><View style={{ flex: 1 }}><Typography style={s.discoverHint}>Dziewczyny, które mogą pasować do Ciebie</Typography>{selectedTags.length > 0 && <Typography style={s.activeFilterHint}>{selectedTags.length} aktywne filtry</Typography>}</View><Pressable onPress={() => setSearchOpen(true)} style={s.filterButton} accessibilityLabel="Szukaj koleżanki"><Ionicons name="search-outline" size={22} color={c.ink} /></Pressable><Pressable onPress={() => setFiltersOpen(true)} style={s.filterButton} accessibilityLabel="Filtry"><Ionicons name="options-outline" size={22} color={selectedTags.length ? c.pink : c.ink} /></Pressable></View>
-    {peopleLoading ? <View style={s.discoverLoading}><ActivityIndicator size="small" color={c.pink}/><Typography style={s.discoverLoadingText}>{`Szukam dziewczyn w ${city}…`}</Typography></View> : person ? <>
+    {peopleLoading ? <View style={s.discoverLoading}><ActivityIndicator size="small" color={c.pink} /><Typography style={s.discoverLoadingText}>{`Szukam dziewczyn w ${city}…`}</Typography></View> : person ? <>
       <View style={s.stackWrap}>
         {stack.slice().reverse().map((p, revIndex) => {
           const realOffset = stack.length - 1 - revIndex;
@@ -357,7 +357,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
             <Image source={{ uri: p.photo }} style={s.swipePhoto} resizeMode="cover" />
             <View style={s.cardScrim} />
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
-            {isTop && <Pressable onPress={() => setProfileOpen(p)} style={s.cardTapHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`}><Ionicons name="person-circle-outline" size={16} color={c.white}/><Typography style={s.cardTapHintText}>Profil</Typography></Pressable>}
+            {isTop && <Pressable onPress={() => setProfileOpen(p)} style={s.cardTapHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`}><Ionicons name="person-circle-outline" size={16} color={c.white} /><Typography style={s.cardTapHintText}>Profil</Typography></Pressable>}
             <Pressable onPress={() => isTop && setProfileOpen(p)} style={s.cardOpenArea} accessibilityRole="button" accessibilityLabel={`Otwórz profil ${p.name}`} />
             <View pointerEvents="none" style={s.cardIdentity}>
               <Typography style={s.cardName}>{p.name}{p.age ? `, ${p.age}` : ''}</Typography>
@@ -398,9 +398,9 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
         })()}
       </View> : null}
       <Section title="O mnie"><Typography>{person.bio}</Typography></Section>
-      {(person.galleryPhotos||[]).length>0&&<View style={s.profilePhotoBoard}>
-        {(person.galleryPhotos||[]).map((uri,photoIndex)=><View key={uri||photoIndex} style={s.profilePhotoTile}>
-          <Image source={{uri}} style={s.profilePhotoTileImage} resizeMode="cover"/>
+      {(person.galleryPhotos || []).length > 0 && <View style={s.profilePhotoBoard}>
+        {(person.galleryPhotos || []).map((uri, photoIndex) => <View key={uri || photoIndex} style={s.profilePhotoTile}>
+          <Image source={{ uri }} style={s.profilePhotoTileImage} resizeMode="cover" />
         </View>)}
       </View>}
       <Section title="Lubię"><View style={s.wrap}>{person.tags.map(v => <Chip key={v} label={v} />)}</View></Section>
@@ -426,8 +426,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           <Image source={{ uri: profileOpen.photo || people[0]?.photo }} style={s.personProfilePhoto} />
           <Typography style={s.personProfileName}>{profileOpen.name}</Typography>
           <Typography style={s.personProfileCity}>{profileOpen.city}</Typography>
-          {!!(profileOpen.headline||profileOpen.bio) && <Typography numberOfLines={3} style={s.personProfileBio}>{profileOpen.headline||profileOpen.bio}</Typography>}{(profileOpen.galleryPhotos||[]).length>0&&<View style={s.personGalleryBoard}>
-            {(profileOpen.galleryPhotos||[]).map((uri,index)=><Image key={uri||index} source={{uri}} style={s.personGalleryPhoto} resizeMode="cover"/>)}
+          {!!(profileOpen.headline || profileOpen.bio) && <Typography numberOfLines={3} style={s.personProfileBio}>{profileOpen.headline || profileOpen.bio}</Typography>}{(profileOpen.galleryPhotos || []).length > 0 && <View style={s.personGalleryBoard}>
+            {(profileOpen.galleryPhotos || []).map((uri, index) => <Image key={uri || index} source={{ uri }} style={s.personGalleryPhoto} resizeMode="cover" />)}
           </View>}
           <View style={s.personProfileActions}>
             <Button title={sentRequests.includes(profileOpen.id) ? 'Zaproszenie wysłane' : 'Dodaj do znajomych'} disabled={sentRequests.includes(profileOpen.id)} onPress={() => addFriend(profileOpen)} icon="person-add-outline" style={{ flex: 1 }} />
@@ -446,9 +446,9 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           <Typography style={s.matchModalCopy}>Możecie teraz zacząć rozmowę. Napisz pierwsze hej albo zobacz kolejny profil.</Typography>
           <View style={s.matchModalAvatars}>
             <View style={s.matchAvatarPlaceholder}><Ionicons name="person" size={30} color={c.pink} /></View>
-            <View style={s.matchAvatarOverlap}>{matchedProfile?.photo ? <Image source={{uri:matchedProfile.photo}} style={s.matchAvatarImage}/> : <Ionicons name="person" size={30} color={c.pink}/>}</View>
+            <View style={s.matchAvatarOverlap}>{matchedProfile?.photo ? <Image source={{ uri: matchedProfile.photo }} style={s.matchAvatarImage} /> : <Ionicons name="person" size={30} color={c.pink} />}</View>
           </View>
-          {onMessage && matchedProfile?.remote && <Pressable onPress={() => { const id=matchedProfile.id; setMatchedProfile(null); onMessage(id); }} style={s.matchModalPrimary}><Ionicons name="chatbubble-ellipses" size={19} color={c.white}/><Typography style={s.matchModalPrimaryText}>Napisz wiadomość</Typography></Pressable>}
+          {onMessage && matchedProfile?.remote && <Pressable onPress={() => { const id = matchedProfile.id; setMatchedProfile(null); onMessage(id); }} style={s.matchModalPrimary}><Ionicons name="chatbubble-ellipses" size={19} color={c.white} /><Typography style={s.matchModalPrimaryText}>Napisz wiadomość</Typography></Pressable>}
           <Pressable onPress={() => setMatchedProfile(null)} style={s.matchModalSecondary}><Typography style={s.matchModalSecondaryText}>Dalej poznawaj</Typography></Pressable>
         </View>
       </View>
@@ -786,7 +786,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
     });
     setStories(prev => prev.map(story => story.id === storyId ? { ...story, viewed: true } : story));
     if (sessionUserId && /^[0-9a-f-]{36}$/i.test(String(storyId))) {
-      void markStoryViewed(storyId, sessionUserId).catch(() => {});
+      void markStoryViewed(storyId, sessionUserId).catch(() => { });
     }
   };
 
@@ -976,7 +976,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
         </View>
         <Typography style={s.postBody}>{item.body}</Typography>
         {!!item.image && (
-          <Pressable onPress={()=>setPreviewImage(item.image)} style={[
+          <Pressable onPress={() => setPreviewImage(item.image)} style={[
             s.postImageWrap,
             (item.aspectRatio === '4:5' || item.aspectRatio === 'vertical' || item.image?.includes('pinimg.com'))
               ? s.postImageVertical
@@ -996,13 +996,13 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
                 <Ionicons name="happy-outline" size={20} color={c.ink} /><Ionicons name="add" size={11} color={c.ink} style={s.reactionPlus} />
               </Pressable>
               {reactionPickerPostId === item.id && <View style={s.reactionPicker}>
-                {['🌹','😂','😍','🥹','🔥'].map(reaction => <Pressable key={reaction} onPress={() => reactToPost(item,reaction)} style={s.reactionChoice}><Typography style={s.reactionEmoji}>{reaction}</Typography></Pressable>)}
+                {['🌹', '😂', '😍', '🥹', '🔥'].map(reaction => <Pressable key={reaction} onPress={() => reactToPost(item, reaction)} style={s.reactionChoice}><Typography style={s.reactionEmoji}>{reaction}</Typography></Pressable>)}
               </View>}
             </View>}
           </View>
         </View>
-        {item.remote && Object.entries(item.reactions || {}).some(([,count]) => count > 0) && <View style={s.reactionSummaryRow}>
-          {Object.entries(item.reactions || {}).filter(([,count]) => count > 0).map(([reaction,count]) => <Pressable key={reaction} onPress={() => reactToPost(item,reaction)} style={[s.reactionPill, item.myReaction === reaction && s.reactionPillMine]}><Typography style={s.reactionPillText}>{reaction} {count}</Typography></Pressable>)}
+        {item.remote && Object.entries(item.reactions || {}).some(([, count]) => count > 0) && <View style={s.reactionSummaryRow}>
+          {Object.entries(item.reactions || {}).filter(([, count]) => count > 0).map(([reaction, count]) => <Pressable key={reaction} onPress={() => reactToPost(item, reaction)} style={[s.reactionPill, item.myReaction === reaction && s.reactionPillMine]}><Typography style={s.reactionPillText}>{reaction} {count}</Typography></Pressable>)}
         </View>}
         <View style={s.commentComposerRow}>
           <Image source={{ uri: remotePosts.find(post => post.authorId === sessionUserId)?.avatar || people[0]?.photo }} style={s.commentComposerAvatar} />
@@ -1063,7 +1063,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
               <View style={{ flex: 1 }}><Typography style={s.postAuthor}>{commentPost.author}</Typography><Typography variant="caption" style={{ color: c.muted }}>{commentPost.city}</Typography></View>
             </View>
             <Typography style={s.postBody}>{commentPost.body}</Typography>
-            {!!commentPost.image && <Pressable onPress={()=>setPreviewImage(commentPost.image)}><Image source={{ uri: commentPost.image }} style={s.commentPostImage} resizeMode="cover" /></Pressable>}
+            {!!commentPost.image && <Pressable onPress={() => setPreviewImage(commentPost.image)}><Image source={{ uri: commentPost.image }} style={s.commentPostImage} resizeMode="cover" /></Pressable>}
           </View>
           {(() => {
             const all = seededComments(commentPost);
@@ -1104,16 +1104,16 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
               <Ionicons name="create-outline" size={22} color={c.ink} /><Typography style={s.postMenuOptionText}>{isAdmin && postMenu?.authorId !== sessionUserId ? 'Edytuj jako admin' : 'Edytuj wpis'}</Typography>
             </Pressable>
             <Pressable style={s.postMenuOption} onPress={() => { const item = postMenu; setPostMenu(null); deleteOwnPost(item); }}>
-              <Ionicons name="trash-outline" size={22} color={c.pink} /><Typography style={[s.postMenuOptionText,{color:c.pink}]}>Usuń wpis</Typography>
+              <Ionicons name="trash-outline" size={22} color={c.pink} /><Typography style={[s.postMenuOptionText, { color: c.pink }]}>Usuń wpis</Typography>
             </Pressable>
-          </> : <Pressable style={s.postMenuOption} onPress={() => { const item = postMenu; setPostMenu(null); onReport({ kind:'post', id:item.id, label:`Wpis: ${item.author}` }); }}>
-            <Ionicons name="flag-outline" size={22} color={c.pink} /><Typography style={[s.postMenuOptionText,{color:c.pink}]}>Zgłoś wpis</Typography>
+          </> : <Pressable style={s.postMenuOption} onPress={() => { const item = postMenu; setPostMenu(null); onReport({ kind: 'post', id: item.id, label: `Wpis: ${item.author}` }); }}>
+            <Ionicons name="flag-outline" size={22} color={c.pink} /><Typography style={[s.postMenuOptionText, { color: c.pink }]}>Zgłoś wpis</Typography>
           </Pressable>}
         </Pressable>
       </Pressable>
     </Modal>
 
-    <ImagePreviewModal uri={previewImage} onClose={()=>setPreviewImage(null)}/>
+    <ImagePreviewModal uri={previewImage} onClose={() => setPreviewImage(null)} />
 
     <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={() => setComposerOpen(false)}>
       <KeyboardAvoidingView style={s.postModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -1128,7 +1128,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
           <View style={s.postAudience}><Ionicons name="location-outline" size={16} color={c.pink} /><Typography style={s.postAudienceText}>{city}</Typography></View>
           <TextInput autoFocus multiline value={draft} onChangeText={value => setDraft(value.slice(0, 1200))} placeholder={`Co dzieje się w ${city}?`} placeholderTextColor={c.muted} style={s.postInput} />
           {!!postMedia?.uri && <View style={s.postComposerPreviewWrap}>
-            <Pressable onPress={()=>setPreviewImage(postMedia.uri)}><Image source={{ uri: postMedia.uri }} style={s.postComposerPreview} resizeMode="cover" /></Pressable>
+            <Pressable onPress={() => setPreviewImage(postMedia.uri)}><Image source={{ uri: postMedia.uri }} style={s.postComposerPreview} resizeMode="cover" /></Pressable>
             <Pressable onPress={() => setPostMedia(null)} style={s.postComposerRemoveMedia} hitSlop={8}><Ionicons name="close" size={17} color={c.white} /></Pressable>
           </View>}
           {showSpotifyInput && <View style={s.spotifyInputRow}>
@@ -1192,22 +1192,22 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const [remoteRooms, setRemoteRooms] = useState([]);
   const [remoteMessages, setRemoteMessages] = useState([]);
   const [sending, setSending] = useState(false);
-  const [keyboardOpen,setKeyboardOpen]=useState(false);
-  const [previewImage,setPreviewImage]=useState(null);
-  const [chatProfileOpen,setChatProfileOpen]=useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [chatProfileOpen, setChatProfileOpen] = useState(false);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const chatApi = useMemo(() => sessionUserId ? createChatRealtime(supabase) : null, [sessionUserId]);
 
-  useEffect(()=>{
-    const show=Keyboard.addListener('keyboardDidShow',()=>setKeyboardOpen(true));
-    const hide=Keyboard.addListener('keyboardDidHide',()=>setKeyboardOpen(false));
-    return ()=>{show.remove();hide.remove();};
-  },[]);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   useEffect(() => {
 
-  if (active) {
+    if (active) {
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 120);
     }
   }, [active, remoteMessages.length, messages]);
@@ -1236,10 +1236,10 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   }));
   const chats = sessionUserId
     ? Array.from(remoteChatRows.reduce((map, chat) => {
-        const key = !chat.group && chat.otherUserId ? `direct:${chat.otherUserId}` : `room:${chat.id}`;
-        if (!map.has(key)) map.set(key, chat);
-        return map;
-      }, new Map()).values())
+      const key = !chat.group && chat.otherUserId ? `direct:${chat.otherUserId}` : `room:${chat.id}`;
+      if (!map.has(key)) map.set(key, chat);
+      return map;
+    }, new Map()).values())
     : demoChats;
 
   const seededChatMessages = {
@@ -1430,7 +1430,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
     >
       <View style={s.fullChatHeader}>
         <Pressable onPress={() => setActive(null)} style={s.fullChatIcon} accessibilityLabel="Wróć do rozmów"><Ionicons name="arrow-back" size={24} color={c.ink} /></Pressable>
-        <Pressable disabled={!active.otherUserId} onPress={()=>setChatProfileOpen(true)} style={s.chatProfileHeader}>
+        <Pressable disabled={!active.otherUserId} onPress={() => setChatProfileOpen(true)} style={s.chatProfileHeader}>
           {avatar(active.photo || people[0]?.photo, 42)}
           <View style={{ flex: 1 }}><Typography style={s.fullChatName}>{active.name}</Typography><Typography style={s.fullChatStatus}>{active.remote ? formatActivityStatus(active.lastActiveAt) : 'rozmowa demonstracyjna'}</Typography></View>
         </Pressable>
@@ -1444,7 +1444,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
             {message.messageType === 'voice'
               ? <VoiceMessageBubble message={message} outgoing />
               : message.messageType === 'image' && message.mediaUrl
-                ? <Pressable onPress={()=>setPreviewImage(message.mediaUrl)}><Image source={{uri:message.mediaUrl}} style={s.chatImageOutgoing} resizeMode="cover"/></Pressable>
+                ? <Pressable onPress={() => setPreviewImage(message.mediaUrl)}><Image source={{ uri: message.mediaUrl }} style={s.chatImageOutgoing} resizeMode="cover" /></Pressable>
                 : <View style={s.outgoingBubble}><Typography style={s.outgoingText}>{message.body}</Typography></View>}
             {!visibleMessages.slice(messageIndex + 1).some(next => next.side === 'out') && <View style={s.deliveryStatusRow}>
               <Ionicons name="checkmark-done" size={13} color={c.pink} />
@@ -1458,7 +1458,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
               {message.messageType === 'voice'
                 ? <VoiceMessageBubble message={message} />
                 : message.messageType === 'image' && message.mediaUrl
-                  ? <Pressable onPress={()=>setPreviewImage(message.mediaUrl)}><Image source={{uri:message.mediaUrl}} style={s.chatImageIncoming} resizeMode="cover"/></Pressable>
+                  ? <Pressable onPress={() => setPreviewImage(message.mediaUrl)}><Image source={{ uri: message.mediaUrl }} style={s.chatImageIncoming} resizeMode="cover" /></Pressable>
                   : <View style={s.incomingBubble}><Typography style={s.bubbleText}>{message.body}</Typography></View>}
             </View>
           </View>)}
@@ -1479,8 +1479,8 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
         </View>}
       </ScrollView>
 
-      <View style={[s.fullComposer,keyboardOpen&&s.fullComposerKeyboard]}>
-        {!recorderState.isRecording && active.remote && <Pressable onPress={pickChatImage} disabled={sending} style={s.chatMediaButton} accessibilityLabel="Wyślij zdjęcie"><Ionicons name="image-outline" color={c.pink} size={22}/></Pressable>}
+      <View style={[s.fullComposer, keyboardOpen && s.fullComposerKeyboard]}>
+        {!recorderState.isRecording && active.remote && <Pressable onPress={pickChatImage} disabled={sending} style={s.chatMediaButton} accessibilityLabel="Wyślij zdjęcie"><Ionicons name="image-outline" color={c.pink} size={22} /></Pressable>}
         {recorderState.isRecording
           ? <View style={s.recordingState}><View style={s.recordingDot} /><Typography style={s.recordingText}>Nagrywanie {Math.max(1, Math.round((recorderState.durationMillis || 0) / 1000))}s</Typography></View>
           : <TextInput value={draft} onChangeText={setDraft} placeholder="Napisz wiadomość…" placeholderTextColor={c.muted} accessibilityLabel="Wiadomość" multiline maxLength={1200} style={s.fullMessageInput} />}
@@ -1492,13 +1492,13 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
         visible={chatProfileOpen}
         authorName={active?.name}
         authorId={active?.otherUserId}
-        initialData={active?{name:active.name,photo:active.photo}:null}
-        onClose={()=>setChatProfileOpen(false)}
+        initialData={active ? { name: active.name, photo: active.photo } : null}
+        onClose={() => setChatProfileOpen(false)}
         onOpenChat={onOpenChat}
         onReport={onReport}
         sessionUserId={sessionUserId}
       />
-      <ImagePreviewModal uri={previewImage} onClose={()=>setPreviewImage(null)}/>
+      <ImagePreviewModal uri={previewImage} onClose={() => setPreviewImage(null)} />
     </KeyboardAvoidingView>;
   }
 
@@ -1535,11 +1535,11 @@ export function ProfileScreen({ account, onSafety }) {
   </ScrollView>;
 }
 const s = StyleSheet.create({
-  imagePreviewRoot:{flex:1,backgroundColor:'rgba(0,0,0,.96)',alignItems:'center',justifyContent:'center',overflow:'hidden'},
-  imagePreviewImage:{width:W,height:'82%'},
-  imagePreviewClose:{position:'absolute',top:Platform.OS==='ios'?58:30,right:18,width:44,height:44,borderRadius:22,backgroundColor:'rgba(255,255,255,.12)',alignItems:'center',justifyContent:'center',zIndex:10},
-  imagePreviewHint:{position:'absolute',bottom:Platform.OS==='ios'?42:24,left:20,right:20,alignItems:'center'},
-  imagePreviewHintText:{fontFamily:f.semibold,fontSize:12,color:'rgba(255,255,255,.72)',backgroundColor:'rgba(0,0,0,.35)',paddingHorizontal:12,paddingVertical:7,borderRadius:999},
+  imagePreviewRoot: { flex: 1, backgroundColor: 'rgba(0,0,0,.96)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  imagePreviewImage: { width: W, height: '82%' },
+  imagePreviewClose: { position: 'absolute', top: Platform.OS === 'ios' ? 58 : 30, right: 18, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  imagePreviewHint: { position: 'absolute', bottom: Platform.OS === 'ios' ? 42 : 24, left: 20, right: 20, alignItems: 'center' },
+  imagePreviewHintText: { fontFamily: f.semibold, fontSize: 12, color: 'rgba(255,255,255,.72)', backgroundColor: 'rgba(0,0,0,.35)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
   page: { padding: sp.lg, paddingBottom: sp.xxl, backgroundColor: c.canvas, flexGrow: 1 },
   feedPage: { paddingBottom: 110, backgroundColor: '#F7F3F5' },
   feedLoading: { position: 'absolute', top: 6, alignSelf: 'center', zIndex: 30, flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: c.white, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: c.line },
@@ -1658,11 +1658,11 @@ const s = StyleSheet.create({
   cardTapHint: { position: 'absolute', top: 16, right: 16, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(20,14,18,.36)', paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999 },
   cardTapHintText: { color: c.white, fontFamily: f.semibold, fontSize: 11 },
   swipePhoto: { width: '100%', height: '100%' },
-  profilePhotoBoard:{gap:14,marginBottom:sp.md},
-  profilePhotoTile:{width:'100%',aspectRatio:0.82,borderRadius:26,overflow:'hidden',backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
-  profilePhotoTileImage:{width:'100%',height:'100%'},
-  personGalleryBoard:{width:'100%',gap:12,marginTop:18},
-  personGalleryPhoto:{width:'100%',aspectRatio:0.82,borderRadius:24,backgroundColor:c.blush},
+  profilePhotoBoard: { gap: 14, marginBottom: sp.md },
+  profilePhotoTile: { width: '100%', aspectRatio: 0.82, borderRadius: 26, overflow: 'hidden', backgroundColor: c.blush, borderWidth: 1, borderColor: c.line },
+  profilePhotoTileImage: { width: '100%', height: '100%' },
+  personGalleryBoard: { width: '100%', gap: 12, marginTop: 18 },
+  personGalleryPhoto: { width: '100%', aspectRatio: 0.82, borderRadius: 24, backgroundColor: c.blush },
   cardScrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,.14)' },
   vibePill: { position: 'absolute', top: 16, left: 16, backgroundColor: 'rgba(255,255,255,.9)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
   vibeText: { fontFamily: f.bold, fontSize: 12, color: c.ink },
@@ -1724,7 +1724,7 @@ const s = StyleSheet.create({
   postMenuHandle: { alignSelf: 'center', width: 42, height: 5, borderRadius: 99, backgroundColor: c.line, marginBottom: 10 },
   postMenuOption: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   postMenuOptionText: { fontFamily: f.semi, fontSize: 16, color: c.ink },
-  commentComposerRow: { marginTop: 8, marginBottom: 2, flexDirection: 'row', alignItems: 'center', gap: 10 },\n  commentComposerPreview: { flex: 1, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: c.white },
+  commentComposerRow: { marginTop: 8, marginBottom: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }, commentComposerPreview: { flex: 1, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: c.white },
   commentComposerAvatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.soft, borderWidth: 1, borderColor: c.line, overflow: 'hidden' },
   commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, color: c.muted },
   commentsRoot: { flex: 1, backgroundColor: c.white },
@@ -1772,7 +1772,7 @@ const s = StyleSheet.create({
   chatImageOutgoing: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-end' },
   chatImageIncoming: { width: 220, height: 280, borderRadius: 20, backgroundColor: c.blush, alignSelf: 'flex-start' },
   fullChatHeader: { minHeight: 64, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
-  chatProfileHeader:{flex:1,minWidth:0,flexDirection:'row',alignItems:'center',gap:10},
+  chatProfileHeader: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   fullChatIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   fullChatName: { fontFamily: f.bold, fontSize: 15, color: c.ink },
   fullChatStatus: { fontFamily: f.regular, fontSize: 11, color: c.muted, marginTop: 1 },
