@@ -9,6 +9,12 @@
 - **Privacy policy:** a real accessible URL in both the app and App Store Connect; disclose collection, sharing, retention and deletion accurately. https://developer.apple.com/app-store/review/guidelines/
 - **Sign in with Apple:** if enabled, implement token revocation for deleting those accounts before release. https://developer.apple.com/support/offering-account-deletion-in-your-app
 
+## Google Play requirements verified against official sources
+
+- **Privacy policy:** Google Play requires a comprehensive privacy policy linked in Play Console and available inside the app.
+- **Account deletion:** apps that let users create an account must provide an in-app deletion path and a working external web path for requesting deletion of the account and associated data.
+- **Data Safety:** declarations in Play Console must match the app's real collection, use, sharing and retention practices, including third-party SDKs.
+
 ## Implemented in code, but not deployed
 
 - [x] Visible report entry points on demo profiles, posts, groups and chats, with explicit notice that reports are NOT transmitted. `src/Safety.js`.
@@ -17,6 +23,14 @@
 - [x] Profile → Security → delete **demo data** with confirmation and reset of session state. This is NOT online account deletion. `src/Safety.js`.
 - [x] Supabase migrations for block privacy and for pending-by-default posts, owner-only deletion and private profile/post reports. `supabase/migrations/`.
 - [x] Authenticated server deletion function source and API adapter; neither is deployed or called by the demo. `supabase/functions/delete-account/`, `src/services/safetyApi.js`.
+
+### Legal UI wired on 26 September 2026
+
+- [x] Welcome screen now links to `https://polka.app/terms.html` and `https://polka.app/privacy.html`.
+- [x] Settings now links to Terms, Privacy Policy and external account-deletion instructions.
+- [x] External deletion-request page source exists at `website/delete-account.html`.
+- [ ] `website/privacy.html` and `website/terms.html` are still clearly marked drafts and contain controller/retention/legal placeholders. Do not use them as final store-submission documents until those details are completed and reviewed.
+- [ ] Confirm `polka.app` actually serves these files over HTTPS before entering the URLs in App Store Connect or Play Console.
 
 ## HARD RELEASE BLOCKERS — complete before inviting real members
 
