@@ -127,7 +127,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
     (async () => {
       const [profilesResult, dismissalsResult, requests] = await Promise.all([
         supabase.from('profiles')
-          .select('id,display_name,city,bio,avatar_path,headline')
+          .select('id,display_name,city,bio,avatar_path,headline,profile_prompt,profile_answer')
           .neq('id', sessionUserId)
           .eq('city', city)
           .eq('onboarding_complete', true)
@@ -185,8 +185,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
           headline: profile.headline || '',
           tags: interests.filter(row => row.profile_id === profile.id).map(row => row.interest),
           galleryPhotos,
-          prompt: 'Napisz do mnie',
-          answer: 'Najłatwiej zacząć od prostego hej 👋',
+          prompt: profile.profile_prompt || null,
+          answer: profile.profile_answer || null,
           remote: true
         };
       }));
@@ -398,13 +398,12 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
         })()}
       </View> : null}
       <Section title="O mnie"><Typography>{person.bio}</Typography></Section>
-      {(person.galleryPhotos || []).length > 0 && <View style={s.profilePhotoBoard}>
-        {(person.galleryPhotos || []).map((uri, photoIndex) => <View key={uri || photoIndex} style={s.profilePhotoTile}>
-          <Image source={{ uri }} style={s.profilePhotoTileImage} resizeMode="cover" />
-        </View>)}
-      </View>}
+      {(person.galleryPhotos || []).map((uri, photoIndex) => <React.Fragment key={uri || photoIndex}>
+        <View style={s.profilePhotoBoard}><View style={s.profilePhotoTile}><Image source={{ uri }} style={s.profilePhotoTileImage} resizeMode="cover" /></View></View>
+        {photoIndex === 0 && person.prompt && person.answer ? <Section title={person.prompt}><Typography style={{ fontSize: 19, fontFamily: f.semibold }}>{person.answer}</Typography></Section> : null}
+      </React.Fragment>)}
+      {(!(person.galleryPhotos || []).length && person.prompt && person.answer) ? <Section title={person.prompt}><Typography style={{ fontSize: 19, fontFamily: f.semibold }}>{person.answer}</Typography></Section> : null}
       <Section title="Lubię"><View style={s.wrap}>{person.tags.map(v => <Chip key={v} label={v} />)}</View></Section>
-      <Section title={person.prompt}><Typography style={{ fontSize: 19, fontFamily: f.semibold }}>{person.answer}</Typography></Section>
       <View style={s.safetyRow}><TextAction icon="ban-outline" title="Zablokuj" danger onPress={confirmBlock} /><TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'profile', id: person.id, label: `Profil: ${person.name}` })} /></View>
     </> : <Surface><Typography variant="subtitle">Brak profili</Typography><Typography style={{ color: c.muted }}>Zmień miasto lub sprawdź później.</Typography></Surface>}
     <Modal visible={searchOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSearchOpen(false)}>
