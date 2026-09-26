@@ -179,6 +179,21 @@ function PolkaApp(){
     }
   };
 
+  const openGroupChat=async groupId=>{
+    if(!authSession?.user?.id){
+      Alert.alert('Zaloguj się','Czat grupy wymaga konta.');
+      return;
+    }
+    try{
+      const {data,error}=await supabase.rpc('polka_join_group_chat',{p_group:groupId});
+      if(error)throw error;
+      setPendingConversationId(data);
+      setMessagesOpen(true);
+    }catch(error){
+      Alert.alert('Nie otwarto czatu',error.message||'Najpierw dołącz do grupy.');
+    }
+  };
+
   const openDirectChat=async otherUserId=>{
     if(!authSession?.user?.id){
       Alert.alert('Zaloguj się','Wiadomości online są dostępne po zalogowaniu.');
@@ -330,7 +345,7 @@ function PolkaApp(){
           {mountedPlanViews.has('Plany')&&<View style={[s.fill,{display:plansView==='Plany'?'flex':'none'}]}><DiscoverScreen city={activeCity} sessionUserId={authSession?.user?.id||null}/></View>}
           {mountedPlanViews.has('Spotkania')&&<View style={[s.fill,{display:plansView==='Spotkania'?'flex':'none'}]}><MeetingsScreen city={activeCity} sessionUserId={authSession?.user?.id||null} featurePreferences={featurePreferences} onReport={setReportTarget} onOpenChat={openMeetupChat}/></View>}
         </View>}
-        {mountedTabs.has('Grupy')&&<View style={[s.fill,{display:showTabs&&tab==='Grupy'?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget}/></View>}
+        {mountedTabs.has('Grupy')&&<View style={[s.fill,{display:showTabs&&tab==='Grupy'?'flex':'none'}]}><ClubsMeetupsScreen key={session} city={activeCity} sessionUserId={authSession?.user?.id||null} onReport={setReportTarget} onOpenChat={openGroupChat}/></View>}
         {mountedTabs.has('Profil')&&<View style={[s.fill,{display:showTabs&&tab==='Profil'?'flex':'none'}]}><NativeProfile account={account} showCare={featurePreferences.polkaCare} onSave={saveProfile} onSafety={()=>setSafetyOpen(true)} onPartner={()=>setPartnerOpen(true)} onSettings={()=>setSettingsOpen(true)} onCycle={()=>setCycleOpen(true)} onCare={()=>setCareOpen(true)} onMore={()=>setMoreOpen(true)} onSignOut={handleSignOut}/></View>}
         {!showTabs&&<View style={s.fill}>{overlayContent}</View>}
       </View>
