@@ -114,6 +114,7 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
   const [profileOpen, setProfileOpen] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
+  const [postMenu, setPostMenu] = useState(null);
   const [incomingRequests, setIncomingRequests] = useState({});
   const [matchedProfile, setMatchedProfile] = useState(null);
   const [dismissedIds, setDismissedIds] = useState([]);
@@ -951,6 +952,10 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
               </View>
             </View>
           </Pressable>
+          <Pressable onPress={() => setPostMenu(item)} style={s.postMenuTrigger} hitSlop={10} accessibilityLabel="Opcje wpisu">
+            <View style={s.postMenuLineWide} />
+            <View style={s.postMenuLineShort} />
+          </Pressable>
         </View>
         <Typography style={s.postBody}>{item.body}</Typography>
         {!!item.image && (
@@ -970,9 +975,6 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             <TextAction icon={(item.likedByMe || likes.includes(item.id)) ? 'heart' : 'heart-outline'} title={String((item.likes || 0) + (!item.remote && likes.includes(item.id) ? 1 : 0))} onPress={() => toggleLike(item)} />
             <TextAction icon="chatbubble-outline" title={String(item.remote ? (item.commentsCount || 0) : seededComments(item).length)} onPress={() => openComments(item)} />
           </View>
-          {(item.authorId === sessionUserId || item.author === 'Ty' || (isAdmin && item.remote))
-            ? <View style={{ flexDirection: 'row' }}><TextAction icon="create-outline" title={isAdmin && item.authorId !== sessionUserId ? 'Edytuj jako admin' : 'Edytuj'} onPress={() => startEdit(item)} /><TextAction icon="trash-outline" title="Usuń" danger onPress={() => deleteOwnPost(item)} /></View>
-            : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'post', id: item.id, label: `Wpis: ${item.author}` })} />}
         </View>
         <View style={s.commentComposerRow}>
           <Image source={{ uri: remotePosts.find(post => post.authorId === sessionUserId)?.avatar || people[0]?.photo }} style={s.commentComposerAvatar} />
@@ -1063,6 +1065,24 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
           <Pressable onPress={addCommentLocalOrRemote} disabled={!commentDraft.trim()} style={[s.commentSend, !commentDraft.trim() && { opacity: .35 }]}><Ionicons name="arrow-up" size={19} color={c.white} /></Pressable>
         </View>
       </KeyboardAvoidingView>}
+    </Modal>
+
+    <Modal visible={!!postMenu} transparent animationType="fade" onRequestClose={() => setPostMenu(null)}>
+      <Pressable style={s.postMenuBackdrop} onPress={() => setPostMenu(null)}>
+        <Pressable style={s.postMenuSheet} onPress={e => e.stopPropagation()}>
+          <View style={s.postMenuHandle} />
+          {(postMenu?.authorId === sessionUserId || postMenu?.author === 'Ty' || (isAdmin && postMenu?.remote)) ? <>
+            <Pressable style={s.postMenuOption} onPress={() => { const item = postMenu; setPostMenu(null); startEdit(item); }}>
+              <Ionicons name="create-outline" size={22} color={c.ink} /><Typography style={s.postMenuOptionText}>{isAdmin && postMenu?.authorId !== sessionUserId ? 'Edytuj jako admin' : 'Edytuj wpis'}</Typography>
+            </Pressable>
+            <Pressable style={s.postMenuOption} onPress={() => { const item = postMenu; setPostMenu(null); deleteOwnPost(item); }}>
+              <Ionicons name="trash-outline" size={22} color={c.pink} /><Typography style={[s.postMenuOptionText,{color:c.pink}]}>Usuń wpis</Typography>
+            </Pressable>
+          </> : <Pressable style={s.postMenuOption} onPress={() => { const item = postMenu; setPostMenu(null); onReport({ kind:'post', id:item.id, label:`Wpis: ${item.author}` }); }}>
+            <Ionicons name="flag-outline" size={22} color={c.pink} /><Typography style={[s.postMenuOptionText,{color:c.pink}]}>Zgłoś wpis</Typography>
+          </Pressable>}
+        </Pressable>
+      </Pressable>
     </Modal>
 
     <ImagePreviewModal uri={previewImage} onClose={()=>setPreviewImage(null)}/>
@@ -1658,6 +1678,14 @@ const s = StyleSheet.create({
   postAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   postActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   postActionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  postMenuTrigger: { width: 42, height: 42, alignItems: 'flex-end', justifyContent: 'center', gap: 5, paddingRight: 2 },
+  postMenuLineWide: { width: 25, height: 2.5, borderRadius: 99, backgroundColor: c.ink },
+  postMenuLineShort: { width: 17, height: 2.5, borderRadius: 99, backgroundColor: c.ink },
+  postMenuBackdrop: { flex: 1, backgroundColor: 'rgba(20,16,18,.28)', justifyContent: 'flex-end' },
+  postMenuSheet: { backgroundColor: c.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 30 },
+  postMenuHandle: { alignSelf: 'center', width: 42, height: 5, borderRadius: 99, backgroundColor: c.line, marginBottom: 10 },
+  postMenuOption: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
+  postMenuOptionText: { fontFamily: f.semi, fontSize: 16, color: c.ink },
   commentComposerRow: { marginTop: 8, marginBottom: 2, flexDirection: 'row', alignItems: 'center', gap: 10 },\n  commentComposerPreview: { flex: 1, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: c.white },
   commentComposerAvatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.soft, borderWidth: 1, borderColor: c.line, overflow: 'hidden' },
   commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, color: c.muted },
