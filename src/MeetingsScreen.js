@@ -170,7 +170,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       {data.map(item=>{
         const going=joined.includes(item.id);
         return <Pressable key={item.id} onPress={()=>setSelected(item)} style={s.card}>
-          <Image source={{uri:item.photo}} style={s.thumb}/>
+          {(item.photo||item.hostPhoto)?<Image source={{uri:item.photo||item.hostPhoto}} style={s.thumb}/>:<View style={[s.thumb,s.thumbFallback]}><Ionicons name={item.isBusiness?"storefront-outline":"person-outline"} size={28} color={c.pink}/></View>}
           <View style={s.cardBody}>
             <Typography style={s.cardTitle}>{item.title}</Typography>
             <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
@@ -200,7 +200,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
           <Pressable onPress={()=>onReport?.({kind:'meetup',id:selected.id,label:selected.title})} style={s.iconButton}><Ionicons name="ellipsis-horizontal" size={23} color={c.ink}/></Pressable>
         </View>
         <ScrollView contentContainerStyle={s.detailScroll} showsVerticalScrollIndicator={false}>
-          <Image source={{uri:selected.photo}} style={s.hero}/>
+          {(selected.photo||selected.hostPhoto)?<Image source={{uri:selected.photo||selected.hostPhoto}} style={s.hero}/>:<View style={[s.hero,s.heroFallback]}><Ionicons name={selected.isBusiness?"storefront-outline":"person-outline"} size={54} color={c.pink}/></View>}
           <Typography style={s.detailTitle}>{selected.title}</Typography>
           <View style={s.infoRow}><Ionicons name="calendar-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{new Date(selected.when).toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</Typography></View>
           <Pressable onPress={()=>Linking.openURL(selected.mapsUrl||`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.place+', '+selected.city)}`)} style={s.infoRow}><Ionicons name="location-outline" size={19} color={c.pink}/><Typography style={s.infoText}>{selected.place}, {selected.city}</Typography><Ionicons name="open-outline" size={16} color={c.muted}/></Pressable>
@@ -282,6 +282,7 @@ const s=StyleSheet.create({
   list:{paddingHorizontal:sp.lg,paddingBottom:110,gap:10},
   card:{minHeight:92,backgroundColor:c.white,borderRadius:20,borderWidth:1,borderColor:c.line,padding:10,flexDirection:'row',alignItems:'center',gap:12},
   thumb:{width:74,height:74,borderRadius:16,backgroundColor:c.blush},
+  thumbFallback:{alignItems:'center',justifyContent:'center'},
   cardBody:{flex:1,minWidth:0},
   cardTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
   meta:{fontFamily:f.regular,fontSize:12,color:c.muted,marginTop:3},
@@ -312,6 +313,7 @@ const s=StyleSheet.create({
   detailTopTitle:{fontFamily:f.bold,fontSize:16,color:c.ink},
   detailScroll:{paddingBottom:50},
   hero:{width:'100%',height:310,backgroundColor:c.blush},
+  heroFallback:{alignItems:'center',justifyContent:'center'},
   detailTitle:{fontFamily:f.bold,fontSize:32,lineHeight:36,letterSpacing:-1.2,color:c.ink,paddingHorizontal:sp.lg,marginTop:20},
   infoRow:{flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:sp.lg,marginTop:12},
   infoText:{fontFamily:f.semibold,fontSize:14,color:c.ink,flex:1},
