@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Alert,BackHandler,Image,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
+import {Alert,AppState,BackHandler,Image,Linking,Modal,Platform,Pressable,StatusBar,StyleSheet,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView,useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFonts,DMSans_400Regular,DMSans_600SemiBold,DMSans_700Bold} from '@expo-google-fonts/dm-sans';
 import {PlayfairDisplay_700Bold} from '@expo-google-fonts/playfair-display';
@@ -67,6 +67,22 @@ function PolkaApp(){
     const hour=new Date().getHours();
     return hour>=22||hour<5;
   });
+  useEffect(()=>{
+    const userId=authSession?.user?.id;
+    if(!userId)return;
+    let lastWrite=0;
+    const writeActive=()=>{
+      const now=Date.now();
+      if(now-lastWrite<30000)return;
+      lastWrite=now;
+      void supabase.from('profiles').update({last_active_at:new Date(now).toISOString()}).eq('id',userId);
+    };
+    writeActive();
+    const sub=AppState.addEventListener('change',state=>{ if(state==='active')writeActive(); });
+    const timer=setInterval(writeActive,60000);
+    return ()=>{sub.remove();clearInterval(timer);};
+  },[authSession?.user?.id]);
+
   useEffect(()=>{
     let alive=true;
     const syncSession=async session=>{
