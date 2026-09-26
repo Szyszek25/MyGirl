@@ -34,12 +34,12 @@
 
 ## HARD RELEASE BLOCKERS — complete before inviting real members
 
-- [ ] Create and connect a **separate** Polka Supabase project; apply all migrations in order, inspect errors and test RLS as two different authenticated members. NEVER run on MyCampus.
+- [x] Separate Polka Supabase project is active (`jnygupsfbkpqvoewrxpf`) and current migrations are deployed. Continue A/B RLS testing before each release.
 - [ ] Implement actual auth/session handling and connect report/block/delete-post UI to the authenticated API adapter. Persist and refetch blocking, remove blocked content on both sides, test direct access by ID and messaging restrictions.
 - [ ] Build moderation operations: review queue accessible only to authorized staff, documented response procedure, abuse rate limiting, filtering of text/images BEFORE public display. New DB posts start `pending` and are not publicly visible until approved. Demo group/chat reports need their own protected database schema before those features go live.
-- [ ] Implement real account deletion UI for signed-in users that confirms the action and invokes the deployed `delete-account` server function. Confirm auth row, related records, authored posts, media and sessions are removed, including failed/partial deletion recovery. Audit new tables and image paths before enabling uploads.
+- [~] Account deletion UI invokes the deployed JWT-protected `delete-account` Edge Function. DB foreign keys from `auth.users -> profiles -> account-owned tables` are CASCADE and user-prefixed Storage is deleted first. Client session is now cleared locally after success. End-to-end destructive test with a disposable authenticated account is still required; Apple-linked accounts are intentionally blocked until Apple token revocation is implemented.
 - [ ] If adding Apple login, implement Apple token revocation first; the current server function deliberately refuses to delete Apple-linked accounts rather than claim revocation occurred.
-- [ ] Publish actual Polka support contact, privacy policy, terms and community standards. Put links inside the app and in App Store Connect. Provide age eligibility, report turnaround and escalation procedures.
+- [~] Privacy Policy v1.0, Terms v1.0, support contact and account-deletion page are prepared and linked in-app. Confirm the public HTTPS deployment on `polka.app` before App Store submission; add/verify the moderation response process and community standards.
 - [ ] Replace stock demo portraits and fictional accounts with licensed media or consenting people; never market demo personas as real women.
 - [ ] Security review: storage policies and user-owned file paths, RLS, auth, admin permissions, data retention/deletion, audit logging and testing of blocked-user access.
 
