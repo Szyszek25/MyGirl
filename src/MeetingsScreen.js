@@ -8,6 +8,7 @@ import {Button,Typography} from './ui';
 import {createMeetup,loadMeetups,setMeetupRsvp} from './services/meetupsApi';
 import {createPlan} from './services/plansApi';
 import {loadCycleCloud} from './services/cycleApi';
+import {loadBusinessAccount} from './services/businessApi';
 import CreateActivityModal from './CreateActivityModal';
 
 const starterMeetings=[
@@ -63,7 +64,7 @@ const cycleContextFor=(meetingDate,cycle)=>{
   return {tone:'easy',label:'Na luzie',daysText:daysToPeriod===1?'1 dzień do okresu':daysToPeriod+' dni do okresu',icon:'sparkles-outline'};
 };
 
-export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,onOpenCycle,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
+export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onReport,onOpenChat,onOpenCycle,onOpenProfile,featurePreferences={polkaCare:true,cycleMeetingContext:true,zodiacMeetingContext:true,zodiacSign:null}}){
   const [selected,setSelected]=useState(null);
   const [joined,setJoined]=useState(['m1']);
   const [category,setCategory]=useState('Wszystkie');
@@ -77,7 +78,10 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
   const [createDescription,setCreateDescription]=useState('');
   const [createCapacity,setCreateCapacity]=useState('6');
   const [createBusy,setCreateBusy]=useState(false);
+  const [businessAccount,setBusinessAccount]=useState(null);
+  const [createAsBusiness,setCreateAsBusiness]=useState(false);
   const sourceMeetings=sessionUserId ? remoteMeetups : starterMeetings;
+  useEffect(()=>{let alive=true;if(!sessionUserId){setBusinessAccount(null);return;}loadBusinessAccount(sessionUserId).then(value=>{if(alive)setBusinessAccount(value)}).catch(()=>{if(alive)setBusinessAccount(null)});return()=>{alive=false}},[sessionUserId]);
   const data=useMemo(()=>sourceMeetings.filter(item=>item.city===city&&(category==='Wszystkie'||item.category===category)),[sourceMeetings,city,category]);
   const cityPeople=useMemo(()=>people.filter(p=>p.city===city),[city]);
   useEffect(()=>{
@@ -134,7 +138,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
         if(!form.date||!form.time){Alert.alert('Dodaj termin','Wybierz datę i godzinę.');return;}
         const startsAt=new Date(`${form.date}T${form.time}:00`);
         if(Number.isNaN(startsAt.getTime())||startsAt.getTime()<Date.now()){Alert.alert('Nieprawidłowy termin','Wybierz przyszły termin.');return;}
-        await createMeetup(sessionUserId,{title:form.title,description:form.description,city,venueName:form.place,startsAt:startsAt.toISOString(),capacity:form.capacity});
+        await createMeetup(sessionUserId,{title:form.title,description:form.description,city,venueName:form.place,startsAt:startsAt.toISOString(),capacity:form.capacity,businessId:createAsBusiness?businessAccount?.id:null});
         await reloadMeetups();
       }else{
         const timing=form.date?(form.time?`${form.date} · ${form.time}`:form.date):'Termin do ustalenia';
@@ -186,7 +190,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       {!data.length&&<View style={s.empty}><Typography style={s.emptyTitle}>Brak spotkań w {city}</Typography><Typography style={s.emptyText}>Zmień miasto u góry albo wróć później.</Typography></View>}
     </ScrollView>
 
-    <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="meeting" city={city} busy={createBusy} onSubmit={submitActivity}/>
+    {creating&&businessAccount&&<View style={s.businessCreatorBar}><Typography style={s.businessCreatorLabel}>Publikujesz jako</Typography><Pressable onPress={()=>setCreateAsBusiness(v=>!v)} style={s.businessCreatorSwitch}><Ionicons name={createAsBusiness?"storefront":"person"} size={16} color={c.pink}/><Typography style={s.businessCreatorText}>{createAsBusiness?businessAccount.name:"Profil prywatny"}</Typography><Ionicons name="swap-horizontal" size={16} color={c.muted}/></Pressable></View>}\n    <CreateActivityModal visible={creating} onClose={()=>setCreating(false)} initialType="meeting" city={city} busy={createBusy} onSubmit={submitActivity}/>
 
     <Modal visible={!!selected} animationType="slide" onRequestClose={()=>setSelected(null)}>
       {!!selected&&<View style={s.detailRoot}>
@@ -215,10 +219,10 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
 
           <Typography style={s.description}>{selected.description}</Typography>
 
-          <View style={s.section}>
-            <View style={{flex:1}}><Typography style={s.sectionLabel}>Organizuje</Typography><Typography style={s.host}>{selected.host}</Typography></View>
-            <Image source={{uri:(people.find(p=>p.name===selected.host)||people[0]).photo}} style={s.hostAvatar}/>
-          </View>
+          <Pressable onPress={()=>selected.hostId&&onOpenProfile?.(selected.hostId)} style={s.section}>
+            <View style={{flex:1}}><Typography style={s.sectionLabel}>{selected.isBusiness?"Organizuje firma":"Organizuje"}</Typography><Typography style={s.host}>{selected.host}</Typography></View>
+            {selected.hostPhoto?<Image source={{uri:selected.hostPhoto}} style={s.hostAvatar}/>:<View style={[s.hostAvatar,{backgroundColor:c.blush,alignItems:"center",justifyContent:"center"}]}><Ionicons name={selected.isBusiness?"storefront-outline":"person-outline"} size={22} color={c.pink}/></View>}
+          </Pressable>
 
           <View style={s.participantsSection}>
             <View style={s.participantsHeader}>
@@ -249,6 +253,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
 
 const s=StyleSheet.create({
   root:{flex:1,backgroundColor:c.canvas},
+  businessCreatorBar:{position:'absolute',left:24,right:24,bottom:24,zIndex:120,backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:18,padding:10},businessCreatorLabel:{fontFamily:f.regular,fontSize:10,color:c.muted},businessCreatorSwitch:{marginTop:5,flexDirection:'row',alignItems:'center',gap:7},businessCreatorText:{flex:1,fontFamily:f.bold,fontSize:13,color:c.ink},
   header:{paddingHorizontal:sp.lg,paddingTop:6,paddingBottom:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
   title:{fontFamily:f.bold,fontSize:26,letterSpacing:-1,color:c.ink},
   subtitle:{fontFamily:f.regular,fontSize:13,color:c.muted,marginTop:2},
