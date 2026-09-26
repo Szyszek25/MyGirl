@@ -229,16 +229,16 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
       xy.setValue({ x: 0, y: 0 });
     });
   };
-  const wantsHorizontalSwipe = g => Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.1;
+  const wantsHorizontalSwipe = g => Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.05;
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, g) => wantsHorizontalSwipe(g),
-    // The profile card contains a full-size Pressable for opening details. Capture
-    // horizontal movement at the card level so that Pressable does not swallow swipes.
     onMoveShouldSetPanResponderCapture: (_, g) => wantsHorizontalSwipe(g),
+    onPanResponderGrant: () => xy.stopAnimation(),
     onPanResponderMove: Animated.event([null, { dx: xy.x, dy: xy.y }], { useNativeDriver: false }),
     onPanResponderTerminationRequest: () => false,
-    onPanResponderRelease: (_, g) => Math.abs(g.dx) > 72 ? decide(g.dx > 0 ? 1 : -1) : Animated.spring(xy, { toValue: { x: 0, y: 0 }, friction: 7, useNativeDriver: true }).start(),
+    onShouldBlockNativeResponder: () => true,
+    onPanResponderRelease: (_, g) => Math.abs(g.dx) > 58 ? decide(g.dx > 0 ? 1 : -1) : Animated.spring(xy, { toValue: { x: 0, y: 0 }, friction: 7, useNativeDriver: true }).start(),
     onPanResponderTerminate: () => Animated.spring(xy, { toValue: { x: 0, y: 0 }, friction: 7, useNativeDriver: true }).start()
   }), [person?.id, incomingRequests, sessionUserId]);
   const runSearch = async value => {
@@ -279,7 +279,8 @@ export function DiscoverScreen({ city = 'Warszawa', blockedIds = [], onBlock, on
             <Image source={{ uri: p.photo }} style={s.swipePhoto} resizeMode="cover" />
             <View style={s.cardScrim} />
             <View style={s.vibePill}><Typography style={s.vibeText}>{vibeFor(p)}</Typography></View>
-            <Pressable onPress={() => isTop && setProfileOpen(p)} style={StyleSheet.absoluteFill} />
+            <View style={s.cardTapHint} pointerEvents="none"><Ionicons name="expand-outline" size={15} color={c.white}/><Typography style={s.cardTapHintText}>Profil</Typography></View>
+            <Pressable onPress={() => isTop && setProfileOpen(p)} style={s.cardOpenArea} />
             <View pointerEvents="none" style={s.cardIdentity}>
               <Typography style={s.cardName}>{p.name}{p.age ? `, ${p.age}` : ''}</Typography>
               <Typography style={s.cardMeta}>{p.city} · {(p.tags || []).slice(0, 2).join(' · ')}</Typography>
@@ -1301,9 +1302,12 @@ const s = StyleSheet.create({
   filterResetText: { fontFamily: f.bold, fontSize: 14, color: c.ink },
   filterApply: { height: 50, flex: 1, borderRadius: 16, backgroundColor: c.pink, alignItems: 'center', justifyContent: 'center' },
   filterApplyText: { fontFamily: f.bold, fontSize: 14, color: c.white },
-  stackWrap: { height: 520, marginTop: 8, marginBottom: 12, position: 'relative' },
+  stackWrap: { height: 505, marginTop: 8, marginBottom: 0, position: 'relative' },
   swipeCard: { position: 'absolute', left: 0, right: 0, top: 0, height: 490, borderRadius: 28, overflow: 'hidden', backgroundColor: c.white, borderWidth: 1, borderColor: c.line, shadowColor: '#27151D', shadowOpacity: .12, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
   stackCard: { pointerEvents: 'none' },
+  cardOpenArea: { position: 'absolute', left: '28%', right: '28%', top: '22%', bottom: '18%', zIndex: 2 },
+  cardTapHint: { position: 'absolute', top: 16, right: 16, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(20,14,18,.36)', paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999 },
+  cardTapHintText: { color: c.white, fontFamily: f.semibold, fontSize: 11 },
   swipePhoto: { width: '100%', height: '100%' },
   profilePhotoBoard:{gap:14,marginBottom:sp.md},
   profilePhotoTile:{width:'100%',aspectRatio:0.82,borderRadius:26,overflow:'hidden',backgroundColor:c.blush,borderWidth:1,borderColor:c.line},
@@ -1337,7 +1341,7 @@ const s = StyleSheet.create({
   profileCard: { borderRadius: r.lg, backgroundColor: c.white, overflow: 'hidden', borderWidth: 1, borderColor: c.line },
   heroPhoto: { width: '100%', height: Math.min(W * 1.2, 470), backgroundColor: c.blush },
   heroName: { backgroundColor: c.white, padding: sp.base },
-  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', marginVertical: sp.lg },
+  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 30, marginTop: -18, marginBottom: 14, zIndex: 12 },
   round: { width: 55, height: 55, borderRadius: 30, backgroundColor: c.white, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
   groupIcon: { width: 60, height: 60, borderRadius: 20, backgroundColor: c.blush, alignItems: 'center', justifyContent: 'center' },
   disclaimer: { color: c.muted, marginTop: sp.base, lineHeight: 19 },
