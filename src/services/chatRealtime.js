@@ -57,11 +57,11 @@ export function createChatRealtime(client){
     const otherIds=[...new Set((members||[]).filter(row=>row.user_id!==userId).map(row=>row.user_id))];
     let profiles=[];
     if(otherIds.length){
-      const result=await client.from('profiles').select('id,display_name,avatar_path,last_active_at').in('id',otherIds);
+      const result=await client.from('profiles').select('id,display_name,avatar_path,avatar_thumb_path,avatar_thumb_path,last_active_at').in('id',otherIds);
       if(result.error)throw result.error;
       profiles=result.data||[];
     }
-    const profileEntries=await Promise.all(profiles.map(async profile=>[profile.id,{...profile,avatar_url:await resolveAvatarUrl(profile.avatar_path)}]));
+    const profileEntries=await Promise.all(profiles.map(async profile=>[profile.id,{...profile,avatar_url:await resolveAvatarUrl(profile.avatar_thumb_path||profile.avatar_path)}]));
     const profileMap=new Map(profileEntries);
     const groupIds=[...new Set((rooms||[]).map(room=>room.group_id).filter(Boolean))];
     const groupMap=new Map();
