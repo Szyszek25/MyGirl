@@ -951,7 +951,10 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             ? <View style={{ flexDirection: 'row' }}><TextAction icon="create-outline" title={isAdmin && item.authorId !== sessionUserId ? 'Edytuj jako admin' : 'Edytuj'} onPress={() => startEdit(item)} /><TextAction icon="trash-outline" title="Usuń" danger onPress={() => deleteOwnPost(item)} /></View>
             : <TextAction icon="flag-outline" title="Zgłoś" danger onPress={() => onReport({ kind: 'post', id: item.id, label: `Wpis: ${item.author}` })} />}
         </View>
-        <Pressable onPress={() => openComments(item)} style={s.commentPreview}><Typography style={s.commentPreviewText}>Zobacz komentarze</Typography></Pressable>
+        <Pressable onPress={() => openComments(item)} style={s.commentComposerPreview}>
+          <Image source={{ uri: me?.avatar || me?.avatarUrl || account?.avatarUrl || account?.avatar || item.avatar }} style={s.commentComposerAvatar} />
+          <Typography numberOfLines={1} style={s.commentComposerPlaceholder}>Napisz komentarz...</Typography>
+        </Pressable>
       </View>}
       ListEmptyComponent={!loading ? <View style={s.feedEmpty}><Typography style={s.emptyFeedTitle}>Jeszcze cicho w {city}</Typography><Typography style={s.emptyFeedText}>Napisz pierwszy post albo zmień miasto u góry.</Typography></View> : null}
     />
@@ -1613,8 +1616,9 @@ const s = StyleSheet.create({
   postAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   postActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   postActionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  commentPreview: { paddingTop: 6, paddingBottom: 2 },
-  commentPreviewText: { fontFamily: f.semibold, fontSize: 12, color: c.muted },
+  commentComposerPreview: { marginTop: 8, marginBottom: 2, minHeight: 42, borderWidth: 1, borderColor: c.line, borderRadius: 999, paddingHorizontal: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.white },
+  commentComposerAvatar: { width: 32, height: 32, borderRadius: 999, backgroundColor: c.soft },
+  commentComposerPlaceholder: { flex: 1, fontFamily: f.regular, fontSize: 14, color: c.muted },
   commentsRoot: { flex: 1, backgroundColor: c.white },
   commentsHeader: { height: 60, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   commentsBack: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
