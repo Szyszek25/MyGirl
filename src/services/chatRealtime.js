@@ -39,7 +39,7 @@ export function createChatRealtime(client){
     if(!ids.length)return [];
 
     const [{data:rooms,error:roomError},{data:members,error:membersError},{data:lastMessages,error:messageError}]=await Promise.all([
-      client.from('conversations').select('id,kind,title,created_by,updated_at,created_at').in('id',ids).order('updated_at',{ascending:false}),
+      client.from('conversations').select('id,kind,title,created_by,updated_at,created_at,meetup_id,group_id').in('id',ids).order('updated_at',{ascending:false}),
       client.from('conversation_members').select('conversation_id,user_id').in('conversation_id',ids),
       client.from('messages').select('id,conversation_id,sender_id,body,created_at').in('conversation_id',ids).is('deleted_at',null).order('created_at',{ascending:false}).limit(150)
     ]);
@@ -55,6 +55,14 @@ export function createChatRealtime(client){
       profiles=result.data||[];
     }
     const profileMap=new Map(profiles.map(profile=>[profile.id,profile]));
+    const groupIds=[...new Set((rooms||[]).map(room=>room.group_id).filter(Boolean))];
+    const groupMap=new Map();
+    if(groupIds.length){
+      const {data:groupRows,error:groupError}=await client.from('groups').select('id,cover_path').in('id',groupIds);
+      if(groupError)throw groupError;
+      await Promise.all((groupRows||[]).map(async group=>{if(!group.cover_path)return;const {data}=await client.storage.from('polka-group-covers').createSignedUrl(group.cover_path,3600);if(data?.signedUrl)groupMap.set(group.id,data.signedUrl);}));
+    }
+
     const latest=new Map();
     for(const message of lastMessages||[])if(!latest.has(message.conversation_id))latest.set(message.conversation_id,message);
 
@@ -67,6 +75,9 @@ export function createChatRealtime(client){
         name:room.kind==='group'?(room.title||'Grupa'):(other?.display_name||'Rozmowa'),
         otherUserId:other?.id||null,
         avatarPath:other?.avatar_path||null,
+        avatarUrl:room.group_id?groupMap.get(room.group_id)||null:null,
+        meetupId:room.meetup_id||null,
+        groupId:room.group_id||null,
         lastActiveAt:other?.last_active_at||null,
         last:last?.body||'Nowa rozmowa',
         time:last?.created_at||room.updated_at||room.created_at
