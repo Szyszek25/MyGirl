@@ -791,7 +791,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
           <View style={s.feedHeader}>
             <Pressable onPress={() => { setEditingPost(null); setDraft(''); setSpotifyUrl(''); setShowSpotifyInput(false); setPostMedia(null); setComposerOpen(true) }} style={s.composerTrigger}>
               <View style={s.composerAvatar}><Ionicons name="person" size={18} color={c.pink} /></View>
-              <Typography style={s.composerPlaceholder}>Napisz coś do dziewczyn w {city}…</Typography>
+              <Typography style={s.composerPlaceholder}>Napisz wiadomość do dziewczyn…</Typography>
               <Ionicons name="add-circle" size={24} color={c.pink} />
             </Pressable>
           </View>
