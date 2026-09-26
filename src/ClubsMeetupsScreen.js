@@ -13,7 +13,7 @@ const clean=(value,max)=>String(value||'').trim().slice(0,max);
 const localId=()=>`group-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
 export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,onReport}){
-  const [clubs,setClubs]=useState(seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
+  const [clubs,setClubs]=useState(()=>sessionUserId?[]:seedGroups.map((g,i)=>({...g,demo:true,members:g.members||18+i*7})));
   const [remoteLoaded,setRemoteLoaded]=useState(false);
   const [tempRoom,setTempRoom]=useState(null);
   const [joined,setJoined]=useState(['coffee-waw']);
@@ -30,6 +30,7 @@ export default function ClubsMeetupsScreen({city='Warszawa',sessionUserId=null,o
       return;
     }
     let alive=true;
+    setClubs([]);
     loadGroups(city,sessionUserId).then(rows=>{
       if(!alive)return;
       setClubs(rows.length?rows:[]);
