@@ -193,7 +193,7 @@ export default function MeetingsScreen({city='Warszawa',sessionUserId=null,onRep
       {data.map(item=>{
         const going=joined.includes(item.id);
         return <Pressable key={item.id} onPress={()=>setSelected(item)} style={s.card}>
-          {(item.photo||item.hostPhoto)?<Image source={{uri:item.photo||item.hostPhoto}} style={s.thumb}/>:<View style={[s.thumb,s.thumbFallback]}><Ionicons name={item.isBusiness?"storefront-outline":"person-outline"} size={28} color={c.pink}/></View>}
+          {(item.coverPhotoUrl||item.photo||item.hostPhoto)?<Image source={{uri:item.coverPhotoUrl||item.photo||item.hostPhoto}} style={s.thumb}/>:<View style={[s.thumb,s.thumbFallback]}><Ionicons name={item.isBusiness?"storefront-outline":"person-outline"} size={28} color={c.pink}/></View>}
           <View style={s.cardBody}>
             <Typography style={s.cardTitle}>{item.title}</Typography>
             <Typography style={s.meta}>{new Date(item.when).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</Typography><Typography style={s.placeMeta}>{item.place}</Typography>
