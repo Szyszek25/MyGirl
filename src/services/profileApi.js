@@ -18,8 +18,8 @@ export async function loadRemoteProfile(userId){
 
   let photo=null;
   if(data.avatar_path){
-    const {data:signed}=await supabase.storage.from('polka-avatars').createSignedUrl(data.avatar_path,60*60);
-    photo=signed?.signedUrl||null;
+    if(/^https?:\/\//i.test(data.avatar_path)) photo=data.avatar_path;
+    else { const {data:signed}=await supabase.storage.from('polka-avatars').createSignedUrl(data.avatar_path,60*60); photo=signed?.signedUrl||null; }
   }
 
   const galleryPhotos=(await Promise.all((photoRows||[]).map(async row=>{
