@@ -28,7 +28,7 @@ export async function loadFeed(city,userId){
   if(error)throw error;
   const ids=[...new Set((rows||[]).map(r=>r.author_id))];
   const {data:profiles,error:profilesError}=ids.length
-    ? await supabase.from('profiles').select('id,display_name,city,avatar_path,avatar_thumb_path').in('id',ids)
+    ? await supabase.from('profiles').select('id,display_name,city,avatar_path,avatar_thumb_path,username').in('id',ids)
     : {data:[],error:null};
   if(profilesError)throw profilesError;
   const profileMap=new Map((profiles||[]).map(p=>[p.id,p]));
@@ -52,6 +52,7 @@ export async function loadFeed(city,userId){
       id:row.id,
       authorId:row.author_id,
       author:profile.display_name||'Polka',
+      username:profile.username||null,
       city:profile.city||city||'',
       body:row.body,
       image:row.media_type==='image'?await signed('polka-post-media',row.media_path):null,
