@@ -1037,7 +1037,7 @@ export function CommunityScreen({ city = 'Warszawa', posts = [], setPosts, block
             const all = seededComments(commentPost);
             const roots = all.filter(comment => !comment.parentId);
             const renderComment = (comment, nested = false) => <View key={comment.id} style={[s.commentRow, nested && s.commentReplyRow]}>
-              <Pressable onPress={() => comment.authorId && setSelectedProfile({ name: comment.author, authorId: comment.authorId, avatar: comment.photo })}>
+              <Pressable onPress={() => comment.authorId && (setCommentPost(null), setSelectedProfile({ name: comment.author, authorId: comment.authorId, avatar: comment.photo }))}>
                 {comment.photo ? avatar(comment.photo, nested ? 30 : 38) : <View style={[s.commentAvatar, nested && s.commentReplyAvatar]}><Ionicons name="person" size={nested ? 14 : 17} color={c.pink} /></View>}
               </Pressable>
               <View style={s.commentBubble}>
