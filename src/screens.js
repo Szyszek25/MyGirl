@@ -1226,7 +1226,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
   const remoteChatRows = remoteRooms.map(room => ({
     id: room.id,
     name: room.name,
-    photo: people[0]?.photo,
+    photo: room.avatarUrl || null,
     last: room.last,
     time: formatPostTime(room.time),
     unread: 0,
@@ -1283,7 +1283,7 @@ export function ChatsScreen({ sessionUserId = null, initialConversationId = null
           if (room) {
             initialOpened.current = true;
             setActive({
-              id: room.id, name: room.name, photo: people[0]?.photo, last: room.last,
+              id: room.id, name: room.name, photo: room.avatarUrl || null, last: room.last,
               time: formatPostTime(room.time), unread: 0, group: room.kind === 'group', remote: true,
               otherUserId: room.otherUserId || null, lastActiveAt: room.lastActiveAt || null
             });
